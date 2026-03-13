@@ -50,6 +50,7 @@ class StockMarketEast(StockMarketTemplate):
                   }
         # 2. 请求url
         url = "http://push2his.eastmoney.com/api/qt/stock/kline/get"
+        print(f"URL: {url}, params: {params}")
         r = requests.request(method='get', url=url, params=params)
         data_json = r.json()
 

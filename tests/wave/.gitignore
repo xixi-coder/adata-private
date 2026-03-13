@@ -1,0 +1,28 @@
+# 股票数据
+stock_data/
+*.csv
+
+# 回测结果
+trade_log_detail.csv
+equity_curve.csv
+trade_analysis.png
+trade_log.csv
+stock_list.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.bak

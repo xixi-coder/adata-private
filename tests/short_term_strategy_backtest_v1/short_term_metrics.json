@@ -1,0 +1,16 @@
+{
+  "initial_capital": 1000000.0,
+  "final_capital": 1142092.6,
+  "strategy_total_return_pct": 14.21,
+  "benchmark_total_return_pct": -7.58,
+  "excess_return_pct": 21.79,
+  "annualized_return_pct": 2.84,
+  "annualized_volatility_pct": 9.57,
+  "sharpe_ratio": 0.338,
+  "max_drawdown_pct": -13.35,
+  "trade_count": 95,
+  "win_rate_pct": 43.16,
+  "avg_trade_return_pct": 0.96,
+  "profit_factor": 1.25,
+  "avg_holding_days": 2.39
+}

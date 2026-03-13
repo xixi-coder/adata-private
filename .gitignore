@@ -49,3 +49,43 @@ __pycache__
 /adata.egg-info
 /venv
 .html
+# cache
+data/cache/
+__pycache__/
+*.pyc
+
+# logs
+*.log
+logs/
+
+# notebook checkpoints
+.ipynb_checkpoints/
+
+# datasets / outputs
+*.parquet
+*.feather
+*.pkl
+*.joblib
+*.npy
+*.npz
+
+# archives
+*.zip
+*.tar
+*.gz
+*.7z
+
+# model files
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# local env
+.venv/
+venv/
+.envdata/cache/
+*.pkl
+data/cache/
+data/cache/
+*.pkl
