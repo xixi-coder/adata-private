@@ -1,13 +1,12 @@
-name: Daily Python Script
+name: Initialize Short-Term Cache
 
 on:
-  schedule:
-    - cron: '0 1 * * *'   # 每天运行一次（UTC时间）
-  workflow_dispatch:      # 允许手动运行
+  workflow_dispatch:
 
 jobs:
-  run-script:
+  init-cache:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     env:
       CACHE_KEY_PREFIX: data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'tests/short_term_strategy_backtest_v1/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}
 
@@ -25,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install adata
           pip install -r requirements.txt
-          
+
       - name: Restore data cache
         id: cache-restore
         uses: actions/cache/restore@v4
@@ -35,10 +34,10 @@ jobs:
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-
             data-cache-${{ runner.os }}-
-          
-      - name: Run script
+
+      - name: Initialize strategy cache
         run: |
-          python tests/short_term_strategy_backtest_v1/intraday_signal/intraday_strategy_live.py
+          python tests/short_term_strategy_backtest_v1/init_short_term_cache.py
 
       - name: Save data cache
         if: always()
