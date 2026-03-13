@@ -151,17 +151,100 @@ class ShortTermDisagreementStrategy:
         print(f"加载股票元数据完成: {len(self.stock_meta)} 条")
 
     def load_data(self):
-        if not os.path.exists(self.full_cache_file):
-            raise FileNotFoundError(f"未找到缓存: {self.full_cache_file}")
-        if not os.path.exists(self.benchmark_file):
-            raise FileNotFoundError(f"未找到基准文件: {self.benchmark_file}")
+        import adata
+        import datetime
+        import concurrent.futures
 
         self._load_stock_metadata()
+        os.makedirs(self.cache_dir, exist_ok=True)
 
-        print("加载全量股票缓存...")
-        with open(self.full_cache_file, "rb") as f:
-            cache = pickle.load(f)
-        raw_stock = cache["stock"]
+        if os.path.exists(self.full_cache_file):
+            print("加载全量股票缓存...")
+            with open(self.full_cache_file, "rb") as f:
+                cache = pickle.load(f)
+        else:
+            print(f"未找到缓存 {self.full_cache_file}，将自动拉取数据...")
+            cache = {"stock": {}, "update_meta": {}}
+
+        raw_stock = cache.setdefault("stock", {})
+        update_meta = cache.setdefault("update_meta", {})
+        stock_last_checked = update_meta.setdefault("stock_last_checked", {})
+
+        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        default_start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
+
+        print("检查并更新股票最新数据 (截至当天)...")
+        valid_codes = [c for c in self.stock_meta.keys() if self._is_supported_equity_code(c)]
+        if not valid_codes:
+            try:
+                df_codes = adata.stock.info.all_code()
+                valid_codes = df_codes['stock_code'].astype(str).tolist()
+                valid_codes = [self._normalize_code(c) for c in valid_codes]
+                valid_codes = [c for c in valid_codes if self._is_supported_equity_code(c)]
+            except Exception as e:
+                print(f"获取股票列表失败: {e}")
+
+        pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != today_str]
+
+        def fetch_incremental(code, df):
+            try:
+                if df is not None and not df.empty:
+                    last_date = pd.to_datetime(df['trade_time'].max()).strftime('%Y-%m-%d')
+                    if last_date < today_str:
+                        new_data = adata.stock.market.get_market(stock_code=code, start_date=last_date)
+                        if new_data is not None and not new_data.empty:
+                            merged_df = pd.concat([df, new_data]).drop_duplicates('trade_time').sort_values('trade_time')
+                            return code, merged_df, True
+                        return code, df, True
+                    return code, df, False
+                else:
+                    new_data = adata.stock.market.get_market(stock_code=code, start_date=default_start_date)
+                    if new_data is not None and not new_data.empty:
+                        return code, new_data, True
+            except Exception as exc:
+                print(f"[数据更新失败] {code}: {exc}")
+            return code, df, False
+
+        updated_count = 0
+        checked_count = 0
+
+        if pending_codes:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {executor.submit(fetch_incremental, c, raw_stock.get(c)): c for c in pending_codes}
+                for f in concurrent.futures.as_completed(futures):
+                    code, new_df, checked = f.result()
+                    if checked:
+                        stock_last_checked[code] = today_str
+                        checked_count += 1
+                    if new_df is not raw_stock.get(code):
+                        raw_stock[code] = new_df
+                        updated_count += 1
+
+        if os.path.exists(self.benchmark_file):
+            bench = pd.read_csv(self.benchmark_file)
+        else:
+            bench = pd.DataFrame()
+
+        try:
+            if not bench.empty:
+                bench_last_date = str(bench['trade_date'].max())
+                if bench_last_date < today_str:
+                    new_bench = adata.stock.market.get_market_index(index_code='000300', start_date=bench_last_date)
+                    if new_bench is not None and not new_bench.empty:
+                        bench = pd.concat([bench, new_bench]).drop_duplicates('trade_date').sort_values('trade_date')
+                        bench.to_csv(self.benchmark_file, index=False)
+            else:
+                bench = adata.stock.market.get_market_index(index_code='000300', start_date=default_start_date)
+                if bench is not None and not bench.empty:
+                    bench.to_csv(self.benchmark_file, index=False)
+        except Exception as e:
+            print(f"更新指数数据失败: {e}")
+
+        if updated_count > 0 or checked_count > 0:
+            if updated_count > 0:
+                print(f"更新了 {updated_count} 只股票的新增日K数据并回写缓存。")
+            with open(self.full_cache_file, "wb") as f:
+                pickle.dump(cache, f)
 
         print("预处理股票数据并构建流动性股票池...")
         processed = {}
