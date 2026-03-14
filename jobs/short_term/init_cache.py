@@ -17,5 +17,6 @@ if __name__ == "__main__":
     sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
     strategy = ShortTermDisagreementStrategy()
     strategy.load_data(allow_online_update=True)
+    strategy.sync_active_cache_to_shared()
     sync_cache_to_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
     print(f"缓存初始化完成: {strategy.full_cache_file}")

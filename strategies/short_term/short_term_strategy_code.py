@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import datetime as dt
 import json
 import os
 import pickle
+import shutil
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -120,6 +123,10 @@ class ShortTermDisagreementStrategy:
         return 0.10
 
     @staticmethod
+    def _now_shanghai() -> dt.datetime:
+        return dt.datetime.now(ZoneInfo("Asia/Shanghai"))
+
+    @staticmethod
     def _is_excluded_short_name(short_name: str) -> bool:
         if not isinstance(short_name, str):
             return False
@@ -168,9 +175,46 @@ class ShortTermDisagreementStrategy:
             raise ValueError(f"缓存文件格式错误: {path}")
         return cache
 
+    def sync_active_cache_to_shared(self) -> bool:
+        if self.full_cache_file == self.shared_cache_file:
+            return False
+        if not os.path.exists(self.full_cache_file):
+            return False
+        shutil.copyfile(self.full_cache_file, self.shared_cache_file)
+        self.full_cache_file = self.shared_cache_file
+        print(f"已将当前可用缓存同步到共享缓存: {self.shared_cache_file}")
+        return True
+
+    @staticmethod
+    def _trade_dates_for_years(adata_module, years: list[int]) -> list[str]:
+        trade_dates = set()
+        for year in years:
+            calendar_df = adata_module.stock.info.trade_calendar(year=year)
+            if calendar_df is None or calendar_df.empty:
+                continue
+            df = calendar_df.copy()
+            df["trade_date"] = df["trade_date"].astype(str)
+            df["trade_status"] = pd.to_numeric(df["trade_status"], errors="coerce").fillna(0).astype(int)
+            trade_dates.update(df.loc[df["trade_status"] == 1, "trade_date"].tolist())
+        return sorted(trade_dates)
+
+    def _incremental_target_date(self, adata_module) -> str:
+        now = self._now_shanghai()
+        today_str = now.strftime("%Y-%m-%d")
+        trade_dates = self._trade_dates_for_years(adata_module, [now.year - 1, now.year, now.year + 1])
+        if not trade_dates:
+            return today_str
+        completed_dates = [d for d in trade_dates if d <= today_str]
+        if not completed_dates:
+            return today_str
+        latest_trade_date = completed_dates[-1]
+        # 日K在收盘并稳定后再把当天视为“可完成更新”的目标日期。
+        if latest_trade_date == today_str and now.time() < dt.time(15, 30):
+            return completed_dates[-2] if len(completed_dates) >= 2 else today_str
+        return latest_trade_date
+
     def load_data(self, allow_online_update: Optional[bool] = None, max_update_codes: Optional[int] = None):
         import adata
-        import datetime
         import concurrent.futures
 
         self._load_stock_metadata()
@@ -205,8 +249,8 @@ class ShortTermDisagreementStrategy:
         update_meta = cache.setdefault("update_meta", {})
         stock_last_checked = update_meta.setdefault("stock_last_checked", {})
 
-        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        default_start_date = (datetime.datetime.now() - datetime.timedelta(days=365 * 5 + 30)).strftime("%Y-%m-%d")
+        target_date = self._incremental_target_date(adata)
+        default_start_date = (self._now_shanghai() - dt.timedelta(days=365 * 5 + 30)).strftime("%Y-%m-%d")
         valid_codes = [c for c in self.stock_meta.keys() if self._is_supported_equity_code(c)]
         if not valid_codes:
             try:
@@ -225,17 +269,17 @@ class ShortTermDisagreementStrategy:
             try:
                 if df is not None and not df.empty:
                     last_date = pd.to_datetime(df['trade_time'].max()).strftime('%Y-%m-%d')
-                    if last_date < today_str:
+                    if last_date < target_date:
                         new_data = adata.stock.market.get_market(stock_code=code, start_date=last_date)
                         if new_data is not None and not new_data.empty:
                             merged_df = pd.concat([df, new_data]).drop_duplicates('trade_time').sort_values('trade_time')
-                            return code, merged_df, True
-                        return code, df, True
+                            return code, merged_df, pd.to_datetime(merged_df['trade_time'].max()).strftime('%Y-%m-%d') >= target_date
+                        return code, df, False
                     return code, df, False
                 else:
                     new_data = adata.stock.market.get_market(stock_code=code, start_date=default_start_date)
                     if new_data is not None and not new_data.empty:
-                        return code, new_data, True
+                        return code, new_data, pd.to_datetime(new_data['trade_time'].max()).strftime('%Y-%m-%d') >= target_date
             except Exception as exc:
                 print(f"[数据更新失败] {code}: {exc}")
             return code, df, False
@@ -244,14 +288,14 @@ class ShortTermDisagreementStrategy:
         checked_count = 0
 
         if allow_online_update:
-            print("检查并更新股票最新数据 (截至当天)...")
+            print(f"检查并更新股票最新数据 (目标交易日: {target_date})...")
             if pending_codes:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                     futures = {executor.submit(fetch_incremental, c, raw_stock.get(c)): c for c in pending_codes}
                     for f in concurrent.futures.as_completed(futures):
                         code, new_df, checked = f.result()
                         if checked:
-                            stock_last_checked[code] = today_str
+                            stock_last_checked[code] = target_date
                             checked_count += 1
                         if new_df is not raw_stock.get(code):
                             raw_stock[code] = new_df
@@ -268,7 +312,7 @@ class ShortTermDisagreementStrategy:
             try:
                 if not bench.empty:
                     bench_last_date = str(bench['trade_date'].max())
-                    if bench_last_date < today_str:
+                    if bench_last_date < target_date:
                         new_bench = adata.stock.market.get_market_index(index_code='000300', start_date=bench_last_date)
                         if new_bench is not None and not new_bench.empty:
                             bench = pd.concat([bench, new_bench]).drop_duplicates('trade_date').sort_values('trade_date')

@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import pickle
+from zoneinfo import ZoneInfo
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -90,6 +91,38 @@ class ThreeDimResonanceStrategy:
         # 扩大股票范围：主板 + 创业板 + 科创板，先不纳入北交所和 B 股。
         return code.startswith(("600", "601", "603", "605", "000", "001", "002", "003", "300", "301", "688"))
 
+    @staticmethod
+    def _now_shanghai() -> datetime.datetime:
+        return datetime.datetime.now(ZoneInfo("Asia/Shanghai"))
+
+    @staticmethod
+    def _trade_dates_for_years(adata_module, years: list[int]) -> list[str]:
+        trade_dates = set()
+        for year in years:
+            calendar_df = adata_module.stock.info.trade_calendar(year=year)
+            if calendar_df is None or calendar_df.empty:
+                continue
+            df = calendar_df.copy()
+            df["trade_date"] = df["trade_date"].astype(str)
+            df["trade_status"] = pd.to_numeric(df["trade_status"], errors="coerce").fillna(0).astype(int)
+            trade_dates.update(df.loc[df["trade_status"] == 1, "trade_date"].tolist())
+        return sorted(trade_dates)
+
+    def _incremental_target_date(self, adata_module) -> str:
+        now = self._now_shanghai()
+        today_str = now.strftime("%Y-%m-%d")
+        trade_dates = self._trade_dates_for_years(adata_module, [now.year - 1, now.year, now.year + 1])
+        if not trade_dates:
+            return today_str
+        completed_dates = [d for d in trade_dates if d <= today_str]
+        if not completed_dates:
+            return today_str
+        latest_trade_date = completed_dates[-1]
+        # 收盘前统一把上一交易日视为“已完成”的日K目标，避免提前标记当天已检查。
+        if latest_trade_date == today_str and now.time() < datetime.time(15, 30):
+            return completed_dates[-2] if len(completed_dates) >= 2 else today_str
+        return latest_trade_date
+
     def load_data(self):
         if not os.path.exists(self.full_cache_file):
             raise FileNotFoundError(f"未找到缓存: {self.full_cache_file}")
@@ -104,22 +137,23 @@ class ThreeDimResonanceStrategy:
         stock_last_checked = update_meta.setdefault("stock_last_checked", {})
 
         # ------------- 自动拉取更新最新数据 -------------
-        print("检查并更新股票最新数据 (截至当天)...")
+        print("检查并更新股票最新数据...")
         import concurrent.futures
         import adata
-        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        target_date = self._incremental_target_date(adata)
+        print(f"日K增量更新目标交易日: {target_date}")
 
         def fetch_incremental(code, df):
             try:
                 if df is not None and not df.empty:
                     last_date = pd.to_datetime(df['trade_time'].max()).strftime('%Y-%m-%d')
-                    if last_date < today_str:
+                    if last_date < target_date:
                         # 对于只缺失部分天数的情况，执行增量获取
                         new_data = adata.stock.market.get_market(stock_code=code, start_date=last_date)
                         if new_data is not None and not new_data.empty:
                             merged_df = pd.concat([df, new_data]).drop_duplicates('trade_time').sort_values('trade_time')
-                            return code, merged_df, True
-                        return code, df, True
+                            return code, merged_df, pd.to_datetime(merged_df['trade_time'].max()).strftime('%Y-%m-%d') >= target_date
+                        return code, df, False
                     return code, df, False
             except Exception as exc:
                 print(f"[增量更新失败] {code}: {exc}")
@@ -129,7 +163,7 @@ class ThreeDimResonanceStrategy:
         updated_count = 0
         checked_count = 0
         valid_codes = [c for c in raw_stock.keys() if self._is_tradable_a_share_code(c)]
-        pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != today_str]
+        pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != target_date]
         
         # 使用并发加快拉取速度
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -137,7 +171,7 @@ class ThreeDimResonanceStrategy:
             for f in concurrent.futures.as_completed(futures):
                 code, new_df, checked = f.result()
                 if checked:
-                    stock_last_checked[code] = today_str
+                    stock_last_checked[code] = target_date
                     checked_count += 1
                 if new_df is not raw_stock[code]:
                     raw_stock[code] = new_df
@@ -147,7 +181,7 @@ class ThreeDimResonanceStrategy:
         bench = pd.read_csv(self.benchmark_file)
         if not bench.empty:
             bench_last_date = str(bench['trade_date'].max())
-            if bench_last_date < today_str:
+            if bench_last_date < target_date:
                 new_bench = adata.stock.market.get_market_index(index_code='000300', start_date=bench_last_date)
                 if new_bench is not None and not new_bench.empty:
                     bench = pd.concat([bench, new_bench]).drop_duplicates('trade_date').sort_values('trade_date')

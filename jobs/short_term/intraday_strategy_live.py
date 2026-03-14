@@ -399,7 +399,8 @@ if __name__ == "__main__":
         max_hold_days=4,
     )
     sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
-    strategy.load_data(allow_online_update=False)
+    strategy.load_data(allow_online_update=True)
+    strategy.sync_active_cache_to_shared()
     now = strategy._now_shanghai()
     requested_trade_date = os.getenv("TRADE_DATE", "").strip() or now.strftime("%Y-%m-%d")
     event_name = os.getenv("GITHUB_EVENT_NAME", "").strip().lower()
