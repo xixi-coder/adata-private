@@ -59,13 +59,13 @@ jobs:
           retention-days: 14
 
       - name: Send email notification
-        if: ${{ always() && secrets.MAIL_163_USER != '' && secrets.MAIL_163_PASS != '' && secrets.MAIL_TO != '' }}
+        if: always()
         env:
           SMTP_HOST: smtp.163.com
           SMTP_PORT: "465"
-          SMTP_USER: ${{ secrets.MAIL_163_USER }}
-          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
-          MAIL_TO: ${{ secrets.MAIL_TO }}
+          SMTP_USER: shi1996heng@163.com
+          SMTP_PASS: NXWftGMazxRf5kfs
+          MAIL_TO: shi1996heng@163.com
           JOB_STATUS: ${{ job.status }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           OUTPUT_DIR: tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs
@@ -75,27 +75,41 @@ jobs:
           import smtplib
           from email.message import EmailMessage
 
+          smtp_user = os.environ.get("SMTP_USER", "").strip()
+          smtp_pass = os.environ.get("SMTP_PASS", "").strip()
+          mail_to = os.environ.get("MAIL_TO", "").strip()
+          if not smtp_user or not smtp_pass or not mail_to:
+              print("未配置邮件 Secrets，跳过邮件通知。")
+              raise SystemExit(0)
+
           output_dir = os.environ["OUTPUT_DIR"]
           summary_txt = os.path.join(output_dir, "latest_summary.txt")
           candidate_csv = os.path.join(output_dir, "latest_candidates.csv")
           signal_csv = os.path.join(output_dir, "latest_signals.csv")
           summary_json = os.path.join(output_dir, "latest_summary.json")
 
+          status_map = {
+              "success": "成功",
+              "failure": "失败",
+              "cancelled": "已取消",
+          }
+          status_zh = status_map.get(os.environ["JOB_STATUS"], os.environ["JOB_STATUS"])
           body_lines = [
-              f"job_status: {os.environ['JOB_STATUS']}",
-              f"run_url: {os.environ['RUN_URL']}",
+              "短线策略每日扫描结果",
+              f"任务状态: {status_zh}",
+              f"运行链接: {os.environ['RUN_URL']}",
               "",
           ]
           if os.path.exists(summary_txt):
               with open(summary_txt, "r", encoding="utf-8") as f:
                   body_lines.append(f.read().strip())
           else:
-              body_lines.append("summary: latest_summary.txt not found")
+              body_lines.append("未找到 latest_summary.txt，附件可能未生成。")
 
           msg = EmailMessage()
-          msg["Subject"] = f"[{os.environ['JOB_STATUS'].upper()}] Daily Python Script"
-          msg["From"] = os.environ["SMTP_USER"]
-          msg["To"] = os.environ["MAIL_TO"]
+          msg["Subject"] = f"[{status_zh}] 短线策略每日扫描"
+          msg["From"] = smtp_user
+          msg["To"] = mail_to
           msg.set_content("\n".join(body_lines))
 
           for path in [summary_txt, summary_json, candidate_csv, signal_csv]:
@@ -111,8 +125,8 @@ jobs:
                   subtype = "csv"
               msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=filename)
 
-          recipients = [item.strip() for item in os.environ["MAIL_TO"].split(",") if item.strip()]
+          recipients = [item.strip() for item in mail_to.split(",") if item.strip()]
           with smtplib.SMTP_SSL(os.environ["SMTP_HOST"], int(os.environ["SMTP_PORT"])) as server:
-              server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+              server.login(smtp_user, smtp_pass)
               server.send_message(msg, to_addrs=recipients)
           PY

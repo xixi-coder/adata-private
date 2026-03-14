@@ -393,14 +393,14 @@ if __name__ == "__main__":
         with open(path, "w", encoding="utf-8") as f:
             json.dump(summary, f, ensure_ascii=False, indent=2)
     summary_lines = [
-        f"run_time: {summary['run_time']}",
-        f"trade_date: {summary['trade_date']}",
-        f"is_trade_day: {summary['is_trade_day']}",
-        f"candidate_reference_date: {summary['candidate_reference_date']}",
-        f"candidate_count: {summary['candidate_count']}",
-        f"signal_count: {summary['signal_count']}",
-        f"minute_trade_dates: {','.join(summary['minute_trade_dates'])}",
-        f"note: {summary['note']}",
+        f"运行时间: {summary['run_time']}",
+        f"目标日期: {summary['trade_date']}",
+        f"是否交易日: {'是' if summary['is_trade_day'] else '否'}",
+        f"候选依据日: {summary['candidate_reference_date']}",
+        f"候选数量: {summary['candidate_count']}",
+        f"信号数量: {summary['signal_count']}",
+        f"分时数据日期: {','.join(summary['minute_trade_dates'])}",
+        f"备注: {summary['note']}",
     ]
     for path in [summary_txt_path, latest_summary_txt_path]:
         with open(path, "w", encoding="utf-8") as f:
