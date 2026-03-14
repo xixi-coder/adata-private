@@ -93,6 +93,7 @@ jobs:
 
           output_dir = os.environ["OUTPUT_DIR"]
           summary_txt = os.path.join(output_dir, "latest_summary.txt")
+          summary_json = os.path.join(output_dir, "latest_summary.json")
           signal_csv = os.path.join(output_dir, "latest_signals.csv")
 
           status_map = {
@@ -102,10 +103,22 @@ jobs:
           }
           status_zh = status_map.get(os.environ["JOB_STATUS"], os.environ["JOB_STATUS"])
           body_lines = ["短线策略扫描结果"]
-          if os.path.exists(summary_txt):
+          summary_map = {}
+          if os.path.exists(summary_json):
+              import json
+
+              with open(summary_json, "r", encoding="utf-8") as f:
+                  summary = json.load(f)
+              summary_map = {
+                  "候选依据日": str(summary.get("candidate_reference_date", "") or ""),
+                  "请求日期": str(summary.get("requested_trade_date", "") or ""),
+                  "扫描日期": str(summary.get("trade_date", "") or ""),
+                  "信号数量": str(summary.get("signal_count", "") or ""),
+                  "备注": str(summary.get("note", "") or ""),
+              }
+          elif os.path.exists(summary_txt):
               with open(summary_txt, "r", encoding="utf-8") as f:
                   summary_text = f.read().strip()
-              summary_map = {}
               for line in summary_text.splitlines():
                   if "：" in line:
                       key, value = line.split("：", 1)
@@ -114,6 +127,8 @@ jobs:
                   else:
                       continue
                   summary_map[key.strip()] = value.strip()
+
+          if summary_map:
               body_lines.append(f"候选依据日: {summary_map.get('候选依据日', '')}")
               body_lines.append(f"请求日期: {summary_map.get('请求日期', '')}")
               body_lines.append(f"扫描日期: {summary_map.get('扫描日期', '')}")
