@@ -9,6 +9,8 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google.oauth2 import service_account
 
+from jobs.common.local_env import load_local_env
+
 
 class GoogleDriveStore:
     def __init__(
@@ -70,6 +72,7 @@ class GoogleDriveStore:
 
     @classmethod
     def from_env(cls) -> "GoogleDriveStore":
+        load_local_env()
         payload = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
         payload_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "").strip()
         if (not payload) and payload_file:

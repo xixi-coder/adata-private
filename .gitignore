@@ -82,6 +82,7 @@ logs/
 *.onnx
 
 # local env
+.env.local
 .venv/
 venv/
 .envdata/cache/

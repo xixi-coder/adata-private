@@ -198,15 +198,39 @@ class ShortTermDisagreementStrategy:
             trade_dates.update(df.loc[df["trade_status"] == 1, "trade_date"].tolist())
         return sorted(trade_dates)
 
+    def _fallback_target_date_from_benchmark(self, today_str: str) -> str:
+        if os.path.exists(self.benchmark_file):
+            try:
+                bench = pd.read_csv(self.benchmark_file)
+                if not bench.empty and "trade_date" in bench.columns:
+                    bench["trade_date"] = bench["trade_date"].astype(str)
+                    valid_dates = sorted(d for d in bench["trade_date"].tolist() if d <= today_str)
+                    if valid_dates:
+                        return valid_dates[-1]
+            except Exception:
+                pass
+
+        today = pd.to_datetime(today_str, errors="coerce")
+        if pd.isna(today):
+            return today_str
+        if today.weekday() >= 5:
+            return (today - pd.tseries.offsets.BDay(1)).strftime("%Y-%m-%d")
+        return today_str
+
     def _incremental_target_date(self, adata_module) -> str:
         now = self._now_shanghai()
         today_str = now.strftime("%Y-%m-%d")
-        trade_dates = self._trade_dates_for_years(adata_module, [now.year - 1, now.year, now.year + 1])
+        try:
+            trade_dates = self._trade_dates_for_years(adata_module, [now.year - 1, now.year, now.year + 1])
+        except Exception as exc:
+            fallback_date = self._fallback_target_date_from_benchmark(today_str)
+            print(f"获取交易日历失败，回退到本地基准推断更新目标日: {fallback_date} ({exc})")
+            return fallback_date
         if not trade_dates:
-            return today_str
+            return self._fallback_target_date_from_benchmark(today_str)
         completed_dates = [d for d in trade_dates if d <= today_str]
         if not completed_dates:
-            return today_str
+            return self._fallback_target_date_from_benchmark(today_str)
         latest_trade_date = completed_dates[-1]
         # 日K在收盘并稳定后再把当天视为“可完成更新”的目标日期。
         if latest_trade_date == today_str and now.time() < dt.time(15, 30):
