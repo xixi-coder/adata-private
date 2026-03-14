@@ -6,6 +6,8 @@ import zlib
 from jobs.common.archive_bundle import create_tar_gz, extract_tar_gz
 from jobs.common.google_drive_store import GoogleDriveStore
 
+SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
+
 
 def drive_enabled() -> bool:
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "").strip()

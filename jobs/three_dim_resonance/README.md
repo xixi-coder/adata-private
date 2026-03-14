@@ -64,6 +64,11 @@
 
 其中 `three_dim_cache_bundle.tar.gz` 是云端主缓存，`three_dim_live_state.json` 是策略状态文件；买卖建议和邮件正文都以日文件或最新文件方式保存在 Drive 中。
 
+补充说明：
+
+- `three_dim_cache_bundle.tar.gz` 同时也是短线策略使用的共享市场缓存。
+- 因此三维共振初始化完成后，短线分时任务会优先复用其中的日 K 和指数缓存，不再单独重复抓取同一批历史数据。
+
 ## 5. Workflow 名称
 
 - `初始化三维共振云端缓存`

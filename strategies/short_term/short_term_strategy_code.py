@@ -2,6 +2,7 @@
 import json
 import os
 import pickle
+from typing import Optional
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -78,7 +79,9 @@ class ShortTermDisagreementStrategy:
 
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.cache_dir = os.path.join(self.base_dir, "data", "cache")
-        self.full_cache_file = os.path.join(self.cache_dir, "full_data_v2_processed.pkl")
+        self.shared_cache_file = os.path.join(self.cache_dir, "full_data_v3_5year.pkl")
+        self.legacy_cache_file = os.path.join(self.cache_dir, "full_data_v2_processed.pkl")
+        self.full_cache_file = self.shared_cache_file
         self.benchmark_file = os.path.join(self.cache_dir, "benchmark_000300.csv")
         self.metadata_file = os.path.join(self.base_dir, "tests", "utils", "all_code.csv")
 
@@ -150,19 +153,31 @@ class ShortTermDisagreementStrategy:
         self.stock_meta = meta[["short_name", "list_date"]].to_dict("index")
         print(f"加载股票元数据完成: {len(self.stock_meta)} 条")
 
-    def load_data(self):
+    def _resolve_cache_file(self) -> str:
+        if os.path.exists(self.shared_cache_file):
+            return self.shared_cache_file
+        if os.path.exists(self.legacy_cache_file):
+            return self.legacy_cache_file
+        return self.shared_cache_file
+
+    def load_data(self, allow_online_update: Optional[bool] = None, max_update_codes: Optional[int] = None):
         import adata
         import datetime
         import concurrent.futures
 
         self._load_stock_metadata()
         os.makedirs(self.cache_dir, exist_ok=True)
+        self.full_cache_file = self._resolve_cache_file()
+        if allow_online_update is None:
+            allow_online_update = not os.path.exists(self.full_cache_file)
 
         if os.path.exists(self.full_cache_file):
             print("加载全量股票缓存...")
             with open(self.full_cache_file, "rb") as f:
                 cache = pickle.load(f)
         else:
+            if not allow_online_update:
+                raise FileNotFoundError(f"未找到缓存 {self.full_cache_file}，且已禁用在线更新")
             print(f"未找到缓存 {self.full_cache_file}，将自动拉取数据...")
             cache = {"stock": {}, "update_meta": {}}
 
@@ -171,9 +186,7 @@ class ShortTermDisagreementStrategy:
         stock_last_checked = update_meta.setdefault("stock_last_checked", {})
 
         today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        default_start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
-
-        print("检查并更新股票最新数据 (截至当天)...")
+        default_start_date = (datetime.datetime.now() - datetime.timedelta(days=365 * 5 + 30)).strftime("%Y-%m-%d")
         valid_codes = [c for c in self.stock_meta.keys() if self._is_supported_equity_code(c)]
         if not valid_codes:
             try:
@@ -185,6 +198,8 @@ class ShortTermDisagreementStrategy:
                 print(f"获取股票列表失败: {e}")
 
         pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != today_str]
+        if max_update_codes is not None and max_update_codes > 0:
+            pending_codes = pending_codes[:max_update_codes]
 
         def fetch_incremental(code, df):
             try:
@@ -208,37 +223,44 @@ class ShortTermDisagreementStrategy:
         updated_count = 0
         checked_count = 0
 
-        if pending_codes:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {executor.submit(fetch_incremental, c, raw_stock.get(c)): c for c in pending_codes}
-                for f in concurrent.futures.as_completed(futures):
-                    code, new_df, checked = f.result()
-                    if checked:
-                        stock_last_checked[code] = today_str
-                        checked_count += 1
-                    if new_df is not raw_stock.get(code):
-                        raw_stock[code] = new_df
-                        updated_count += 1
+        if allow_online_update:
+            print("检查并更新股票最新数据 (截至当天)...")
+            if pending_codes:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                    futures = {executor.submit(fetch_incremental, c, raw_stock.get(c)): c for c in pending_codes}
+                    for f in concurrent.futures.as_completed(futures):
+                        code, new_df, checked = f.result()
+                        if checked:
+                            stock_last_checked[code] = today_str
+                            checked_count += 1
+                        if new_df is not raw_stock.get(code):
+                            raw_stock[code] = new_df
+                            updated_count += 1
+        else:
+            print("使用共享缓存，跳过在线日K增量更新。")
 
         if os.path.exists(self.benchmark_file):
             bench = pd.read_csv(self.benchmark_file)
         else:
             bench = pd.DataFrame()
 
-        try:
-            if not bench.empty:
-                bench_last_date = str(bench['trade_date'].max())
-                if bench_last_date < today_str:
-                    new_bench = adata.stock.market.get_market_index(index_code='000300', start_date=bench_last_date)
-                    if new_bench is not None and not new_bench.empty:
-                        bench = pd.concat([bench, new_bench]).drop_duplicates('trade_date').sort_values('trade_date')
+        if allow_online_update:
+            try:
+                if not bench.empty:
+                    bench_last_date = str(bench['trade_date'].max())
+                    if bench_last_date < today_str:
+                        new_bench = adata.stock.market.get_market_index(index_code='000300', start_date=bench_last_date)
+                        if new_bench is not None and not new_bench.empty:
+                            bench = pd.concat([bench, new_bench]).drop_duplicates('trade_date').sort_values('trade_date')
+                            bench.to_csv(self.benchmark_file, index=False)
+                else:
+                    bench = adata.stock.market.get_market_index(index_code='000300', start_date=default_start_date)
+                    if bench is not None and not bench.empty:
                         bench.to_csv(self.benchmark_file, index=False)
-            else:
-                bench = adata.stock.market.get_market_index(index_code='000300', start_date=default_start_date)
-                if bench is not None and not bench.empty:
-                    bench.to_csv(self.benchmark_file, index=False)
-        except Exception as e:
-            print(f"更新指数数据失败: {e}")
+            except Exception as e:
+                print(f"更新指数数据失败: {e}")
+        elif bench.empty:
+            raise FileNotFoundError(f"未找到指数缓存 {self.benchmark_file}，且已禁用在线更新")
 
         if updated_count > 0 or checked_count > 0:
             if updated_count > 0:

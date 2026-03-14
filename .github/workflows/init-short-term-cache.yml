@@ -3,6 +3,10 @@ name: 初始化短线策略缓存
 on:
   workflow_dispatch:
 
+concurrency:
+  group: a-share-cloud-market-cache
+  cancel-in-progress: false
+
 jobs:
   init-short-term-cache:
     runs-on: ubuntu-latest
@@ -32,5 +36,10 @@ jobs:
             data-cache-${{ runner.os }}-
 
       - name: Initialize strategy cache
+        env:
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
         run: |
           python jobs/short_term/init_cache.py

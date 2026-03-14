@@ -11,7 +11,7 @@ on:
         default: ""
 
 concurrency:
-  group: three-dim-resonance-cloud-data
+  group: a-share-cloud-market-cache
   cancel-in-progress: false
 
 jobs:

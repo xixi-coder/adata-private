@@ -15,6 +15,12 @@
 - `jobs/short_term/init_cache.py`：初始化短线策略日线缓存。
 - `jobs/short_term/intraday_strategy_live.py`：基于前一交易日日线候选池做当日分时扫描。
 
+共享缓存说明：
+
+- 三维共振和短线任务共用同一个 Google Drive 缓存包 `three_dim_cache_bundle.tar.gz`。
+- 共享缓存位于 `data/cache/`，里面同时保存日 K 原始缓存、沪深 300 基准、财务缓存、分钟缓存和策略状态文件。
+- 日常任务默认优先读取共享缓存，避免同一份日 K 数据被不同 job 重复从行情接口拉取。
+
 对应 GitHub Actions：
 
 - `.github/workflows/three-dim-resonance-cache.yml`：初始化三维共振云端缓存

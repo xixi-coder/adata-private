@@ -17,6 +17,7 @@ if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
 import adata
+from jobs.common.cloud_cache_sync import SHARED_MARKET_CACHE_ARCHIVE, sync_cache_from_drive, sync_cache_to_drive
 from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
 
 SIGNAL_COLUMNS_ZH = {
@@ -152,6 +153,23 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         dfx["rolling_low_5"] = dfx["price"].rolling(5, min_periods=1).min()
         return dfx.reset_index(drop=True)
 
+    def _minute_cache_path(self, trade_date: str, code: str) -> str:
+        return os.path.join(self.minute_cache_dir, trade_date, f"{code}.csv")
+
+    def _load_cached_minute_data(self, trade_date: str, code: str) -> pd.DataFrame:
+        path = self._minute_cache_path(trade_date, code)
+        if not os.path.exists(path):
+            return pd.DataFrame()
+        try:
+            df = pd.read_csv(path)
+        except Exception:
+            return pd.DataFrame()
+        inverse_map = {value: key for key, value in MINUTE_COLUMNS_ZH.items()}
+        df = df.rename(columns={col: inverse_map.get(col, col) for col in df.columns})
+        if "stock_code" not in df.columns:
+            df["stock_code"] = code
+        return self._normalize_minute_df(code, df)
+
     def _previous_trade_date(self, target_date: str) -> str:
         bench_dates = [d for d in self.benchmark_df.index if d < target_date]
         return bench_dates[-1] if bench_dates else ""
@@ -234,7 +252,11 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         candidate_df = pd.DataFrame(rows).sort_values("daily_score", ascending=False).head(self.candidate_size)
         return candidate_df.reset_index(drop=True)
 
-    def fetch_minute_data(self, code: str) -> pd.DataFrame:
+    def fetch_minute_data(self, code: str, trade_date: str = "", prefer_cache: bool = True) -> pd.DataFrame:
+        if prefer_cache and trade_date:
+            cached_df = self._load_cached_minute_data(trade_date, code)
+            if not cached_df.empty:
+                return cached_df
         df = adata.stock.market.get_market_min(stock_code=code)
         return self._normalize_minute_df(code, df)
 
@@ -244,7 +266,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         for code, df in minute_map.items():
             if df.empty:
                 continue
-            self.to_chinese_minute(df).to_csv(os.path.join(out_dir, f"{code}.csv"), index=False, encoding="utf-8-sig")
+            df.to_csv(os.path.join(out_dir, f"{code}.csv"), index=False, encoding="utf-8-sig")
 
     @staticmethod
     def _rename_columns(df: pd.DataFrame, rename_map: Dict[str, str]) -> pd.DataFrame:
@@ -352,7 +374,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         minute_map: Dict[str, pd.DataFrame] = {}
         signals: List[Dict] = []
         for _, row in candidates.iterrows():
-            minute_df = self.fetch_minute_data(row["code"])
+            minute_df = self.fetch_minute_data(row["code"], trade_date=resolved_trade_date, prefer_cache=True)
             minute_map[row["code"]] = minute_df
             signal = self.generate_signal_for_stock(row, minute_df)
             if signal:
@@ -376,7 +398,8 @@ if __name__ == "__main__":
         trailing_stop_pct=0.06,
         max_hold_days=4,
     )
-    strategy.load_data()
+    sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
+    strategy.load_data(allow_online_update=False)
     now = strategy._now_shanghai()
     requested_trade_date = os.getenv("TRADE_DATE", "").strip() or now.strftime("%Y-%m-%d")
     event_name = os.getenv("GITHUB_EVENT_NAME", "").strip().lower()
@@ -445,6 +468,7 @@ if __name__ == "__main__":
     for path in [summary_txt_path, latest_summary_txt_path]:
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(summary_lines) + "\n")
+    sync_cache_to_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
     print(strategy.to_chinese_signals(signal_df).to_string(index=False))
     print(
         f"\n输出文件:\n- {candidate_path}\n- {signal_path}\n- {summary_json_path}\n"
