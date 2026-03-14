@@ -261,7 +261,7 @@ class ShortTermDisagreementStrategy:
             except Exception as e:
                 print(f"获取股票列表失败: {e}")
 
-        pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != today_str]
+        pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != target_date]
         if max_update_codes is not None and max_update_codes > 0:
             pending_codes = pending_codes[:max_update_codes]
 
