@@ -103,7 +103,8 @@ jobs:
                   key, value = line.split("：", 1)
                   summary_map[key.strip()] = value.strip()
               body_lines.append(f"候选依据日: {summary_map.get('候选依据日', '')}")
-              body_lines.append(f"目标日期: {summary_map.get('目标日期', '')}")
+              body_lines.append(f"请求日期: {summary_map.get('请求日期', '')}")
+              body_lines.append(f"扫描日期: {summary_map.get('扫描日期', '')}")
               body_lines.append(f"信号数量: {summary_map.get('信号数量', '')}")
               note = summary_map.get("备注", "")
               if note:

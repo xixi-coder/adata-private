@@ -156,6 +156,32 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         bench_dates = [d for d in self.benchmark_df.index if d < target_date]
         return bench_dates[-1] if bench_dates else ""
 
+    def _latest_trade_date_on_or_before(self, target_date: str) -> str:
+        bench_dates = [d for d in self.benchmark_df.index if d <= target_date]
+        return bench_dates[-1] if bench_dates else ""
+
+    def resolve_scan_trade_date(self, requested_date: str = "", allow_fallback: bool = False) -> tuple[str, bool, str]:
+        if not self.stock_data:
+            self.load_data()
+
+        target_date = requested_date or self._now_shanghai().strftime("%Y-%m-%d")
+        is_trade_day = self.is_trade_day(target_date)
+        if is_trade_day:
+            return target_date, True, ""
+        if not allow_fallback:
+            return target_date, False, f"{target_date} 不是交易日，已跳过分时扫描。"
+
+        fallback_date = self._latest_trade_date_on_or_before(target_date)
+        if not fallback_date:
+            return target_date, False, f"{target_date} 不是交易日，且未找到更早的交易日。"
+        if fallback_date == target_date:
+            return fallback_date, True, ""
+        return (
+            fallback_date,
+            False,
+            f"{target_date} 不是交易日，已回退到最近交易日 {fallback_date} 进行扫描。",
+        )
+
     def _daily_candidate_score(self, row: pd.Series) -> float:
         amount_ratio = row["amount"] / row["amt_ma5"] if row["amt_ma5"] > 0 else 0.0
         turn_ratio = row["turnover_ratio"] / row["turn_ma5"] if row["turn_ma5"] > 0 else 0.0
@@ -305,22 +331,23 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                 }
         return {}
 
-    def run_live_scan(self, trade_date: str = "") -> pd.DataFrame:
+    def run_live_scan(self, trade_date: str = "", allow_fallback: bool = False) -> tuple[pd.DataFrame, str, bool, str]:
         if not self.stock_data:
             self.load_data()
 
-        if not trade_date:
-            trade_date = self._now_shanghai().strftime("%Y-%m-%d")
-
-        if not self.is_trade_day(trade_date):
-            print(f"{trade_date} 不是交易日，跳过分时扫描。")
+        resolved_trade_date, is_trade_day, note = self.resolve_scan_trade_date(
+            requested_date=trade_date,
+            allow_fallback=allow_fallback,
+        )
+        if not is_trade_day and not allow_fallback:
+            print(note)
             self.last_minute_trade_dates = []
-            return pd.DataFrame()
+            return pd.DataFrame(), resolved_trade_date, False, note
 
-        candidates = self.build_daily_candidates(trade_date)
+        candidates = self.build_daily_candidates(resolved_trade_date)
         if candidates.empty:
             self.last_minute_trade_dates = []
-            return pd.DataFrame()
+            return pd.DataFrame(), resolved_trade_date, is_trade_day, note
 
         minute_map: Dict[str, pd.DataFrame] = {}
         signals: List[Dict] = []
@@ -332,10 +359,10 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                 signals.append(signal)
 
         self.last_minute_trade_dates = self._extract_trade_dates(minute_map)
-        self.cache_minute_data(trade_date, minute_map)
+        self.cache_minute_data(resolved_trade_date, minute_map)
         if not signals:
-            return pd.DataFrame()
-        return self._sort_by_daily_score(pd.DataFrame(signals))
+            return pd.DataFrame(), resolved_trade_date, is_trade_day, note
+        return self._sort_by_daily_score(pd.DataFrame(signals)), resolved_trade_date, is_trade_day, note
 
 
 if __name__ == "__main__":
@@ -351,10 +378,24 @@ if __name__ == "__main__":
     )
     strategy.load_data()
     now = strategy._now_shanghai()
-    trade_date = now.strftime("%Y-%m-%d")
-    is_trade_day = strategy.is_trade_day(trade_date)
-    candidate_df = strategy._sort_by_daily_score(strategy.build_daily_candidates(trade_date))
-    signal_df = strategy._sort_by_daily_score(strategy.run_live_scan(trade_date=trade_date))
+    requested_trade_date = os.getenv("TRADE_DATE", "").strip() or now.strftime("%Y-%m-%d")
+    event_name = os.getenv("GITHUB_EVENT_NAME", "").strip().lower()
+    allow_fallback = event_name != "schedule"
+    resolved_trade_date, is_trade_day, note = strategy.resolve_scan_trade_date(
+        requested_date=requested_trade_date,
+        allow_fallback=allow_fallback,
+    )
+    if not allow_fallback and not is_trade_day:
+        candidate_df = pd.DataFrame()
+        signal_df = pd.DataFrame()
+    else:
+        candidate_df = strategy._sort_by_daily_score(strategy.build_daily_candidates(resolved_trade_date))
+        signal_df, _, _, run_note = strategy.run_live_scan(
+            trade_date=requested_trade_date,
+            allow_fallback=allow_fallback,
+        )
+        signal_df = strategy._sort_by_daily_score(signal_df)
+        note = run_note or note
 
     output_dir = os.path.join(CURRENT_DIR, "outputs")
     os.makedirs(output_dir, exist_ok=True)
@@ -378,20 +419,22 @@ if __name__ == "__main__":
         candidate_reference_date = str(candidate_df["prev_date"].iloc[0])
     summary = {
         "run_time": now.strftime("%Y-%m-%d %H:%M:%S"),
-        "trade_date": trade_date,
+        "requested_trade_date": requested_trade_date,
+        "trade_date": resolved_trade_date,
         "is_trade_day": is_trade_day,
         "candidate_reference_date": candidate_reference_date,
         "candidate_count": int(len(candidate_df)),
         "signal_count": int(len(signal_df)),
         "minute_trade_dates": strategy.last_minute_trade_dates,
-        "note": "" if is_trade_day else "非交易日，已跳过分时扫描。",
+        "note": note,
     }
     for path in [summary_json_path, latest_summary_json_path]:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(summary, f, ensure_ascii=False, indent=2)
     summary_lines = [
         f"运行时间: {summary['run_time']}",
-        f"目标日期: {summary['trade_date']}",
+        f"请求日期: {summary['requested_trade_date']}",
+        f"扫描日期: {summary['trade_date']}",
         f"是否交易日: {'是' if summary['is_trade_day'] else '否'}",
         f"候选依据日: {summary['candidate_reference_date']}",
         f"候选数量: {summary['candidate_count']}",
