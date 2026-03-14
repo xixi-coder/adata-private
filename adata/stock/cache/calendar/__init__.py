@@ -13,6 +13,15 @@ def get_csv_path(year):
     return fr"{cur_path}/{year}.csv"
 
 
-years = [2004, 2005, 2006, 2007, 2008, 2009,
-         2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019,
-         2020, 2021, 2022, 2023, 2024, 2025]
+def _discover_years():
+    cur_path = os.path.normpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    years = []
+    for name in os.listdir(cur_path):
+        stem, ext = os.path.splitext(name)
+        if ext.lower() != ".csv" or not stem.isdigit():
+            continue
+        years.append(int(stem))
+    return sorted(years)
+
+
+years = _discover_years()
