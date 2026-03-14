@@ -438,7 +438,10 @@ if __name__ == "__main__":
     candidate_out.to_csv(latest_candidate_path, index=False, encoding="utf-8-sig")
     signal_out.to_csv(latest_signal_path, index=False, encoding="utf-8-sig")
     candidate_reference_date = ""
-    if not candidate_df.empty and "prev_date" in candidate_df.columns:
+    did_build_candidates = bool(is_trade_day or resolved_trade_date != requested_trade_date)
+    if did_build_candidates:
+        candidate_reference_date = strategy._previous_trade_date(resolved_trade_date)
+    elif not candidate_df.empty and "prev_date" in candidate_df.columns:
         candidate_reference_date = str(candidate_df["prev_date"].iloc[0])
     summary = {
         "run_time": now.strftime("%Y-%m-%d %H:%M:%S"),
