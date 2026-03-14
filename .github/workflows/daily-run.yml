@@ -1,4 +1,4 @@
-name: Daily Python Script
+name: 运行短线分时策略
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:      # 允许手动运行
 
 jobs:
-  run-script:
+  run-short-term-intraday:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -36,14 +36,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: data/cache
-          key: data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'tests/short_term_strategy_backtest_v1/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-${{ github.run_id }}
+          key: data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'strategies/short_term/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-${{ github.run_id }}
           restore-keys: |
-            data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'tests/short_term_strategy_backtest_v1/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-
+            data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'strategies/short_term/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-
             data-cache-${{ runner.os }}-
           
       - name: Run script
         run: |
-          python tests/short_term_strategy_backtest_v1/intraday_signal/intraday_strategy_live.py
+          python jobs/short_term/intraday_strategy_live.py
 
       - name: Upload outputs
         if: always()
@@ -51,10 +51,10 @@ jobs:
         with:
           name: intraday-live-${{ github.run_number }}
           path: |
-            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_candidates.csv
-            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_signals.csv
-            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_summary.json
-            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_summary.txt
+            jobs/short_term/outputs/latest_candidates.csv
+            jobs/short_term/outputs/latest_signals.csv
+            jobs/short_term/outputs/latest_summary.json
+            jobs/short_term/outputs/latest_summary.txt
           if-no-files-found: warn
           retention-days: 14
 
@@ -63,12 +63,12 @@ jobs:
         env:
           SMTP_HOST: smtp.163.com
           SMTP_PORT: "465"
-          SMTP_USER: shi1996heng@163.com
-          SMTP_PASS: NXWftGMazxRf5kfs
-          MAIL_TO: shi1996heng@163.com
+          SMTP_USER: ${{ secrets.MAIL_163_USER }}
+          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
           JOB_STATUS: ${{ job.status }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          OUTPUT_DIR: tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs
+          OUTPUT_DIR: jobs/short_term/outputs
         run: |
           python - <<'PY'
           import csv

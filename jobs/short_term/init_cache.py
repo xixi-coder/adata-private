@@ -8,10 +8,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(CURRENT_DIR))
 
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-if CURRENT_DIR not in sys.path:
-    sys.path.insert(0, CURRENT_DIR)
 
-from short_term_strategy_code import ShortTermDisagreementStrategy
+from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
 
 
 if __name__ == "__main__":

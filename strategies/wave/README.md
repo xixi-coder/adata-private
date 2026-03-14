@@ -39,13 +39,13 @@
 
 ### 运行波段策略
 ```bash
-cd tests/wave
+cd strategies/wave
 python strategy_wave_zz1000.py
 ```
 
 ### 运行强势回踩策略（推荐优化版）
 ```bash
-cd tests/wave
+cd strategies/wave
 python strategy_trend_pullback_optimized.py
 ```
 

@@ -10,17 +10,14 @@ import pandas as pd
 
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-STRATEGY_DIR = os.path.dirname(CURRENT_DIR)
-PROJECT_ROOT = os.path.dirname(os.path.dirname(STRATEGY_DIR))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(CURRENT_DIR))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-if STRATEGY_DIR not in sys.path:
-    sys.path.insert(0, STRATEGY_DIR)
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
 import adata
-from short_term_strategy_code import ShortTermDisagreementStrategy
+from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
 
 SIGNAL_COLUMNS_ZH = {
     "trade_date": "交易日期",
@@ -359,7 +356,7 @@ if __name__ == "__main__":
     candidate_df = strategy._sort_by_daily_score(strategy.build_daily_candidates(trade_date))
     signal_df = strategy._sort_by_daily_score(strategy.run_live_scan(trade_date=trade_date))
 
-    output_dir = os.path.join(CURRENT_DIR, "intraday_live_outputs")
+    output_dir = os.path.join(CURRENT_DIR, "outputs")
     os.makedirs(output_dir, exist_ok=True)
     ts = now.strftime("%Y%m%d_%H%M%S")
     candidate_path = os.path.join(output_dir, f"候选池_{ts}.csv")

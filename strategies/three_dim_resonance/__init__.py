@@ -1,0 +1,1 @@
+from strategies.three_dim_resonance.strategy import ThreeDimResonanceStrategy
