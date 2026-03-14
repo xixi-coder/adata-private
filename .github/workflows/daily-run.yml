@@ -2,7 +2,7 @@ name: 运行短线分时策略
 
 on:
   schedule:
-    - cron: '0 1 * * 1-5'   # 北京时间周一到周五 09:00
+    - cron: '20 2 * * 1-5'   # 北京时间周一到周五 10:20（覆盖 09:45-10:30 分时信号窗口）
   workflow_dispatch:      # 允许手动运行
 
 concurrency:
