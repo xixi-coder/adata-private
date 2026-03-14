@@ -26,15 +26,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Cache data
-        uses: actions/cache@v4
-        with:
-          path: data/cache
-          key: data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'strategies/short_term/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-${{ github.run_id }}
-          restore-keys: |
-            data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'strategies/short_term/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-
-            data-cache-${{ runner.os }}-
-
       - name: Initialize strategy cache
         env:
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}

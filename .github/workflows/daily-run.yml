@@ -35,15 +35,6 @@ jobs:
         run: |
           mkdir -p data/cache
           
-      - name: Cache data
-        uses: actions/cache@v4
-        with:
-          path: data/cache
-          key: data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'strategies/short_term/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-${{ github.run_id }}
-          restore-keys: |
-            data-cache-${{ runner.os }}-${{ hashFiles('requirements.txt', 'strategies/short_term/short_term_strategy_code.py', 'tests/utils/all_code.csv') }}-
-            data-cache-${{ runner.os }}-
-          
       - name: Run script
         env:
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
@@ -110,11 +101,11 @@ jobs:
               with open(summary_json, "r", encoding="utf-8") as f:
                   summary = json.load(f)
               summary_map = {
-                  "候选依据日": str(summary.get("candidate_reference_date", "") or ""),
-                  "请求日期": str(summary.get("requested_trade_date", "") or ""),
-                  "扫描日期": str(summary.get("trade_date", "") or ""),
-                  "信号数量": str(summary.get("signal_count", "") or ""),
-                  "备注": str(summary.get("note", "") or ""),
+                  "候选依据日": str(summary.get("candidate_reference_date", "")),
+                  "请求日期": str(summary.get("requested_trade_date", "")),
+                  "扫描日期": str(summary.get("trade_date", "")),
+                  "信号数量": str(summary.get("signal_count", "")),
+                  "备注": str(summary.get("note", "")),
               }
           elif os.path.exists(summary_txt):
               with open(summary_txt, "r", encoding="utf-8") as f:
@@ -129,10 +120,10 @@ jobs:
                   summary_map[key.strip()] = value.strip()
 
           if summary_map:
-              body_lines.append(f"候选依据日: {summary_map.get('候选依据日', '')}")
-              body_lines.append(f"请求日期: {summary_map.get('请求日期', '')}")
-              body_lines.append(f"扫描日期: {summary_map.get('扫描日期', '')}")
-              body_lines.append(f"信号数量: {summary_map.get('信号数量', '')}")
+              body_lines.append(f"候选依据日: {summary_map.get('候选依据日', '') or '无'}")
+              body_lines.append(f"请求日期: {summary_map.get('请求日期', '') or '无'}")
+              body_lines.append(f"扫描日期: {summary_map.get('扫描日期', '') or '无'}")
+              body_lines.append(f"信号数量: {summary_map.get('信号数量', '') or '0'}")
               note = summary_map.get("备注", "")
               if note:
                   body_lines.append(f"备注: {note}")
