@@ -107,9 +107,12 @@ jobs:
                   summary_text = f.read().strip()
               summary_map = {}
               for line in summary_text.splitlines():
-                  if "：" not in line:
+                  if "：" in line:
+                      key, value = line.split("：", 1)
+                  elif ":" in line:
+                      key, value = line.split(":", 1)
+                  else:
                       continue
-                  key, value = line.split("：", 1)
                   summary_map[key.strip()] = value.strip()
               body_lines.append(f"候选依据日: {summary_map.get('候选依据日', '')}")
               body_lines.append(f"请求日期: {summary_map.get('请求日期', '')}")
