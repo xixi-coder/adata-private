@@ -1,4 +1,4 @@
--e git+https://github.com/xixi-coder/adata.git@a71a7d4d6d6120c35607e81d26ebf8d139a3d0dd#egg=adata
+-e .
 beautifulsoup4==4.14.3
 certifi==2026.1.4
 charset-normalizer==3.4.4
