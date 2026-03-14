@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import datetime as dt
+import json
 import os
 import sys
 from typing import Dict, List
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -100,6 +102,30 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         self.min_first30_amount_ratio = float(min_first30_amount_ratio)
         self.min_intraday_amount = float(min_intraday_amount)
         self.minute_cache_dir = os.path.join(self.cache_dir, "minute_live")
+        self.last_minute_trade_dates: List[str] = []
+
+    @staticmethod
+    def _now_shanghai() -> dt.datetime:
+        return dt.datetime.now(ZoneInfo("Asia/Shanghai"))
+
+    @staticmethod
+    def _extract_trade_dates(minute_map: Dict[str, pd.DataFrame]) -> List[str]:
+        trade_dates = set()
+        for df in minute_map.values():
+            if df is None or df.empty or "trade_date" not in df.columns:
+                continue
+            trade_dates.update(df["trade_date"].dropna().astype(str).tolist())
+        return sorted(trade_dates)
+
+    def is_trade_day(self, trade_date: str) -> bool:
+        year = int(trade_date[:4])
+        calendar_df = adata.stock.info.trade_calendar(year=year)
+        if calendar_df.empty:
+            return False
+        row = calendar_df[calendar_df["trade_date"] == trade_date]
+        if row.empty:
+            return False
+        return bool(int(row.iloc[0]["trade_status"]) == 1)
 
     def _normalize_minute_df(self, code: str, df: pd.DataFrame) -> pd.DataFrame:
         if df is None or df.empty:
@@ -287,10 +313,16 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             self.load_data()
 
         if not trade_date:
-            trade_date = dt.datetime.now().strftime("%Y-%m-%d")
+            trade_date = self._now_shanghai().strftime("%Y-%m-%d")
+
+        if not self.is_trade_day(trade_date):
+            print(f"{trade_date} 不是交易日，跳过分时扫描。")
+            self.last_minute_trade_dates = []
+            return pd.DataFrame()
 
         candidates = self.build_daily_candidates(trade_date)
         if candidates.empty:
+            self.last_minute_trade_dates = []
             return pd.DataFrame()
 
         minute_map: Dict[str, pd.DataFrame] = {}
@@ -302,6 +334,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             if signal:
                 signals.append(signal)
 
+        self.last_minute_trade_dates = self._extract_trade_dates(minute_map)
         self.cache_minute_data(trade_date, minute_map)
         if not signals:
             return pd.DataFrame()
@@ -320,16 +353,60 @@ if __name__ == "__main__":
         max_hold_days=4,
     )
     strategy.load_data()
-    trade_date = dt.datetime.now().strftime("%Y-%m-%d")
+    now = strategy._now_shanghai()
+    trade_date = now.strftime("%Y-%m-%d")
+    is_trade_day = strategy.is_trade_day(trade_date)
     candidate_df = strategy._sort_by_daily_score(strategy.build_daily_candidates(trade_date))
     signal_df = strategy._sort_by_daily_score(strategy.run_live_scan(trade_date=trade_date))
 
     output_dir = os.path.join(CURRENT_DIR, "intraday_live_outputs")
     os.makedirs(output_dir, exist_ok=True)
-    ts = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts = now.strftime("%Y%m%d_%H%M%S")
     candidate_path = os.path.join(output_dir, f"候选池_{ts}.csv")
     signal_path = os.path.join(output_dir, f"分时信号_{ts}.csv")
-    strategy.to_chinese_candidates(candidate_df).to_csv(candidate_path, index=False, encoding="utf-8-sig")
-    strategy.to_chinese_signals(signal_df).to_csv(signal_path, index=False, encoding="utf-8-sig")
+    latest_candidate_path = os.path.join(output_dir, "latest_candidates.csv")
+    latest_signal_path = os.path.join(output_dir, "latest_signals.csv")
+    summary_json_path = os.path.join(output_dir, f"summary_{ts}.json")
+    latest_summary_json_path = os.path.join(output_dir, "latest_summary.json")
+    summary_txt_path = os.path.join(output_dir, f"summary_{ts}.txt")
+    latest_summary_txt_path = os.path.join(output_dir, "latest_summary.txt")
+    candidate_out = strategy.to_chinese_candidates(candidate_df)
+    signal_out = strategy.to_chinese_signals(signal_df)
+    candidate_out.to_csv(candidate_path, index=False, encoding="utf-8-sig")
+    signal_out.to_csv(signal_path, index=False, encoding="utf-8-sig")
+    candidate_out.to_csv(latest_candidate_path, index=False, encoding="utf-8-sig")
+    signal_out.to_csv(latest_signal_path, index=False, encoding="utf-8-sig")
+    candidate_reference_date = ""
+    if not candidate_df.empty and "prev_date" in candidate_df.columns:
+        candidate_reference_date = str(candidate_df["prev_date"].iloc[0])
+    summary = {
+        "run_time": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "trade_date": trade_date,
+        "is_trade_day": is_trade_day,
+        "candidate_reference_date": candidate_reference_date,
+        "candidate_count": int(len(candidate_df)),
+        "signal_count": int(len(signal_df)),
+        "minute_trade_dates": strategy.last_minute_trade_dates,
+        "note": "" if is_trade_day else "非交易日，已跳过分时扫描。",
+    }
+    for path in [summary_json_path, latest_summary_json_path]:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
+    summary_lines = [
+        f"run_time: {summary['run_time']}",
+        f"trade_date: {summary['trade_date']}",
+        f"is_trade_day: {summary['is_trade_day']}",
+        f"candidate_reference_date: {summary['candidate_reference_date']}",
+        f"candidate_count: {summary['candidate_count']}",
+        f"signal_count: {summary['signal_count']}",
+        f"minute_trade_dates: {','.join(summary['minute_trade_dates'])}",
+        f"note: {summary['note']}",
+    ]
+    for path in [summary_txt_path, latest_summary_txt_path]:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("\n".join(summary_lines) + "\n")
     print(strategy.to_chinese_signals(signal_df).to_string(index=False))
-    print(f"\n输出文件:\n- {candidate_path}\n- {signal_path}")
+    print(
+        f"\n输出文件:\n- {candidate_path}\n- {signal_path}\n- {summary_json_path}\n"
+        f"- {latest_candidate_path}\n- {latest_signal_path}\n- {latest_summary_json_path}"
+    )

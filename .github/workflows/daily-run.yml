@@ -2,12 +2,15 @@ name: Daily Python Script
 
 on:
   schedule:
-    - cron: '0 1 * * *'   # 每天运行一次（UTC时间）
+    - cron: '0 1 * * 1-5'   # 北京时间周一到周五 09:00
   workflow_dispatch:      # 允许手动运行
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TZ: Asia/Shanghai
 
     steps:
       - name: Checkout code
@@ -17,12 +20,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install adata
           pip install -r requirements.txt
+
+      - name: Ensure cache directory exists
+        run: |
+          mkdir -p data/cache
           
       - name: Cache data
         uses: actions/cache@v4
@@ -36,3 +44,75 @@ jobs:
       - name: Run script
         run: |
           python tests/short_term_strategy_backtest_v1/intraday_signal/intraday_strategy_live.py
+
+      - name: Upload outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intraday-live-${{ github.run_number }}
+          path: |
+            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_candidates.csv
+            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_signals.csv
+            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_summary.json
+            tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs/latest_summary.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Send email notification
+        if: ${{ always() && secrets.MAIL_163_USER != '' && secrets.MAIL_163_PASS != '' && secrets.MAIL_TO != '' }}
+        env:
+          SMTP_HOST: smtp.163.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.MAIL_163_USER }}
+          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OUTPUT_DIR: tests/short_term_strategy_backtest_v1/intraday_signal/intraday_live_outputs
+        run: |
+          python - <<'PY'
+          import os
+          import smtplib
+          from email.message import EmailMessage
+
+          output_dir = os.environ["OUTPUT_DIR"]
+          summary_txt = os.path.join(output_dir, "latest_summary.txt")
+          candidate_csv = os.path.join(output_dir, "latest_candidates.csv")
+          signal_csv = os.path.join(output_dir, "latest_signals.csv")
+          summary_json = os.path.join(output_dir, "latest_summary.json")
+
+          body_lines = [
+              f"job_status: {os.environ['JOB_STATUS']}",
+              f"run_url: {os.environ['RUN_URL']}",
+              "",
+          ]
+          if os.path.exists(summary_txt):
+              with open(summary_txt, "r", encoding="utf-8") as f:
+                  body_lines.append(f.read().strip())
+          else:
+              body_lines.append("summary: latest_summary.txt not found")
+
+          msg = EmailMessage()
+          msg["Subject"] = f"[{os.environ['JOB_STATUS'].upper()}] Daily Python Script"
+          msg["From"] = os.environ["SMTP_USER"]
+          msg["To"] = os.environ["MAIL_TO"]
+          msg.set_content("\n".join(body_lines))
+
+          for path in [summary_txt, summary_json, candidate_csv, signal_csv]:
+              if not os.path.exists(path):
+                  continue
+              with open(path, "rb") as f:
+                  data = f.read()
+              filename = os.path.basename(path)
+              maintype, subtype = ("text", "plain")
+              if filename.endswith(".json"):
+                  subtype = "json"
+              elif filename.endswith(".csv"):
+                  subtype = "csv"
+              msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=filename)
+
+          recipients = [item.strip() for item in os.environ["MAIL_TO"].split(",") if item.strip()]
+          with smtplib.SMTP_SSL(os.environ["SMTP_HOST"], int(os.environ["SMTP_PORT"])) as server:
+              server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+              server.send_message(msg, to_addrs=recipients)
+          PY
