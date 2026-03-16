@@ -474,6 +474,34 @@ if __name__ == "__main__":
             f.write("\n".join(summary_lines) + "\n")
     sync_cache_to_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
     print(strategy.to_chinese_signals(signal_df).to_string(index=False))
+
+    if not signal_df.empty:
+        print("\n--- 信号跟踪 (实时) ---")
+        try:
+            tracking_rows = []
+            for _, row in signal_df.iterrows():
+                code = str(row['code']).zfill(6)
+                m_df = adata.stock.market.get_market_min(stock_code=code)
+                if not m_df.empty:
+                    last_price = float(m_df.iloc[-1]['price'])
+                    # 推算昨收 = 信号价 / (1 + 当时涨幅%)
+                    prev_close = float(row['signal_price']) / (1 + float(row['change_pct']) / 100.0)
+                    curr_pct = (last_price / prev_close - 1.0) * 100.0
+                    tracking_rows.append({
+                        "股票代码": code,
+                        "股票简称": row['short_name'],
+                        "信号时间": row['signal_time'].split()[-1],
+                        "信号价格": row['signal_price'],
+                        "信号涨幅(%)": row['change_pct'],
+                        "当前价格": last_price,
+                        "最新涨幅(%)": round(curr_pct, 2),
+                        "信号后涨跌(%)": round(curr_pct - float(row['change_pct']), 2)
+                    })
+            if tracking_rows:
+                print(pd.DataFrame(tracking_rows).to_string(index=False))
+        except Exception as e:
+            print(f"实时跟踪获取失败: {e}")
+
     print(
         f"\n输出文件:\n- {candidate_path}\n- {signal_path}\n- {summary_json_path}\n"
         f"- {latest_candidate_path}\n- {latest_signal_path}\n- {latest_summary_json_path}"
