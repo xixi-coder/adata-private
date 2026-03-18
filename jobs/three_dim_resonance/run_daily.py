@@ -296,6 +296,38 @@ class ThreeDimResonanceLiveStrategy(ThreeDimResonanceStrategy):
         snapshot.sort(key=lambda item: item["holding_days"], reverse=True)
         return snapshot
 
+    def _pending_entries_snapshot(self, state: dict) -> list[dict]:
+        snapshot = []
+        for item in state.get("pending_entries", []):
+            snapshot.append(
+                {
+                    "code": item["code"],
+                    "short_name": item.get("short_name", self.stock_names.get(item["code"], item["code"])),
+                    "score": round(float(item.get("score", 0.0)), 3),
+                    "signal_date": item.get("signal_date", ""),
+                    "entry_shape": item.get("entry_shape", ""),
+                    "close_price": round(float(item.get("close_price", 0.0)), 3),
+                }
+            )
+        snapshot.sort(key=lambda item: item["score"], reverse=True)
+        return snapshot
+
+    def _pending_exits_snapshot(self, state: dict) -> list[dict]:
+        snapshot = []
+        for item in state.get("pending_exits", []):
+            code = item["code"]
+            pos = state.get("positions", {}).get(code, {})
+            snapshot.append(
+                {
+                    "code": code,
+                    "short_name": pos.get("short_name", self.stock_names.get(code, code)),
+                    "signal_date": item.get("signal_date", ""),
+                    "close_price": round(float(pos.get("last_price", pos.get("buy_price", 0.0))), 3),
+                    "reason": self._label_exit_reason(item.get("reason", "")),
+                }
+            )
+        return snapshot
+
     def run_daily(self, requested_date: str = "") -> dict:
         sync_cache_from_drive(self.project_root, "three_dim_cache_bundle.tar.gz", ["data/cache"])
         download_json_from_drive(
@@ -315,12 +347,12 @@ class ThreeDimResonanceLiveStrategy(ThreeDimResonanceStrategy):
                 "candidate_reference_date": trade_date,
                 "executed_buys": [],
                 "executed_sells": [],
-                "buy_suggestions": [],
-                "sell_suggestions": [],
+                "buy_suggestions": self._pending_entries_snapshot(state),
+                "sell_suggestions": self._pending_exits_snapshot(state),
                 "positions": self._positions_snapshot(state, trade_date),
                 "cash": round(float(state["cash"]), 2),
                 "status": "skipped",
-                "note": f"{trade_date} 已处理，通常表示今天不是新的交易日。",
+                "note": f"{trade_date} 已处理，通常表示今天不是新的交易日；本邮件沿用上次待执行建议。",
             }
             self._write_outputs(summary)
             return summary
