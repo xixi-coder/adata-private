@@ -108,7 +108,19 @@ class ThreeDimResonanceStrategy:
             trade_dates.update(df.loc[df["trade_status"] == 1, "trade_date"].tolist())
         return sorted(trade_dates)
 
+    def _clock_based_target_date(self, today_str: str) -> str:
+        today = pd.to_datetime(today_str, errors="coerce")
+        if pd.isna(today):
+            return today_str
+        if today.weekday() >= 5:
+            return (today - pd.tseries.offsets.BDay(1)).strftime("%Y-%m-%d")
+        now = self._now_shanghai()
+        if now.time() < datetime.time(15, 30):
+            return (today - pd.tseries.offsets.BDay(1)).strftime("%Y-%m-%d")
+        return today.strftime("%Y-%m-%d")
+
     def _fallback_target_date_from_benchmark(self, today_str: str) -> str:
+        candidates = [self._clock_based_target_date(today_str)]
         if os.path.exists(self.benchmark_file):
             try:
                 bench = pd.read_csv(self.benchmark_file)
@@ -116,16 +128,10 @@ class ThreeDimResonanceStrategy:
                     bench["trade_date"] = bench["trade_date"].astype(str)
                     valid_dates = sorted(d for d in bench["trade_date"].tolist() if d <= today_str)
                     if valid_dates:
-                        return valid_dates[-1]
+                        candidates.append(valid_dates[-1])
             except Exception:
                 pass
-
-        today = pd.to_datetime(today_str, errors="coerce")
-        if pd.isna(today):
-            return today_str
-        if today.weekday() >= 5:
-            return (today - pd.tseries.offsets.BDay(1)).strftime("%Y-%m-%d")
-        return today_str
+        return max(candidates) if candidates else today_str
 
     def _incremental_target_date(self, adata_module) -> str:
         now = self._now_shanghai()
