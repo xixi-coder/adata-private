@@ -4,6 +4,7 @@ import json
 import os
 import pickle
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
@@ -163,8 +164,15 @@ class FiveYearCloudCacheBuilder:
         checkpoint_every: int,
         finance_refresh_days: int,
     ) -> dict:
+        stage_t0 = time.perf_counter()
+        print("[stage] sync_cache_from_drive: start", flush=True)
         sync_cache_from_drive(self.project_root, "three_dim_cache_bundle.tar.gz", ["data/cache"])
+        print(f"[stage] sync_cache_from_drive: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
+
+        stage_t0 = time.perf_counter()
+        print("[stage] load_cache: start", flush=True)
         cache = self._load_cache()
+        print(f"[stage] load_cache: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
         raw_stock = cache.setdefault("stock", {})
         update_meta = cache.setdefault("update_meta", {})
         finance_last_checked = update_meta.setdefault("finance_last_checked", {})
@@ -215,6 +223,8 @@ class FiveYearCloudCacheBuilder:
 
         print(f"pending_stock_updates={len(pending_codes)}")
         if selected_codes:
+            print("[stage] fetch_stock_incremental: start", flush=True)
+            stage_t0 = time.perf_counter()
             completed_fetch = 0
             with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = {
@@ -237,8 +247,11 @@ class FiveYearCloudCacheBuilder:
                         )
                     if checkpoint_every > 0 and progress > 0 and progress % checkpoint_every == 0:
                         self._save_cache(cache)
+            print(f"[stage] fetch_stock_incremental: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
         refreshed_finance = 0
+        print("[stage] refresh_finance: start", flush=True)
+        stage_t0 = time.perf_counter()
         finance_targets = [
             code for code in selected_codes
             if finance_last_checked.get(code) != today_str
@@ -249,11 +262,18 @@ class FiveYearCloudCacheBuilder:
             refreshed_finance += int(changed)
             if checkpoint_every > 0 and idx % checkpoint_every == 0:
                 self._save_cache(cache)
+        print(f"[stage] refresh_finance: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
+        print("[stage] update_benchmark: start", flush=True)
+        stage_t0 = time.perf_counter()
         benchmark_updated = self._update_benchmark(target_date)
+        print(f"[stage] update_benchmark: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
         cache_changed = bool(updated_stock > 0 or refreshed_finance > 0 or benchmark_updated)
         if cache_changed:
+            print("[stage] save_cache: start", flush=True)
+            stage_t0 = time.perf_counter()
             self._save_cache(cache)
+            print(f"[stage] save_cache: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
         manifest = {
             "updated_at": today.strftime("%Y-%m-%d %H:%M:%S"),
@@ -272,14 +292,20 @@ class FiveYearCloudCacheBuilder:
         write_json(self.manifest_file, manifest)
         if cache_changed:
             # 仅在本次有增量时再整包回传覆盖云端。
+            print("[stage] sync_cache_to_drive: start", flush=True)
+            stage_t0 = time.perf_counter()
             sync_cache_to_drive(self.project_root, "three_dim_cache_bundle.tar.gz", ["data/cache"])
+            print(f"[stage] sync_cache_to_drive: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
         else:
             print("本次无缓存变化，跳过云端整包回传。")
         upload_manifest = bool(os.getenv("GOOGLE_DRIVE_FOLDER_ID", "").strip())
         if upload_manifest:
             from jobs.common.cloud_cache_sync import upload_file_to_drive
 
+            print("[stage] upload_manifest: start", flush=True)
+            stage_t0 = time.perf_counter()
             upload_file_to_drive(self.manifest_file, "three_dim_cache_manifest.json", mime_type="application/json")
+            print(f"[stage] upload_manifest: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
         return manifest
 
 
