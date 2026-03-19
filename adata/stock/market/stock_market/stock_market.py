@@ -26,18 +26,22 @@ class StockMarket(object):
         self.qq_market = StockMarketQQ()
         self.baidu_market = StockMarketBaiDu()
         self.east_market = StockMarketEast()
-        # K线日/周/月数据源开关：默认百度优先，可切换为东方财富优先
+        # K线日/周/月数据源开关：默认只用百度
         self._market_provider = 'baidu'
+        # 是否在主数据源为空时自动回退另一个数据源
+        self._market_provider_fallback = False
 
-    def set_market_provider(self, provider: str = 'baidu'):
+    def set_market_provider(self, provider: str = 'baidu', fallback: bool = False):
         """
         设置K线行情主数据源。
         :param provider: 可选值：'baidu'、'east'
+        :param fallback: 主数据源为空时是否自动回退另一个数据源
         """
         provider = (provider or '').strip().lower()
         if provider not in ('baidu', 'east'):
             raise ValueError("provider must be one of: 'baidu', 'east'")
         self._market_provider = provider
+        self._market_provider_fallback = bool(fallback)
 
     def get_market_provider(self):
         """
@@ -59,17 +63,16 @@ class StockMarket(object):
         if self._market_provider == 'baidu':
             df = self.baidu_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                               k_type=k_type, adjust_type=adjust_type)
-            if df.empty:
-                return self.east_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
-                                                   k_type=k_type, adjust_type=adjust_type)
-            return df
-
+            if (not df.empty) or (not self._market_provider_fallback):
+                return df
+            return self.east_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
+                                               k_type=k_type, adjust_type=adjust_type)
         df = self.east_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                          k_type=k_type, adjust_type=adjust_type)
-        if df.empty:
-            return self.baidu_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
-                                                k_type=k_type, adjust_type=adjust_type)
-        return df
+        if (not df.empty) or (not self._market_provider_fallback):
+            return df
+        return self.baidu_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
+                                            k_type=k_type, adjust_type=adjust_type)
 
     def get_market_min(self, stock_code: str = '000001'):
         """

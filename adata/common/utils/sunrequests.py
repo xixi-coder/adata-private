@@ -74,7 +74,7 @@ class SunRequests(object):
             except requests.RequestException as exc:
                 last_exc = exc
                 print(
-                    f"[http error] {method.upper()} {url} attempt={i + 1}/{times} failed: {exc}",
+                    f"[http error] {method.upper()} attempt={i + 1}/{times} status=NA failed: {exc}",
                     flush=True,
                 )
                 if i == times - 1:
@@ -82,11 +82,16 @@ class SunRequests(object):
                 time.sleep(retry_wait_time / 1000)
                 continue
 
+            print(
+                f"[http] {method.upper()} attempt={i + 1}/{times} status={res.status_code}",
+                flush=True,
+            )
+
             if res.status_code in (200, 404):
                 return res
 
             print(
-                f"[http warn] {method.upper()} {url} attempt={i + 1}/{times} status={res.status_code}",
+                f"[http warn] {method.upper()} attempt={i + 1}/{times} status={res.status_code}",
                 flush=True,
             )
             time.sleep(retry_wait_time / 1000)

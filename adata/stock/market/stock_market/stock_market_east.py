@@ -24,6 +24,7 @@ class StockMarketEast(StockMarketTemplate):
 
     def __init__(self) -> None:
         super().__init__()
+        self._request_interval_ms = 2000
 
     @handler_null
     def get_market(self, stock_code: str = '000001', start_date='1990-01-01', end_date=None, k_type=1,
@@ -52,7 +53,12 @@ class StockMarketEast(StockMarketTemplate):
         # 2. 请求url
         url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
         try:
-            r = requests.request(method='get', url=url, params=params)
+            r = requests.request(
+                method='get',
+                url=url,
+                params=params,
+                wait_time=self._request_interval_ms,
+            )
         except RequestException:
             return pd.DataFrame()
 
@@ -104,7 +110,12 @@ class StockMarketEast(StockMarketTemplate):
             "_": "1623766962675",
         }
         url = "https://push2.eastmoney.com/api/qt/stock/trends2/get"
-        res = requests.request(method='get', url=url, params=params).json()
+        res = requests.request(
+            method='get',
+            url=url,
+            params=params,
+            wait_time=self._request_interval_ms,
+        ).json()
         # 2. 结果处理
         if not res["data"]:
             return pd.DataFrame()
