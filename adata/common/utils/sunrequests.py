@@ -63,6 +63,7 @@ class SunRequests(object):
         # 避免单次网络请求无限阻塞：未显式传入 timeout 时，提供默认超时。
         # tuple 语义: (connect_timeout, read_timeout)
         kwargs.setdefault('timeout', (5, 20))
+        payload_text = self.__format_payload(kwargs)
         # 2. 请求数据结果
         res = None
         last_exc = None
@@ -74,7 +75,8 @@ class SunRequests(object):
             except requests.RequestException as exc:
                 last_exc = exc
                 print(
-                    f"[http error] {method.upper()} attempt={i + 1}/{times} status=NA failed: {exc}",
+                    f"[http error] {method.upper()} {url} payload={payload_text} "
+                    f"attempt={i + 1}/{times} status=NA failed: {exc}",
                     flush=True,
                 )
                 if i == times - 1:
@@ -83,7 +85,8 @@ class SunRequests(object):
                 continue
 
             print(
-                f"[http] {method.upper()} attempt={i + 1}/{times} status={res.status_code}",
+                f"[http] {method.upper()} {url} payload={payload_text} "
+                f"attempt={i + 1}/{times} status={res.status_code}",
                 flush=True,
             )
 
@@ -91,7 +94,8 @@ class SunRequests(object):
                 return res
 
             print(
-                f"[http warn] {method.upper()} attempt={i + 1}/{times} status={res.status_code}",
+                f"[http warn] {method.upper()} {url} payload={payload_text} "
+                f"attempt={i + 1}/{times} status={res.status_code}",
                 flush=True,
             )
             time.sleep(retry_wait_time / 1000)
@@ -119,6 +123,25 @@ class SunRequests(object):
             else:
                 proxies = {'https': f"http://{ip}", 'http': f"http://{ip}"}
         return proxies
+
+    @staticmethod
+    def __format_payload(kwargs):
+        params = kwargs.get('params')
+        json_data = kwargs.get('json')
+        data = kwargs.get('data')
+        payload = {}
+        if params is not None:
+            payload['params'] = params
+        if json_data is not None:
+            payload['json'] = json_data
+        if data is not None:
+            payload['data'] = data
+        if not payload:
+            return "{}"
+        payload_text = str(payload)
+        if len(payload_text) > 500:
+            payload_text = payload_text[:500] + "...(truncated)"
+        return payload_text
 
 
 sun_requests = SunRequests()
