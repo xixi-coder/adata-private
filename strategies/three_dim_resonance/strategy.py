@@ -114,9 +114,6 @@ class ThreeDimResonanceStrategy:
             return today_str
         if today.weekday() >= 5:
             return (today - pd.tseries.offsets.BDay(1)).strftime("%Y-%m-%d")
-        now = self._now_shanghai()
-        if now.time() < datetime.time(15, 30):
-            return (today - pd.tseries.offsets.BDay(1)).strftime("%Y-%m-%d")
         return today.strftime("%Y-%m-%d")
 
     def _fallback_target_date_from_benchmark(self, today_str: str) -> str:
@@ -148,9 +145,6 @@ class ThreeDimResonanceStrategy:
         if not completed_dates:
             return self._fallback_target_date_from_benchmark(today_str)
         latest_trade_date = completed_dates[-1]
-        # 收盘前统一把上一交易日视为“已完成”的日K目标，避免提前标记当天已检查。
-        if latest_trade_date == today_str and now.time() < datetime.time(15, 30):
-            return completed_dates[-2] if len(completed_dates) >= 2 else today_str
         return latest_trade_date
 
     def load_data(self):

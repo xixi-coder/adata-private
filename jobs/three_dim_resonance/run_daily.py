@@ -39,6 +39,10 @@ class ThreeDimResonanceLiveStrategy(ThreeDimResonanceStrategy):
         self.summary_dir = os.path.join(CURRENT_DIR, "outputs")
         self.metadata = load_stock_metadata(PROJECT_ROOT)
         self.stock_names = {}
+        try:
+            self.today_k_coverage_min = float(os.getenv("THREE_DIM_TODAY_K_COVERAGE_MIN", "0.85"))
+        except ValueError:
+            self.today_k_coverage_min = 0.85
 
     @staticmethod
     def _now_shanghai() -> datetime.datetime:
@@ -62,6 +66,24 @@ class ThreeDimResonanceLiveStrategy(ThreeDimResonanceStrategy):
         self._filter_non_st()
         print(f"非ST股票池: {len(self.stock_data)}")
 
+    def _day_k_coverage(self, trade_date: str) -> tuple[int, int, float]:
+        total = len(self.stock_data)
+        if total <= 0:
+            return 0, 0, 0.0
+        available = 0
+        for df in self.stock_data.values():
+            if df is None or trade_date not in df.index:
+                continue
+            row = df.loc[trade_date]
+            if isinstance(row, pd.DataFrame):
+                row = row.iloc[-1]
+            open_price = pd.to_numeric(row.get("open"), errors="coerce")
+            close_price = pd.to_numeric(row.get("close"), errors="coerce")
+            if np.isfinite(open_price) and np.isfinite(close_price):
+                available += 1
+        ratio = available / total
+        return available, total, ratio
+
     def _resolve_trade_date(self, requested_date: str = "") -> str:
         if self.benchmark_df is None:
             raise RuntimeError("请先加载基准数据")
@@ -71,9 +93,30 @@ class ThreeDimResonanceLiveStrategy(ThreeDimResonanceStrategy):
         if requested_date and requested_date in self.benchmark_df.index:
             return requested_date
         now_date = self._now_shanghai().strftime("%Y-%m-%d")
-        valid_dates = [d for d in all_dates if d <= (requested_date or now_date)]
+        upper_bound_date = requested_date or now_date
+        valid_dates = [d for d in all_dates if d <= upper_bound_date]
         if not valid_dates:
             raise RuntimeError("未找到可用交易日")
+        if requested_date:
+            return valid_dates[-1]
+
+        # 默认优先今天；若今日日K覆盖不足，再自动回退到上一交易日。
+        if now_date in self.benchmark_df.index:
+            available, total, ratio = self._day_k_coverage(now_date)
+            if ratio >= self.today_k_coverage_min:
+                print(
+                    f"今日日K覆盖率 {available}/{total} ({ratio:.1%})，"
+                    f"使用今天 {now_date} 作为候选依据日。"
+                )
+                return now_date
+            print(
+                f"今日日K覆盖率 {available}/{total} ({ratio:.1%})，"
+                "回退到上个交易日。"
+            )
+
+        prev_dates = [d for d in valid_dates if d < now_date]
+        if prev_dates:
+            return prev_dates[-1]
         return valid_dates[-1]
 
     def _next_trade_date(self, trade_date: str) -> str:
@@ -339,26 +382,16 @@ class ThreeDimResonanceLiveStrategy(ThreeDimResonanceStrategy):
         trade_date = self._resolve_trade_date(requested_date)
         next_trade_date = self._next_trade_date(trade_date)
         state = self.load_state()
-        if state.get("last_run_trade_date") == trade_date:
-            summary = {
-                "run_time": self._now_shanghai().strftime("%Y-%m-%d %H:%M:%S"),
-                "signal_date": trade_date,
-                "next_trade_date": next_trade_date,
-                "candidate_reference_date": trade_date,
-                "executed_buys": [],
-                "executed_sells": [],
-                "buy_suggestions": self._pending_entries_snapshot(state),
-                "sell_suggestions": self._pending_exits_snapshot(state),
-                "positions": self._positions_snapshot(state, trade_date),
-                "cash": round(float(state["cash"]), 2),
-                "status": "skipped",
-                "note": f"{trade_date} 已处理，通常表示今天不是新的交易日；本邮件沿用上次待执行建议。",
-            }
-            self._write_outputs(summary)
-            return summary
+        already_processed = state.get("last_run_trade_date") == trade_date
+        rerun_note = ""
+        if already_processed:
+            executed_sells = []
+            executed_buys = []
+            rerun_note = f"{trade_date} 已处理过成交动作，本次仅刷新当日建议，不重复执行买卖。"
+        else:
+            executed_sells = self._execute_pending_exits(state, trade_date)
+            executed_buys = self._execute_pending_entries(state, trade_date)
 
-        executed_sells = self._execute_pending_exits(state, trade_date)
-        executed_buys = self._execute_pending_entries(state, trade_date)
         sell_signals, pending_exits = self._close_side_updates(state, trade_date)
         buy_candidates = self._entry_candidates(state, trade_date)
 
@@ -381,7 +414,7 @@ class ThreeDimResonanceLiveStrategy(ThreeDimResonanceStrategy):
             "positions": self._positions_snapshot(state, trade_date),
             "cash": round(float(state["cash"]), 2),
             "status": "ok",
-            "note": "",
+            "note": rerun_note,
         }
         self._write_outputs(summary)
         return summary
