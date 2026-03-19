@@ -232,7 +232,7 @@ class FiveYearCloudCacheBuilder:
                 if df is not raw_stock.get(code):
                     raw_stock[code] = df
                     updated_stock += 1
-                if completed_fetch % 50 == 0 or completed_fetch == len(pending_codes):
+                if completed_fetch % 100 == 0 or completed_fetch == len(pending_codes):
                     print(
                         f"[fetch-progress] completed={completed_fetch}/{len(pending_codes)}, "
                         f"updated={updated_stock}"

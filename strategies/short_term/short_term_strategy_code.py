@@ -263,15 +263,33 @@ class ShortTermDisagreementStrategy:
 
         target_date = self._incremental_target_date(adata)
         default_start_date = (self._now_shanghai() - dt.timedelta(days=365 * 5 + 30)).strftime("%Y-%m-%d")
-        valid_codes = [c for c in self.stock_meta.keys() if self._is_supported_equity_code(c)]
+        excluded_name_count_before_fetch = 0
+        valid_codes = []
+        for code, meta in self.stock_meta.items():
+            if not self._is_supported_equity_code(code):
+                continue
+            if self._is_excluded_short_name(meta.get("short_name", "")):
+                excluded_name_count_before_fetch += 1
+                continue
+            valid_codes.append(code)
         if not valid_codes:
             try:
                 df_codes = adata.stock.info.all_code()
-                valid_codes = df_codes['stock_code'].astype(str).tolist()
-                valid_codes = [self._normalize_code(c) for c in valid_codes]
-                valid_codes = [c for c in valid_codes if self._is_supported_equity_code(c)]
+                if df_codes is not None and not df_codes.empty:
+                    df_codes = df_codes.copy()
+                    df_codes["stock_code"] = df_codes["stock_code"].map(self._normalize_code)
+                    df_codes = df_codes[df_codes["stock_code"].map(self._is_supported_equity_code)]
+                    if "short_name" in df_codes.columns:
+                        before = len(df_codes)
+                        df_codes = df_codes[~df_codes["short_name"].fillna("").map(self._is_excluded_short_name)]
+                        excluded_name_count_before_fetch = max(before - len(df_codes), 0)
+                    valid_codes = df_codes["stock_code"].tolist()
             except Exception as e:
                 print(f"获取股票列表失败: {e}")
+        print(
+            f"预抓取过滤完成: valid_codes={len(valid_codes)}, "
+            f"excluded_st_or_delisted={excluded_name_count_before_fetch}"
+        )
 
         pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != target_date]
         if max_update_codes is not None and max_update_codes > 0:
@@ -304,7 +322,7 @@ class ShortTermDisagreementStrategy:
             if pending_codes:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                     futures = {executor.submit(fetch_incremental, c, raw_stock.get(c)): c for c in pending_codes}
-                    for f in concurrent.futures.as_completed(futures):
+                    for idx, f in enumerate(concurrent.futures.as_completed(futures), start=1):
                         code, new_df, checked = f.result()
                         if checked:
                             stock_last_checked[code] = target_date
@@ -312,6 +330,11 @@ class ShortTermDisagreementStrategy:
                         if new_df is not raw_stock.get(code):
                             raw_stock[code] = new_df
                             updated_count += 1
+                        if idx % 100 == 0 or idx == len(futures):
+                            print(
+                                f"[fetch-progress] completed={idx}/{len(futures)}, "
+                                f"updated={updated_count}, checked={checked_count}"
+                            )
         else:
             print("使用共享缓存，跳过在线日K增量更新。")
 

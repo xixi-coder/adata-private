@@ -84,12 +84,6 @@ class SunRequests(object):
                 time.sleep(retry_wait_time / 1000)
                 continue
 
-            print(
-                f"[http] {method.upper()} {url} payload={payload_text} "
-                f"attempt={i + 1}/{times} status={res.status_code}",
-                flush=True,
-            )
-
             if res.status_code in (200, 404):
                 return res
 
