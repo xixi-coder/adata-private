@@ -26,6 +26,24 @@ class StockMarket(object):
         self.qq_market = StockMarketQQ()
         self.baidu_market = StockMarketBaiDu()
         self.east_market = StockMarketEast()
+        # K线日/周/月数据源开关：默认百度优先，可切换为东方财富优先
+        self._market_provider = 'baidu'
+
+    def set_market_provider(self, provider: str = 'baidu'):
+        """
+        设置K线行情主数据源。
+        :param provider: 可选值：'baidu'、'east'
+        """
+        provider = (provider or '').strip().lower()
+        if provider not in ('baidu', 'east'):
+            raise ValueError("provider must be one of: 'baidu', 'east'")
+        self._market_provider = provider
+
+    def get_market_provider(self):
+        """
+        获取当前K线行情主数据源。
+        """
+        return self._market_provider
 
     def get_market(self, stock_code: str = '000001', start_date='1990-01-01', end_date=None, k_type=1,
                    adjust_type: int = 1):
@@ -38,8 +56,19 @@ class StockMarket(object):
         :param adjust_type: k线复权类型：0.不复权；1.前复权；2.后复权 默认：1 前复权 （目前：只有前复权,作为股票交易已经可用）
         :return: k线行情数据
         """
+        if self._market_provider == 'baidu':
+            df = self.baidu_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
+                                              k_type=k_type, adjust_type=adjust_type)
+            if df.empty:
+                return self.east_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
+                                                   k_type=k_type, adjust_type=adjust_type)
+            return df
+
         df = self.east_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                          k_type=k_type, adjust_type=adjust_type)
+        if df.empty:
+            return self.baidu_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
+                                                k_type=k_type, adjust_type=adjust_type)
         return df
 
     def get_market_min(self, stock_code: str = '000001'):

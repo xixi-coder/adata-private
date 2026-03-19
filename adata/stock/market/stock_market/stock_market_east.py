@@ -9,6 +9,7 @@ TODO 数据校验
 """
 
 import pandas as pd
+from requests import RequestException
 
 from adata.common.exception.handler import handler_null
 from adata.common.utils import requests
@@ -49,14 +50,24 @@ class StockMarketEast(StockMarketTemplate):
                   "_": "1623766962675",
                   }
         # 2. 请求url
-        url = "http://push2his.eastmoney.com/api/qt/stock/kline/get"
-        r = requests.request(method='get', url=url, params=params)
-        data_json = r.json()
+        url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+        try:
+            r = requests.request(method='get', url=url, params=params)
+        except RequestException:
+            return pd.DataFrame()
+
+        if not r or r.status_code != 200:
+            return pd.DataFrame()
+        try:
+            data_json = r.json()
+        except ValueError:
+            return pd.DataFrame()
 
         # 3. 结果处理
-        if not data_json["data"]:
+        data_detail = data_json.get("data") if isinstance(data_json, dict) else None
+        if not data_detail:
             return pd.DataFrame()
-        lines = data_json["data"]["klines"]
+        lines = data_detail.get("klines")
         if not lines:
             return pd.DataFrame()
         data = [item.split(",") for item in lines]
