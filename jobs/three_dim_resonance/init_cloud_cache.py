@@ -5,7 +5,6 @@ import os
 import pickle
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 import pandas as pd
@@ -222,31 +221,24 @@ class FiveYearCloudCacheBuilder:
                 pending_codes.append(code)
 
         print(f"pending_stock_updates={len(pending_codes)}")
-        if selected_codes:
+        if pending_codes:
             print("[stage] fetch_stock_incremental: start", flush=True)
             stage_t0 = time.perf_counter()
-            completed_fetch = 0
-            with ThreadPoolExecutor(max_workers=8) as executor:
-                futures = {
-                    executor.submit(self._fetch_stock, code, raw_stock.get(code), target_date): code
-                    for code in pending_codes
-                }
-                for future in as_completed(futures):
-                    completed_fetch += 1
-                    code, df, checked = future.result()
-                    if checked:
-                        checked_stock += 1
-                        progress += 1
-                    if df is not raw_stock.get(code):
-                        raw_stock[code] = df
-                        updated_stock += 1
-                    if completed_fetch % 50 == 0 or completed_fetch == len(pending_codes):
-                        print(
-                            f"[fetch-progress] completed={completed_fetch}/{len(pending_codes)}, "
-                            f"updated={updated_stock}"
-                        )
-                    if checkpoint_every > 0 and progress > 0 and progress % checkpoint_every == 0:
-                        self._save_cache(cache)
+            for completed_fetch, code in enumerate(pending_codes, start=1):
+                code, df, checked = self._fetch_stock(code, raw_stock.get(code), target_date)
+                if checked:
+                    checked_stock += 1
+                    progress += 1
+                if df is not raw_stock.get(code):
+                    raw_stock[code] = df
+                    updated_stock += 1
+                if completed_fetch % 50 == 0 or completed_fetch == len(pending_codes):
+                    print(
+                        f"[fetch-progress] completed={completed_fetch}/{len(pending_codes)}, "
+                        f"updated={updated_stock}"
+                    )
+                if checkpoint_every > 0 and progress > 0 and progress % checkpoint_every == 0:
+                    self._save_cache(cache)
             print(f"[stage] fetch_stock_incremental: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
         refreshed_finance = 0

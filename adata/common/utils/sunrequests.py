@@ -65,15 +65,35 @@ class SunRequests(object):
         kwargs.setdefault('timeout', (5, 20))
         # 2. 请求数据结果
         res = None
+        last_exc = None
         for i in range(times):
             if wait_time:
                 time.sleep(wait_time / 1000)
-            res = requests.request(method=method, url=url, proxies=proxies, **kwargs)
+            try:
+                res = requests.request(method=method, url=url, proxies=proxies, **kwargs)
+            except requests.RequestException as exc:
+                last_exc = exc
+                print(
+                    f"[http error] {method.upper()} {url} attempt={i + 1}/{times} failed: {exc}",
+                    flush=True,
+                )
+                if i == times - 1:
+                    raise
+                time.sleep(retry_wait_time / 1000)
+                continue
+
             if res.status_code in (200, 404):
                 return res
+
+            print(
+                f"[http warn] {method.upper()} {url} attempt={i + 1}/{times} status={res.status_code}",
+                flush=True,
+            )
             time.sleep(retry_wait_time / 1000)
             if i == times - 1:
                 return res
+        if last_exc is not None:
+            raise last_exc
         return res
 
     def __get_proxies(self, proxies):
