@@ -162,6 +162,7 @@ class FiveYearCloudCacheBuilder:
         self,
         checkpoint_every: int,
         finance_refresh_days: int,
+        auto_commit_minutes: int = 30,
     ) -> dict:
         stage_t0 = time.perf_counter()
         print("[stage] sync_cache_from_drive: start", flush=True)
@@ -175,6 +176,29 @@ class FiveYearCloudCacheBuilder:
         raw_stock = cache.setdefault("stock", {})
         update_meta = cache.setdefault("update_meta", {})
         finance_last_checked = update_meta.setdefault("finance_last_checked", {})
+        auto_commit_count = 0
+        cache_dirty_since_last_sync = False
+        auto_commit_interval_seconds = max(int(auto_commit_minutes), 0) * 60
+        last_auto_commit_ts = time.perf_counter()
+
+        def maybe_auto_commit(reason: str):
+            nonlocal auto_commit_count, cache_dirty_since_last_sync, last_auto_commit_ts
+            if auto_commit_interval_seconds <= 0:
+                return
+            if not cache_dirty_since_last_sync:
+                return
+            now_ts = time.perf_counter()
+            if (now_ts - last_auto_commit_ts) < auto_commit_interval_seconds:
+                return
+            print(f"[stage] auto_commit({reason}): start", flush=True)
+            t0 = time.perf_counter()
+            self._save_cache(cache)
+            sync_cache_to_drive(self.project_root, "three_dim_cache_bundle.tar.gz", ["data/cache"])
+            elapsed = time.perf_counter() - t0
+            auto_commit_count += 1
+            cache_dirty_since_last_sync = False
+            last_auto_commit_ts = time.perf_counter()
+            print(f"[stage] auto_commit({reason}): done ({elapsed:.1f}s)", flush=True)
 
         today = datetime.datetime.now()
         today_str = today.strftime("%Y-%m-%d")
@@ -232,6 +256,7 @@ class FiveYearCloudCacheBuilder:
                 if df is not raw_stock.get(code):
                     raw_stock[code] = df
                     updated_stock += 1
+                    cache_dirty_since_last_sync = True
                 if completed_fetch % 100 == 0 or completed_fetch == len(pending_codes):
                     print(
                         f"[fetch-progress] completed={completed_fetch}/{len(pending_codes)}, "
@@ -239,6 +264,7 @@ class FiveYearCloudCacheBuilder:
                     )
                 if checkpoint_every > 0 and progress > 0 and progress % checkpoint_every == 0:
                     self._save_cache(cache)
+                maybe_auto_commit("fetch_stock_incremental")
             print(f"[stage] fetch_stock_incremental: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
         refreshed_finance = 0
@@ -252,8 +278,15 @@ class FiveYearCloudCacheBuilder:
             changed = self._refresh_finance(code, finance_refresh_days, today)
             finance_last_checked[code] = today_str
             refreshed_finance += int(changed)
+            cache_dirty_since_last_sync = True
+            if idx % 100 == 0 or idx == len(finance_targets):
+                print(
+                    f"[finance-progress] completed={idx}/{len(finance_targets)}, "
+                    f"refreshed={refreshed_finance}"
+                )
             if checkpoint_every > 0 and idx % checkpoint_every == 0:
                 self._save_cache(cache)
+            maybe_auto_commit("refresh_finance")
         print(f"[stage] refresh_finance: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
         print("[stage] update_benchmark: start", flush=True)
@@ -280,6 +313,8 @@ class FiveYearCloudCacheBuilder:
             "cache_file": self.full_cache_file,
             "benchmark_file": self.benchmark_file,
             "finance_dir": self.finance_dir,
+            "auto_commit_minutes": auto_commit_minutes,
+            "auto_commit_count": auto_commit_count,
         }
         write_json(self.manifest_file, manifest)
         if cache_changed:
@@ -306,5 +341,6 @@ if __name__ == "__main__":
     manifest = builder.build(
         checkpoint_every=_read_int_env("CACHE_CHECKPOINT_EVERY", 100),
         finance_refresh_days=_read_int_env("FINANCE_REFRESH_DAYS", 30) or 30,
+        auto_commit_minutes=_read_int_env("AUTO_COMMIT_MINUTES", 30) or 30,
     )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
