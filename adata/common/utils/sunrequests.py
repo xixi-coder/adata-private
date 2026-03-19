@@ -60,6 +60,9 @@ class SunRequests(object):
         """
         # 1. 获取设置代理
         proxies = self.__get_proxies(proxies)
+        # 避免单次网络请求无限阻塞：未显式传入 timeout 时，提供默认超时。
+        # tuple 语义: (connect_timeout, read_timeout)
+        kwargs.setdefault('timeout', (5, 20))
         # 2. 请求数据结果
         res = None
         for i in range(times):

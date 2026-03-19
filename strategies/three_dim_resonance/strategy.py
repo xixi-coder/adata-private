@@ -74,7 +74,7 @@ class ThreeDimResonanceStrategy:
 
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.cache_dir = os.path.join(base_dir, "data", "cache")
-        self.full_cache_file = os.path.join(self.cache_dir, "full_data_v2_processed.pkl")
+        self.full_cache_file = os.path.join(self.cache_dir, "full_data_v3_5year.pkl")
         self.benchmark_file = os.path.join(self.cache_dir, "benchmark_000300.csv")
 
         self.stock_data = {}

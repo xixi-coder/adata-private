@@ -83,7 +83,6 @@ class ShortTermDisagreementStrategy:
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.cache_dir = os.path.join(self.base_dir, "data", "cache")
         self.shared_cache_file = os.path.join(self.cache_dir, "full_data_v3_5year.pkl")
-        self.legacy_cache_file = os.path.join(self.cache_dir, "full_data_v2_processed.pkl")
         self.full_cache_file = self.shared_cache_file
         self.benchmark_file = os.path.join(self.cache_dir, "benchmark_000300.csv")
         self.metadata_file = os.path.join(self.base_dir, "tests", "utils", "all_code.csv")
@@ -161,10 +160,6 @@ class ShortTermDisagreementStrategy:
         print(f"加载股票元数据完成: {len(self.stock_meta)} 条")
 
     def _resolve_cache_file(self) -> str:
-        if os.path.exists(self.shared_cache_file):
-            return self.shared_cache_file
-        if os.path.exists(self.legacy_cache_file):
-            return self.legacy_cache_file
         return self.shared_cache_file
 
     @staticmethod
@@ -256,19 +251,6 @@ class ShortTermDisagreementStrategy:
         if os.path.exists(self.full_cache_file):
             print("加载全量股票缓存...")
             cache = self._read_cache_file(self.full_cache_file)
-            raw_stock = cache.get("stock", {})
-            # 共享缓存明显异常时，优先回退到本地旧缓存，避免短线策略只拿到极小样本。
-            if (
-                self.full_cache_file == self.shared_cache_file
-                and len(raw_stock) < 500
-                and os.path.exists(self.legacy_cache_file)
-            ):
-                print(
-                    f"共享缓存股票数量过少({len(raw_stock)} 只)，"
-                    f"回退到旧缓存: {self.legacy_cache_file}"
-                )
-                self.full_cache_file = self.legacy_cache_file
-                cache = self._read_cache_file(self.full_cache_file)
         else:
             if not allow_online_update:
                 raise FileNotFoundError(f"未找到缓存 {self.full_cache_file}，且已禁用在线更新")

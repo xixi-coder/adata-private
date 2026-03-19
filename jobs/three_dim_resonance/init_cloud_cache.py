@@ -46,6 +46,25 @@ class FiveYearCloudCacheBuilder:
     def _five_year_start() -> str:
         return (datetime.datetime.now() - datetime.timedelta(days=365 * 5 + 30)).strftime("%Y-%m-%d")
 
+    def _stock_target_date(self, today_str: str) -> str:
+        """
+        股票日K补齐目标日：
+        - 不抓当天，统一只补到“上一交易日”。
+        - 优先使用基准文件里 <= 上一工作日 的最新交易日，避免节假日误判。
+        """
+        prev_business_day = (pd.to_datetime(today_str) - pd.tseries.offsets.BDay(1)).strftime("%Y-%m-%d")
+        if os.path.exists(self.benchmark_file):
+            try:
+                bench = pd.read_csv(self.benchmark_file)
+                if not bench.empty and "trade_date" in bench.columns:
+                    bench["trade_date"] = bench["trade_date"].astype(str)
+                    valid_dates = sorted(d for d in bench["trade_date"].tolist() if d <= prev_business_day)
+                    if valid_dates:
+                        return valid_dates[-1]
+            except Exception:
+                pass
+        return prev_business_day
+
     def _load_cache(self) -> dict:
         if os.path.exists(self.full_cache_file):
             with open(self.full_cache_file, "rb") as f:
@@ -67,18 +86,26 @@ class FiveYearCloudCacheBuilder:
             codes.append(code)
         return sorted(codes)
 
-    def _fetch_stock(self, code: str, existing_df: Optional[pd.DataFrame], today_str: str):
+    def _fetch_stock(self, code: str, existing_df: Optional[pd.DataFrame], target_date: str):
         try:
             if existing_df is not None and not existing_df.empty:
                 last_date = pd.to_datetime(existing_df["trade_time"].max()).strftime("%Y-%m-%d")
-                if last_date >= today_str:
+                if last_date >= target_date:
                     return code, existing_df, False
-                new_df = adata.stock.market.get_market(stock_code=code, start_date=last_date)
+                new_df = adata.stock.market.get_market(
+                    stock_code=code,
+                    start_date=last_date,
+                    end_date=target_date,
+                )
                 if new_df is not None and not new_df.empty:
                     merged = pd.concat([existing_df, new_df]).drop_duplicates("trade_time").sort_values("trade_time")
                     return code, merged, True
                 return code, existing_df, True
-            new_df = adata.stock.market.get_market(stock_code=code, start_date=self._five_year_start())
+            new_df = adata.stock.market.get_market(
+                stock_code=code,
+                start_date=self._five_year_start(),
+                end_date=target_date,
+            )
             if new_df is not None and not new_df.empty:
                 return code, new_df, True
         except Exception as exc:
@@ -101,7 +128,7 @@ class FiveYearCloudCacheBuilder:
             print(f"[finance fetch failed] {code}: {exc}")
         return False
 
-    def _update_benchmark(self, today_str: str):
+    def _update_benchmark(self, target_date: str):
         os.makedirs(self.cache_dir, exist_ok=True)
         if os.path.exists(self.benchmark_file):
             bench = pd.read_csv(self.benchmark_file)
@@ -110,14 +137,22 @@ class FiveYearCloudCacheBuilder:
         updated = False
         if not bench.empty:
             last_date = str(bench["trade_date"].max())
-            if last_date < today_str:
-                new_bench = adata.stock.market.get_market_index(index_code="000300", start_date=last_date)
+            if last_date < target_date:
+                new_bench = adata.stock.market.get_market_index(
+                    index_code="000300",
+                    start_date=last_date,
+                    end_date=target_date,
+                )
                 if new_bench is not None and not new_bench.empty:
                     bench = pd.concat([bench, new_bench]).drop_duplicates("trade_date").sort_values("trade_date")
                     bench.to_csv(self.benchmark_file, index=False)
                     updated = True
         else:
-            bench = adata.stock.market.get_market_index(index_code="000300", start_date=self._five_year_start())
+            bench = adata.stock.market.get_market_index(
+                index_code="000300",
+                start_date=self._five_year_start(),
+                end_date=target_date,
+            )
             if bench is not None and not bench.empty:
                 bench.to_csv(self.benchmark_file, index=False)
                 updated = True
@@ -136,6 +171,7 @@ class FiveYearCloudCacheBuilder:
 
         today = datetime.datetime.now()
         today_str = today.strftime("%Y-%m-%d")
+        target_date = self._stock_target_date(today_str)
         selected_codes = self._valid_codes()
 
         # 观察云端缓存当前“落后几天”：以本地 benchmark 最新日期为准。
@@ -150,12 +186,12 @@ class FiveYearCloudCacheBuilder:
 
         if cloud_bench_last_date:
             try:
-                gap_days = max((pd.to_datetime(today_str) - pd.to_datetime(cloud_bench_last_date)).days, 0)
+                gap_days = max((pd.to_datetime(target_date) - pd.to_datetime(cloud_bench_last_date)).days, 0)
             except Exception:
                 gap_days = -1
-            print(f"cloud_benchmark_last_date={cloud_bench_last_date}, target_date={today_str}, gap_days={gap_days}")
+            print(f"cloud_benchmark_last_date={cloud_bench_last_date}, target_date={target_date}, gap_days={gap_days}")
         else:
-            print(f"cloud_benchmark_last_date=unknown, target_date={today_str}")
+            print(f"cloud_benchmark_last_date=unknown, target_date={target_date}")
 
         print(f"selected_codes={len(selected_codes)}")
         updated_stock = 0
@@ -174,17 +210,19 @@ class FiveYearCloudCacheBuilder:
             except Exception:
                 pending_codes.append(code)
                 continue
-            if last_date < today_str:
+            if last_date < target_date:
                 pending_codes.append(code)
 
         print(f"pending_stock_updates={len(pending_codes)}")
         if selected_codes:
+            completed_fetch = 0
             with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = {
-                    executor.submit(self._fetch_stock, code, raw_stock.get(code), today_str): code
+                    executor.submit(self._fetch_stock, code, raw_stock.get(code), target_date): code
                     for code in pending_codes
                 }
                 for future in as_completed(futures):
+                    completed_fetch += 1
                     code, df, checked = future.result()
                     if checked:
                         checked_stock += 1
@@ -192,6 +230,11 @@ class FiveYearCloudCacheBuilder:
                     if df is not raw_stock.get(code):
                         raw_stock[code] = df
                         updated_stock += 1
+                    if completed_fetch % 50 == 0 or completed_fetch == len(pending_codes):
+                        print(
+                            f"[fetch-progress] completed={completed_fetch}/{len(pending_codes)}, "
+                            f"updated={updated_stock}"
+                        )
                     if checkpoint_every > 0 and progress > 0 and progress % checkpoint_every == 0:
                         self._save_cache(cache)
 
@@ -207,7 +250,7 @@ class FiveYearCloudCacheBuilder:
             if checkpoint_every > 0 and idx % checkpoint_every == 0:
                 self._save_cache(cache)
 
-        benchmark_updated = self._update_benchmark(today_str)
+        benchmark_updated = self._update_benchmark(target_date)
         cache_changed = bool(updated_stock > 0 or refreshed_finance > 0 or benchmark_updated)
         if cache_changed:
             self._save_cache(cache)
