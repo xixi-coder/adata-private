@@ -133,69 +133,9 @@ class ThreeDimResonanceStrategy:
         with open(self.full_cache_file, "rb") as f:
             cache = pickle.load(f)
         raw_stock = cache["stock"]
-        update_meta = cache.setdefault("update_meta", {})
-        stock_last_checked = update_meta.setdefault("stock_last_checked", {})
 
-        # ------------- 自动拉取更新最新数据 -------------
-        print("检查并更新股票最新数据...")
-        import concurrent.futures
-        import adata
-        target_date = self._incremental_target_date(adata)
-        print(f"日K增量更新目标交易日: {target_date}")
-
-        def fetch_incremental(code, df):
-            try:
-                if df is not None and not df.empty:
-                    last_date = pd.to_datetime(df['trade_time'].max()).strftime('%Y-%m-%d')
-                    if last_date < target_date:
-                        # 对于只缺失部分天数的情况，执行增量获取
-                        new_data = adata.stock.market.get_market(stock_code=code, start_date=last_date)
-                        if new_data is not None and not new_data.empty:
-                            merged_df = pd.concat([df, new_data]).drop_duplicates('trade_time').sort_values('trade_time')
-                            return code, merged_df, pd.to_datetime(merged_df['trade_time'].max()).strftime('%Y-%m-%d') >= target_date
-                        return code, df, False
-                    return code, df, False
-            except Exception as exc:
-                print(f"[增量更新失败] {code}: {exc}")
-                return code, df, False
-            return code, df, False
-
-        updated_count = 0
-        checked_count = 0
-        valid_codes = [c for c in raw_stock.keys() if self._is_tradable_a_share_code(c)]
-        pending_codes = [c for c in valid_codes if stock_last_checked.get(c) != target_date]
-        
-        # 使用并发加快拉取速度
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            futures = {executor.submit(fetch_incremental, c, raw_stock[c]): c for c in pending_codes}
-            for f in concurrent.futures.as_completed(futures):
-                code, new_df, checked = f.result()
-                if checked:
-                    stock_last_checked[code] = target_date
-                    checked_count += 1
-                if new_df is not raw_stock[code]:
-                    raw_stock[code] = new_df
-                    updated_count += 1
-        
-        # 沪深300基准增量更新
-        bench = pd.read_csv(self.benchmark_file)
-        if not bench.empty:
-            bench_last_date = str(bench['trade_date'].max())
-            if bench_last_date < target_date:
-                new_bench = adata.stock.market.get_market_index(index_code='000300', start_date=bench_last_date)
-                if new_bench is not None and not new_bench.empty:
-                    bench = pd.concat([bench, new_bench]).drop_duplicates('trade_date').sort_values('trade_date')
-                    bench.to_csv(self.benchmark_file, index=False)
-                    print(f"基准增量更新至: {bench['trade_date'].max()}")
-
-        if updated_count > 0 or checked_count > 0:
-            if updated_count > 0:
-                print(f"更新了 {updated_count} 只股票的新增日K数据并回写缓存。")
-            if checked_count > 0:
-                print(f"记录了 {checked_count} 只股票今日已检查状态。")
-            with open(self.full_cache_file, "wb") as f:
-                pickle.dump(cache, f)
-        # ------------------------------------------------
+        # 日常建议任务固定使用云端缓存中的本地数据，不在此处执行在线增量抓取。
+        print("使用云端缓存的本地数据，不执行在线增量更新。")
 
         print("预处理股票数据并构建股票池...")
         processed = {}

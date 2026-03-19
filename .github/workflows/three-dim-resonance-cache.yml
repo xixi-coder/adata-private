@@ -3,18 +3,6 @@ name: 初始化三维共振云端缓存
 on:
   workflow_dispatch:
     inputs:
-      batch_size:
-        description: "单次处理股票数，建议 200-600"
-        required: false
-        default: "300"
-      shard_total:
-        description: "分片总数，可留空"
-        required: false
-        default: ""
-      shard_index:
-        description: "分片索引，从 0 开始，可留空"
-        required: false
-        default: ""
       checkpoint_every:
         description: "每处理多少只股票落盘"
         required: false
@@ -56,9 +44,6 @@ jobs:
 
       - name: Build and sync cloud cache
         env:
-          CACHE_BATCH_SIZE: ${{ inputs.batch_size }}
-          CACHE_SHARD_TOTAL: ${{ inputs.shard_total }}
-          CACHE_SHARD_INDEX: ${{ inputs.shard_index }}
           CACHE_CHECKPOINT_EVERY: ${{ inputs.checkpoint_every }}
           FINANCE_REFRESH_DAYS: ${{ inputs.finance_refresh_days }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}

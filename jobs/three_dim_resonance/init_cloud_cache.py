@@ -67,17 +67,6 @@ class FiveYearCloudCacheBuilder:
             codes.append(code)
         return sorted(codes)
 
-    @staticmethod
-    def _apply_batch_and_shard(codes: list[str], batch_size: Optional[int], shard_total: Optional[int], shard_index: Optional[int]) -> list[str]:
-        selected = list(codes)
-        if shard_total:
-            if shard_index is None:
-                shard_index = 0
-            selected = [code for idx, code in enumerate(selected) if idx % shard_total == shard_index]
-        if batch_size:
-            selected = selected[:batch_size]
-        return selected
-
     def _fetch_stock(self, code: str, existing_df: Optional[pd.DataFrame], today_str: str):
         try:
             if existing_df is not None and not existing_df.empty:
@@ -118,6 +107,7 @@ class FiveYearCloudCacheBuilder:
             bench = pd.read_csv(self.benchmark_file)
         else:
             bench = pd.DataFrame()
+        updated = False
         if not bench.empty:
             last_date = str(bench["trade_date"].max())
             if last_date < today_str:
@@ -125,16 +115,16 @@ class FiveYearCloudCacheBuilder:
                 if new_bench is not None and not new_bench.empty:
                     bench = pd.concat([bench, new_bench]).drop_duplicates("trade_date").sort_values("trade_date")
                     bench.to_csv(self.benchmark_file, index=False)
+                    updated = True
         else:
             bench = adata.stock.market.get_market_index(index_code="000300", start_date=self._five_year_start())
             if bench is not None and not bench.empty:
                 bench.to_csv(self.benchmark_file, index=False)
+                updated = True
+        return updated
 
     def build(
         self,
-        batch_size: Optional[int],
-        shard_total: Optional[int],
-        shard_index: Optional[int],
         checkpoint_every: int,
         finance_refresh_days: int,
     ) -> dict:
@@ -142,33 +132,61 @@ class FiveYearCloudCacheBuilder:
         cache = self._load_cache()
         raw_stock = cache.setdefault("stock", {})
         update_meta = cache.setdefault("update_meta", {})
-        stock_last_checked = update_meta.setdefault("stock_last_checked", {})
         finance_last_checked = update_meta.setdefault("finance_last_checked", {})
 
         today = datetime.datetime.now()
         today_str = today.strftime("%Y-%m-%d")
-        selected_codes = self._apply_batch_and_shard(
-            self._valid_codes(),
-            batch_size=batch_size,
-            shard_total=shard_total,
-            shard_index=shard_index,
-        )
+        selected_codes = self._valid_codes()
+
+        # 观察云端缓存当前“落后几天”：以本地 benchmark 最新日期为准。
+        cloud_bench_last_date = ""
+        if os.path.exists(self.benchmark_file):
+            try:
+                bench = pd.read_csv(self.benchmark_file)
+                if not bench.empty and "trade_date" in bench.columns:
+                    cloud_bench_last_date = str(bench["trade_date"].max())
+            except Exception:
+                cloud_bench_last_date = ""
+
+        if cloud_bench_last_date:
+            try:
+                gap_days = max((pd.to_datetime(today_str) - pd.to_datetime(cloud_bench_last_date)).days, 0)
+            except Exception:
+                gap_days = -1
+            print(f"cloud_benchmark_last_date={cloud_bench_last_date}, target_date={today_str}, gap_days={gap_days}")
+        else:
+            print(f"cloud_benchmark_last_date=unknown, target_date={today_str}")
 
         print(f"selected_codes={len(selected_codes)}")
         updated_stock = 0
         checked_stock = 0
         progress = 0
+
+        # 仅对“缓存末日早于今天”的股票做增量抓取，避免每次全量请求。
+        pending_codes = []
+        for code in selected_codes:
+            existing_df = raw_stock.get(code)
+            if existing_df is None or existing_df.empty:
+                pending_codes.append(code)
+                continue
+            try:
+                last_date = pd.to_datetime(existing_df["trade_time"].max()).strftime("%Y-%m-%d")
+            except Exception:
+                pending_codes.append(code)
+                continue
+            if last_date < today_str:
+                pending_codes.append(code)
+
+        print(f"pending_stock_updates={len(pending_codes)}")
         if selected_codes:
             with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = {
                     executor.submit(self._fetch_stock, code, raw_stock.get(code), today_str): code
-                    for code in selected_codes
-                    if stock_last_checked.get(code) != today_str
+                    for code in pending_codes
                 }
                 for future in as_completed(futures):
                     code, df, checked = future.result()
                     if checked:
-                        stock_last_checked[code] = today_str
                         checked_stock += 1
                         progress += 1
                     if df is not raw_stock.get(code):
@@ -189,22 +207,31 @@ class FiveYearCloudCacheBuilder:
             if checkpoint_every > 0 and idx % checkpoint_every == 0:
                 self._save_cache(cache)
 
-        self._update_benchmark(today_str)
-        self._save_cache(cache)
+        benchmark_updated = self._update_benchmark(today_str)
+        cache_changed = bool(updated_stock > 0 or refreshed_finance > 0 or benchmark_updated)
+        if cache_changed:
+            self._save_cache(cache)
 
         manifest = {
             "updated_at": today.strftime("%Y-%m-%d %H:%M:%S"),
             "stock_count": len(raw_stock),
             "selected_code_count": len(selected_codes),
+            "pending_stock_update_count": len(pending_codes),
             "updated_stock_count": updated_stock,
             "checked_stock_count": checked_stock,
             "refreshed_finance_count": refreshed_finance,
+            "benchmark_updated": benchmark_updated,
+            "cache_changed": cache_changed,
             "cache_file": self.full_cache_file,
             "benchmark_file": self.benchmark_file,
             "finance_dir": self.finance_dir,
         }
         write_json(self.manifest_file, manifest)
-        sync_cache_to_drive(self.project_root, "three_dim_cache_bundle.tar.gz", ["data/cache"])
+        if cache_changed:
+            # 仅在本次有增量时再整包回传覆盖云端。
+            sync_cache_to_drive(self.project_root, "three_dim_cache_bundle.tar.gz", ["data/cache"])
+        else:
+            print("本次无缓存变化，跳过云端整包回传。")
         upload_manifest = bool(os.getenv("GOOGLE_DRIVE_FOLDER_ID", "").strip())
         if upload_manifest:
             from jobs.common.cloud_cache_sync import upload_file_to_drive
@@ -216,9 +243,6 @@ class FiveYearCloudCacheBuilder:
 if __name__ == "__main__":
     builder = FiveYearCloudCacheBuilder()
     manifest = builder.build(
-        batch_size=_read_int_env("CACHE_BATCH_SIZE"),
-        shard_total=_read_int_env("CACHE_SHARD_TOTAL"),
-        shard_index=_read_int_env("CACHE_SHARD_INDEX"),
         checkpoint_every=_read_int_env("CACHE_CHECKPOINT_EVERY", 100),
         finance_refresh_days=_read_int_env("FINANCE_REFRESH_DAYS", 30) or 30,
     )

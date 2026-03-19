@@ -25,12 +25,15 @@
 
 - `jobs/three_dim_resonance/init_cloud_cache.py`
   - 初始化最近 5 年的股票日 K、沪深 300 基准、财务缓存。
-  - 支持 `batch_size`、`shard_total`、`shard_index`、`checkpoint_every` 分批执行。
+  - 每次先下载云端缓存，按“差几天补几天”的方式做增量更新（不是全量重抓）。
+  - 仅当本次有缓存变化时，才整包回传覆盖云端。
+  - 支持 `checkpoint_every` 分段落盘与 `finance_refresh_days` 控制财务刷新频率。
 
 - `jobs/three_dim_resonance/run_daily.py`
   - 下载云端缓存与状态文件。
-  - 基于最近一个可用交易日生成买卖建议。
-  - 更新持仓状态和本地输出，再把结果回传 Google Drive。
+  - 基于最近一个可用交易日生成买卖建议（仅建议，不执行成交）。
+  - 不做在线增量抓取，直接使用云端缓存包中的本地数据。
+  - 生成本地输出并上传建议文件。
 
 ## 3. 本地生成的文件
 
@@ -57,12 +60,10 @@
 
 日常任务会更新或上传：
 
-- `three_dim_cache_bundle.tar.gz`
-- `three_dim_live_state.json`
 - `three_dim_summary_YYYYMMDD.json`
 - `three_dim_latest_email.txt`
 
-其中 `three_dim_cache_bundle.tar.gz` 是云端主缓存，`three_dim_live_state.json` 是策略状态文件；买卖建议和邮件正文都以日文件或最新文件方式保存在 Drive 中。
+其中 `three_dim_cache_bundle.tar.gz` 是云端主缓存；买卖建议和邮件正文都以日文件或最新文件方式保存在 Drive 中。
 
 补充说明：
 
