@@ -95,19 +95,6 @@ class ThreeDimResonanceStrategy:
     def _now_shanghai() -> datetime.datetime:
         return datetime.datetime.now(ZoneInfo("Asia/Shanghai"))
 
-    @staticmethod
-    def _trade_dates_for_years(adata_module, years: list[int]) -> list[str]:
-        trade_dates = set()
-        for year in years:
-            calendar_df = adata_module.stock.info.trade_calendar(year=year)
-            if calendar_df is None or calendar_df.empty:
-                continue
-            df = calendar_df.copy()
-            df["trade_date"] = df["trade_date"].astype(str)
-            df["trade_status"] = pd.to_numeric(df["trade_status"], errors="coerce").fillna(0).astype(int)
-            trade_dates.update(df.loc[df["trade_status"] == 1, "trade_date"].tolist())
-        return sorted(trade_dates)
-
     def _clock_based_target_date(self, today_str: str) -> str:
         today = pd.to_datetime(today_str, errors="coerce")
         if pd.isna(today):
@@ -130,22 +117,11 @@ class ThreeDimResonanceStrategy:
                 pass
         return max(candidates) if candidates else today_str
 
-    def _incremental_target_date(self, adata_module) -> str:
-        now = self._now_shanghai()
-        today_str = now.strftime("%Y-%m-%d")
-        try:
-            trade_dates = self._trade_dates_for_years(adata_module, [now.year - 1, now.year, now.year + 1])
-        except Exception as exc:
-            fallback_date = self._fallback_target_date_from_benchmark(today_str)
-            print(f"获取交易日历失败，回退到本地基准推断更新目标日: {fallback_date} ({exc})")
-            return fallback_date
-        if not trade_dates:
-            return self._fallback_target_date_from_benchmark(today_str)
-        completed_dates = [d for d in trade_dates if d <= today_str]
-        if not completed_dates:
-            return self._fallback_target_date_from_benchmark(today_str)
-        latest_trade_date = completed_dates[-1]
-        return latest_trade_date
+    def _incremental_target_date(self, _adata_module=None) -> str:
+        # 为提升 CI 稳定性，目标交易日仅基于本地时钟 + 本地基准推断，
+        # 不再依赖在线交易日历接口。
+        today_str = self._now_shanghai().strftime("%Y-%m-%d")
+        return self._fallback_target_date_from_benchmark(today_str)
 
     def load_data(self):
         if not os.path.exists(self.full_cache_file):
