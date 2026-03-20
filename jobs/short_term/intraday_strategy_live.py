@@ -174,31 +174,15 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         bench_dates = [d for d in self.benchmark_df.index if d < target_date]
         return bench_dates[-1] if bench_dates else ""
 
-    def _latest_trade_date_on_or_before(self, target_date: str) -> str:
-        bench_dates = [d for d in self.benchmark_df.index if d <= target_date]
-        return bench_dates[-1] if bench_dates else ""
-
-    def resolve_scan_trade_date(self, requested_date: str = "", allow_fallback: bool = False) -> tuple[str, bool, str]:
+    def resolve_scan_trade_date(self) -> tuple[str, bool, str]:
         if not self.stock_data:
             self.load_data()
 
-        target_date = requested_date or self._now_shanghai().strftime("%Y-%m-%d")
+        target_date = self._now_shanghai().strftime("%Y-%m-%d")
         is_trade_day = self.is_trade_day(target_date)
         if is_trade_day:
             return target_date, True, ""
-        if not allow_fallback:
-            return target_date, False, f"{target_date} 不是交易日，已跳过分时扫描。"
-
-        fallback_date = self._latest_trade_date_on_or_before(target_date)
-        if not fallback_date:
-            return target_date, False, f"{target_date} 不是交易日，且未找到更早的交易日。"
-        if fallback_date == target_date:
-            return fallback_date, True, ""
-        return (
-            fallback_date,
-            False,
-            f"{target_date} 不是交易日，已回退到最近交易日 {fallback_date} 进行扫描。",
-        )
+        return target_date, False, f"{target_date} 不是交易日，已跳过分时扫描。"
 
     def _daily_candidate_score(self, row: pd.Series) -> float:
         amount_ratio = row["amount"] / row["amt_ma5"] if row["amt_ma5"] > 0 else 0.0
@@ -353,15 +337,12 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                 }
         return {}
 
-    def run_live_scan(self, trade_date: str = "", allow_fallback: bool = False) -> tuple[pd.DataFrame, str, bool, str]:
+    def run_live_scan(self) -> tuple[pd.DataFrame, str, bool, str]:
         if not self.stock_data:
             self.load_data()
 
-        resolved_trade_date, is_trade_day, note = self.resolve_scan_trade_date(
-            requested_date=trade_date,
-            allow_fallback=allow_fallback,
-        )
-        if not is_trade_day and not allow_fallback:
+        resolved_trade_date, is_trade_day, note = self.resolve_scan_trade_date()
+        if not is_trade_day:
             print(note)
             self.last_minute_trade_dates = []
             return pd.DataFrame(), resolved_trade_date, False, note
@@ -402,22 +383,13 @@ if __name__ == "__main__":
     strategy.load_data(allow_online_update=True)
     strategy.sync_active_cache_to_shared()
     now = strategy._now_shanghai()
-    requested_trade_date = os.getenv("TRADE_DATE", "").strip() or now.strftime("%Y-%m-%d")
-    event_name = os.getenv("GITHUB_EVENT_NAME", "").strip().lower()
-    allow_fallback = event_name != "schedule"
-    resolved_trade_date, is_trade_day, note = strategy.resolve_scan_trade_date(
-        requested_date=requested_trade_date,
-        allow_fallback=allow_fallback,
-    )
-    if not allow_fallback and not is_trade_day:
+    resolved_trade_date, is_trade_day, note = strategy.resolve_scan_trade_date()
+    if not is_trade_day:
         candidate_df = pd.DataFrame()
         signal_df = pd.DataFrame()
     else:
         candidate_df = strategy._sort_by_daily_score(strategy.build_daily_candidates(resolved_trade_date))
-        signal_df, _, _, run_note = strategy.run_live_scan(
-            trade_date=requested_trade_date,
-            allow_fallback=allow_fallback,
-        )
+        signal_df, _, _, run_note = strategy.run_live_scan()
         signal_df = strategy._sort_by_daily_score(signal_df)
         note = run_note or note
 
@@ -439,14 +411,13 @@ if __name__ == "__main__":
     candidate_out.to_csv(latest_candidate_path, index=False, encoding="utf-8-sig")
     signal_out.to_csv(latest_signal_path, index=False, encoding="utf-8-sig")
     candidate_reference_date = ""
-    did_build_candidates = bool(is_trade_day or resolved_trade_date != requested_trade_date)
+    did_build_candidates = bool(is_trade_day)
     if did_build_candidates:
         candidate_reference_date = strategy._previous_trade_date(resolved_trade_date)
     elif not candidate_df.empty and "prev_date" in candidate_df.columns:
         candidate_reference_date = str(candidate_df["prev_date"].iloc[0])
     summary = {
         "run_time": now.strftime("%Y-%m-%d %H:%M:%S"),
-        "requested_trade_date": requested_trade_date,
         "trade_date": resolved_trade_date,
         "is_trade_day": is_trade_day,
         "candidate_reference_date": candidate_reference_date,
@@ -460,7 +431,6 @@ if __name__ == "__main__":
             json.dump(summary, f, ensure_ascii=False, indent=2)
     summary_lines = [
         f"运行时间: {summary['run_time']}",
-        f"请求日期: {summary['requested_trade_date']}",
         f"扫描日期: {summary['trade_date']}",
         f"是否交易日: {'是' if summary['is_trade_day'] else '否'}",
         f"候选依据日: {summary['candidate_reference_date']}",
