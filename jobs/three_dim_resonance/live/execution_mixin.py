@@ -143,6 +143,7 @@ class ExecutionMixin:
                 "reason": self._label_exit_reason(reason),
                 "reason_detail": reason_detail,
             }
+            # 12
             sell_signals.append(record)
             pending_exits.append({"code": code, "reason": reason, "signal_date": trade_date})
             reason_counts[record["reason"]] = reason_counts.get(record["reason"], 0) + 1
