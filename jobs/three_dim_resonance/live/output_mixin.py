@@ -29,9 +29,11 @@ class OutputMixin:
         lines.extend(["", "建议卖出:"])
         if summary["sell_suggestions"]:
             for idx, item in enumerate(summary["sell_suggestions"], start=1):
+                detail = item.get("reason_detail", "")
+                detail_text = f" 明细={detail}" if detail else ""
                 lines.append(
                     f"{idx}. {item['code']} {item['short_name']} "
-                    f"收盘价={item['close_price']} 原因={item['reason']}"
+                    f"收盘价={item['close_price']} 原因={item['reason']}{detail_text}"
                 )
         else:
             lines.append("无")
@@ -39,9 +41,13 @@ class OutputMixin:
         lines.extend(["", "建议买入:"])
         if summary["buy_suggestions"]:
             for idx, item in enumerate(summary["buy_suggestions"], start=1):
+                reason = item.get("reason", "三维共振通过")
+                detail = item.get("reason_detail", "")
+                detail_text = f" 明细={detail}" if detail else ""
                 lines.append(
                     f"{idx}. {item['code']} {item['short_name']} "
-                    f"收盘价={item['close_price']} 分数={item['score']} 形态={item['entry_shape']}"
+                    f"收盘价={item['close_price']} 分数={item['score']} 形态={item['entry_shape']} "
+                    f"原因={reason}{detail_text}"
                 )
         else:
             lines.append("无")

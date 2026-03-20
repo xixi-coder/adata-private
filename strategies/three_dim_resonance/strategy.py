@@ -262,21 +262,139 @@ class ThreeDimResonanceStrategy:
         print(f"基准数据加载完成: {self.benchmark_df.index.min()} ~ {self.benchmark_df.index.max()}")
 
     def _market_ok(self, date_str: str) -> bool:
+        return bool(self._market_gate_status(date_str)["ok"])
+
+    @staticmethod
+    def _fmt_num(value, digits: int = 3) -> str:
+        try:
+            value = float(value)
+            if not np.isfinite(value):
+                return "nan"
+            return f"{value:.{digits}f}"
+        except Exception:
+            return "nan"
+
+    def _market_gate_status(self, date_str: str) -> dict:
+        if self.benchmark_df is None:
+            return {
+                "ok": False,
+                "checks": [],
+                "error": "基准数据未加载",
+            }
         if date_str not in self.benchmark_df.index:
-            return False
+            return {
+                "ok": False,
+                "checks": [],
+                "error": f"{date_str} 不在基准交易日序列中",
+            }
         idx = self.benchmark_df.index.get_loc(date_str)
         if isinstance(idx, slice):
             idx = idx.stop - 1
         if idx < 5:
-            return False
+            return {
+                "ok": False,
+                "checks": [],
+                "error": f"{date_str} 缺少过去5个交易日窗口",
+            }
         row = self.benchmark_df.iloc[idx]
         prev5 = self.benchmark_df.iloc[idx - 5]
-        return bool(
-            (row["close"] > row["ma20"] > row["ma60"])
-            and (row["ma20"] >= prev5["ma20"] * 0.995)
-            and (row["close"] >= prev5["close"] * 0.97)
-            and (row["change_pct"] > -1.2)
+        checks = [
+            {
+                "key": "close_ma_trend",
+                "label": "收盘站上均线多头",
+                "ok": bool(row["close"] > row["ma20"] > row["ma60"]),
+                "detail": (
+                    f"close={self._fmt_num(row['close'])}, "
+                    f"ma20={self._fmt_num(row['ma20'])}, ma60={self._fmt_num(row['ma60'])}"
+                ),
+            },
+            {
+                "key": "ma20_stable",
+                "label": "MA20近5日不明显走弱",
+                "ok": bool(row["ma20"] >= prev5["ma20"] * 0.995),
+                "detail": (
+                    f"ma20={self._fmt_num(row['ma20'])}, "
+                    f"阈值={self._fmt_num(prev5['ma20'] * 0.995)} "
+                    f"(prev5_ma20={self._fmt_num(prev5['ma20'])})"
+                ),
+            },
+            {
+                "key": "close_drawdown_guard",
+                "label": "收盘近5日回撤不过深",
+                "ok": bool(row["close"] >= prev5["close"] * 0.97),
+                "detail": (
+                    f"close={self._fmt_num(row['close'])}, "
+                    f"阈值={self._fmt_num(prev5['close'] * 0.97)} "
+                    f"(prev5_close={self._fmt_num(prev5['close'])})"
+                ),
+            },
+            {
+                "key": "daily_drop_guard",
+                "label": "当日跌幅未超阈值",
+                "ok": bool(row["change_pct"] > -1.2),
+                "detail": f"change_pct={self._fmt_num(row['change_pct'])}%, 阈值>-1.200%",
+            },
+        ]
+        return {
+            "ok": all(item["ok"] for item in checks),
+            "checks": checks,
+            "error": "",
+        }
+
+    def _entry_reason_detail(self, meta: dict, row: pd.Series) -> str:
+        shape = "双底突破" if meta.get("double_bottom") else "平台突破"
+        return (
+            f"三维共振通过: 形态={shape}; "
+            f"指标=close({self._fmt_num(row.get('close'))})>ma20({self._fmt_num(row.get('ma20'))})>"
+            f"ma60({self._fmt_num(row.get('ma60'))}), "
+            f"dif/dea={self._fmt_num(row.get('dif'), 4)}/{self._fmt_num(row.get('dea'), 4)}, "
+            f"rsi6={self._fmt_num(row.get('rsi6'), 2)}; "
+            f"资金=cmf5/cmf20={self._fmt_num(row.get('cmf5'), 4)}/{self._fmt_num(row.get('cmf20'), 4)}, "
+            f"net_amt5/net_amt10={self._fmt_num(row.get('net_amt5'))}/{self._fmt_num(row.get('net_amt10'))}, "
+            f"up_days5={self._fmt_num(row.get('up_days5'), 0)}"
         )
+
+    def _exit_reason_detail(self, reason: str, df: pd.DataFrame, idx: int, pos: dict) -> str:
+        row = df.iloc[idx]
+        prev_row = df.iloc[idx - 1] if idx > 0 else row
+        close = float(row["close"])
+        buy_price = float(pos.get("buy_price", 0.0))
+        reason_label = self._label_exit_reason(reason)
+        if reason == "stop_loss":
+            stop_line = buy_price * (1.0 - self.stop_loss_pct)
+            return (
+                f"{reason_label}: close={self._fmt_num(close)} <= "
+                f"止损线={self._fmt_num(stop_line)} (buy={self._fmt_num(buy_price)}, "
+                f"stop_loss_pct={self.stop_loss_pct:.2%})"
+            )
+        if reason == "trailing_take_profit":
+            max_close = float(pos.get("max_close", 0.0))
+            retrace = 1.0 - close / max(max_close, 1e-9) if max_close > 0 else np.nan
+            arm_line = buy_price * (1.0 + self.trailing_arm_pct)
+            return (
+                f"{reason_label}: close={self._fmt_num(close)}, max_close={self._fmt_num(max_close)}, "
+                f"回撤={self._fmt_num(retrace * 100, 2)}% >= {self.trailing_drawdown_pct * 100:.2f}%, "
+                f"且曾上破触发线={self._fmt_num(arm_line)}"
+            )
+        if reason == "trend_break":
+            return (
+                f"{reason_label}: close={self._fmt_num(close)} < ma20={self._fmt_num(row.get('ma20'))}, "
+                f"macd_hist连续为负(当日={self._fmt_num(row.get('macd_hist'), 4)}, "
+                f"前日={self._fmt_num(prev_row.get('macd_hist'), 4)})"
+            )
+        if reason == "capital_outflow":
+            return (
+                f"{reason_label}: cmf5={self._fmt_num(row.get('cmf5'), 4)}<0, "
+                f"net_amt3={self._fmt_num(row.get('net_amt3'))}<0, "
+                f"cmf20={self._fmt_num(row.get('cmf20'), 4)}<0, "
+                f"且close={self._fmt_num(close)}<ma20={self._fmt_num(row.get('ma20'))}"
+            )
+        if reason == "timeout":
+            return (
+                f"{reason_label}: holding_days={int(pos.get('holding_days', 0))} "
+                f">= max_hold_days={self.max_hold_days}"
+            )
+        return reason_label
 
     def _breakout_bar_ok(self, row: pd.Series, breakout_level: float) -> bool:
         if breakout_level <= 0:

@@ -134,12 +134,14 @@ class ExecutionMixin:
             reason = self._exit_reason(code, df, idx, pos)
             if not reason:
                 continue
+            reason_detail = self._exit_reason_detail(reason, df, idx, pos)
             record = {
                 "code": code,
                 "short_name": pos.get("short_name", code),
                 "signal_date": trade_date,
                 "close_price": round(float(row["close"]), 3),
                 "reason": self._label_exit_reason(reason),
+                "reason_detail": reason_detail,
             }
             sell_signals.append(record)
             pending_exits.append({"code": code, "reason": reason, "signal_date": trade_date})
@@ -165,8 +167,18 @@ class ExecutionMixin:
         # - 先过市场开关 _market_ok
         # - 再过三维共振 _is_entry_signal
         # - 最后按 score 排序，保留 max_positions * 3 个待执行候选
-        if not self._market_ok(trade_date):
+        market_status = self._market_gate_status(trade_date)
+        if not market_status["ok"]:
             print(f"[entry] {trade_date} 市场开关关闭，跳过买入候选扫描。")
+            if market_status.get("checks"):
+                failed = [item for item in market_status["checks"] if not item["ok"]]
+                failed_text = " | ".join(
+                    f"{item['label']}未通过({item['detail']})"
+                    for item in failed
+                )
+                print(f"[entry] 市场开关失败明细: {failed_text}")
+            else:
+                print(f"[entry] 市场开关失败明细: {market_status.get('error', '未知原因')}")
             return []
         blocked = set(state["positions"].keys())
         candidates = []
@@ -227,6 +239,8 @@ class ExecutionMixin:
                     "short_name": self.stock_names.get(code, code),
                     "score": round(self._signal_score(row, meta), 3),
                     "signal_date": trade_date,
+                    "reason": "三维共振通过",
+                    "reason_detail": self._entry_reason_detail(meta, row),
                     "entry_shape": self._label_entry_shape(
                         "double_bottom" if meta.get("double_bottom") else "platform_breakout"
                     ),
