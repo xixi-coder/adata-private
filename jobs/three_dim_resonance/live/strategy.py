@@ -58,6 +58,7 @@ class ThreeDimResonanceLiveStrategy(
         executed_buys = []
         sell_signals, _pending_exits = self._close_side_updates(state, trade_date)
         buy_candidates = self._entry_candidates(state, trade_date)
+        buy_suggestions = buy_candidates[: self.max_positions]
 
         summary = {
             "run_time": self._now_shanghai().strftime("%Y-%m-%d %H:%M:%S"),
@@ -66,13 +67,18 @@ class ThreeDimResonanceLiveStrategy(
             "candidate_reference_date": trade_date,
             "executed_buys": executed_buys,
             "executed_sells": executed_sells,
-            "buy_suggestions": buy_candidates[: self.max_positions],
+            "buy_suggestions": buy_suggestions,
             "sell_suggestions": sell_signals,
             "positions": self._positions_snapshot(state, trade_date),
             "cash": round(float(state["cash"]), 2),
             "status": "ok",
             "note": rerun_note,
         }
+        print(
+            f"[daily] {trade_date} 建议汇总: "
+            f"买入={len(buy_suggestions)} 卖出={len(sell_signals)} "
+            f"持仓={len(summary['positions'])} 现金={summary['cash']:.2f}"
+        )
         # ---- Step 6: 产出本地文件 + 邮件正文 ----
         self._write_outputs(summary)
         return summary

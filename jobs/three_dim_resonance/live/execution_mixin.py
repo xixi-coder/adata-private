@@ -117,6 +117,7 @@ class ExecutionMixin:
         # 收盘后更新持仓状态，并生成“下一交易日待执行”的卖出信号。
         sell_signals = []
         pending_exits = []
+        reason_counts = {}
         for code, pos in state["positions"].items():
             df = self.stock_data.get(code)
             if df is None or trade_date not in df.index:
@@ -142,6 +143,21 @@ class ExecutionMixin:
             }
             sell_signals.append(record)
             pending_exits.append({"code": code, "reason": reason, "signal_date": trade_date})
+            reason_counts[record["reason"]] = reason_counts.get(record["reason"], 0) + 1
+        if not state["positions"]:
+            print(f"[exit] {trade_date} 当前无持仓，卖出建议为空。")
+            return sell_signals, pending_exits
+        print(
+            f"[exit] {trade_date} 持仓扫描={len(state['positions'])} "
+            f"卖出建议={len(sell_signals)}"
+        )
+        if reason_counts:
+            reason_summary = ", ".join(
+                f"{reason}:{count}" for reason, count in sorted(reason_counts.items(), key=lambda item: item[1], reverse=True)
+            )
+            print(f"[exit] 卖出原因分布: {reason_summary}")
+        else:
+            print(f"[exit] {trade_date} 无触发卖出条件的持仓。")
         return sell_signals, pending_exits
 
     def _entry_candidates(self, state: dict, trade_date: str) -> list[dict]:
@@ -150,14 +166,59 @@ class ExecutionMixin:
         # - 再过三维共振 _is_entry_signal
         # - 最后按 score 排序，保留 max_positions * 3 个待执行候选
         if not self._market_ok(trade_date):
+            print(f"[entry] {trade_date} 市场开关关闭，跳过买入候选扫描。")
             return []
         blocked = set(state["positions"].keys())
         candidates = []
+        stage_counts = {
+            "shape_ok": 0,
+            "indicator_ok": 0,
+            "capital_ok": 0,
+            "three_dim_ok": 0,
+            "missing_shape": 0,
+            "missing_indicator": 0,
+            "missing_capital": 0,
+            "only_missing_shape": 0,
+            "only_missing_indicator": 0,
+            "only_missing_capital": 0,
+        }
+        skipped_missing_day_k = 0
+        scanned = 0
+        near_miss_samples = []
         for code, df in self.stock_data.items():
-            if code in blocked or trade_date not in df.index:
+            if code in blocked:
                 continue
-            signal_ok, meta = self._is_entry_signal(code, df, trade_date)
-            if not signal_ok:
+            if trade_date not in df.index:
+                skipped_missing_day_k += 1
+                continue
+            scanned += 1
+            meta = self._evaluate_entry_components(df, trade_date)
+            shape_ok = bool(meta["shape_ok"])
+            indicator_ok = bool(meta["indicator_ok"])
+            capital_ok = bool(meta["capital_ok"])
+            three_dim_ok = bool(meta["three_dim_ok"])
+
+            stage_counts["shape_ok"] += int(shape_ok)
+            stage_counts["indicator_ok"] += int(indicator_ok)
+            stage_counts["capital_ok"] += int(capital_ok)
+            stage_counts["three_dim_ok"] += int(three_dim_ok)
+            stage_counts["missing_shape"] += int(not shape_ok)
+            stage_counts["missing_indicator"] += int(not indicator_ok)
+            stage_counts["missing_capital"] += int(not capital_ok)
+            stage_counts["only_missing_shape"] += int(indicator_ok and capital_ok and not shape_ok)
+            stage_counts["only_missing_indicator"] += int(shape_ok and capital_ok and not indicator_ok)
+            stage_counts["only_missing_capital"] += int(shape_ok and indicator_ok and not capital_ok)
+
+            if not three_dim_ok:
+                pass_dim_count = int(shape_ok) + int(indicator_ok) + int(capital_ok)
+                if pass_dim_count == 2 and len(near_miss_samples) < 5:
+                    if not shape_ok:
+                        miss_dim = "形态"
+                    elif not indicator_ok:
+                        miss_dim = "指标"
+                    else:
+                        miss_dim = "资金"
+                    near_miss_samples.append(f"{code}(仅缺{miss_dim})")
                 continue
             row = df.loc[trade_date]
             candidates.append(
@@ -173,7 +234,34 @@ class ExecutionMixin:
                 }
             )
         candidates.sort(key=lambda item: item["score"], reverse=True)
-        return candidates[: self.max_positions * 3]
+        final_candidates = candidates[: self.max_positions * 3]
+
+        print(
+            f"[entry] {trade_date} 候选扫描: 股票池={len(self.stock_data)} "
+            f"持仓占用={len(blocked)} 可扫描={scanned} 缺当日日K={skipped_missing_day_k}"
+        )
+        print(
+            f"[entry] 维度通过: 形态={stage_counts['shape_ok']} 指标={stage_counts['indicator_ok']} "
+            f"资金={stage_counts['capital_ok']} 三维共振={stage_counts['three_dim_ok']}"
+        )
+        print(
+            f"[entry] 卡点统计: 缺形态={stage_counts['missing_shape']} 缺指标={stage_counts['missing_indicator']} "
+            f"缺资金={stage_counts['missing_capital']} 仅缺形态={stage_counts['only_missing_shape']} "
+            f"仅缺指标={stage_counts['only_missing_indicator']} 仅缺资金={stage_counts['only_missing_capital']}"
+        )
+        if near_miss_samples:
+            print(f"[entry] 临门一脚样本: {' | '.join(near_miss_samples)}")
+        if final_candidates:
+            preview = ", ".join(
+                f"{item['code']}({item['short_name']},score={item['score']})"
+                for item in final_candidates[: self.max_positions]
+            )
+            print(
+                f"[entry] 建议买入(top {min(len(final_candidates), self.max_positions)}): {preview}"
+            )
+        else:
+            print(f"[entry] {trade_date} 建议买入为空：无股票同时满足三维共振条件。")
+        return final_candidates
 
     def _positions_snapshot(self, state: dict, trade_date: str) -> list[dict]:
         snapshot = []
