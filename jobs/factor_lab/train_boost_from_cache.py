@@ -35,6 +35,7 @@ from strategies.factor_lab import run_core_15_pipeline
 
 @dataclass
 class SplitData:
+    """时间切分结果容器：训练/验证/测试三个子集。"""
     train: pd.DataFrame
     valid: pd.DataFrame
     test: pd.DataFrame
@@ -48,6 +49,7 @@ class NumpyLinearRegressor:
         self.intercept_: float = 0.0
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> "NumpyLinearRegressor":
+        # 最小二乘：在特征前拼一列常数项求解截距+系数。
         x = np.asarray(x, dtype=float)
         y = np.asarray(y, dtype=float)
         x_aug = np.column_stack([np.ones(len(x)), x])
@@ -57,6 +59,7 @@ class NumpyLinearRegressor:
         return self
 
     def predict(self, x: np.ndarray) -> np.ndarray:
+        # 预测前确保已经 fit 过。
         if self.coef_ is None:
             raise ValueError("Model is not fitted yet.")
         x = np.asarray(x, dtype=float)
@@ -73,6 +76,7 @@ def _build_model(model_name: str, random_state: int = 42) -> tuple[str, Any]:
         try:
             import lightgbm as lgb  # type: ignore
 
+            # 这套参数偏稳健，适合日频截面回归的默认起点。
             model = lgb.LGBMRegressor(
                 objective="regression",
                 n_estimators=500,
@@ -87,6 +91,7 @@ def _build_model(model_name: str, random_state: int = 42) -> tuple[str, Any]:
             )
             return "lightgbm", model
         except Exception:
+            # 显式指定 lightgbm 时，导入失败应直接抛错。
             if name in ("lightgbm", "lgbm"):
                 raise
 
@@ -94,6 +99,7 @@ def _build_model(model_name: str, random_state: int = 42) -> tuple[str, Any]:
         try:
             import xgboost as xgb  # type: ignore
 
+            # LightGBM 不可用时，XGBoost 作为次选。
             model = xgb.XGBRegressor(
                 objective="reg:squarederror",
                 n_estimators=500,
@@ -109,20 +115,24 @@ def _build_model(model_name: str, random_state: int = 42) -> tuple[str, Any]:
             )
             return "xgboost", model
         except Exception:
+            # 显式指定 xgboost 时，导入失败应直接抛错。
             if name in ("xgboost", "xgb"):
                 raise
 
     if name in ("linear", "auto"):
+        # 最终兜底：纯 numpy 线性回归，确保脚本可运行。
         return "linear_fallback", NumpyLinearRegressor()
 
     raise ValueError(f"Unsupported model option: {model_name}")
 
 
 def _select_top_factors(ic_summary: pd.DataFrame, n_factors: int, min_obs: int = 30) -> list[str]:
+    """按 IC 均值选择前 N 个因子，优先保留观测天数足够的因子。"""
     use = ic_summary.copy()
     if "obs_days" in use.columns:
         use = use[use["obs_days"] >= min_obs]
     if use.empty:
+        # 如果严格过滤后为空，则回退到原始 IC 表，避免流程中断。
         use = ic_summary.copy()
     use = use.sort_values("ic_mean", ascending=False)
     factors = use["factor"].dropna().astype(str).head(n_factors).tolist()
@@ -132,6 +142,7 @@ def _select_top_factors(ic_summary: pd.DataFrame, n_factors: int, min_obs: int =
 
 
 def _time_split(df: pd.DataFrame, date_col: str, valid_days: int, test_days: int) -> SplitData:
+    """按时间先后切分训练/验证/测试，严格避免未来信息泄露。"""
     dates = sorted(pd.to_datetime(df[date_col], errors="coerce").dropna().unique())
     min_train_days = 20
     if len(dates) < min_train_days + 2:
@@ -145,7 +156,7 @@ def _time_split(df: pd.DataFrame, date_col: str, valid_days: int, test_days: int
         test_days = max(1, min(test_days, max_holdout // 2 if max_holdout >= 2 else 1))
         valid_days = max(1, max_holdout - test_days) if max_holdout >= 2 else 0
 
-    test_set = set(dates[-test_days:])
+    test_set = set(dates[-test_days:])  # 最后 test_days 天
     valid_set = set(dates[-(test_days + valid_days) : -test_days]) if valid_days > 0 else set()
 
     test_df = df[df[date_col].isin(test_set)].copy()
@@ -158,6 +169,7 @@ def _time_split(df: pd.DataFrame, date_col: str, valid_days: int, test_days: int
 
 
 def _regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    """回归评估：MAE / RMSE / R2 / Pearson Corr。"""
     y_true = np.asarray(y_true, dtype=float)
     y_pred = np.asarray(y_pred, dtype=float)
     err = y_true - y_pred
@@ -170,6 +182,7 @@ def _regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, flo
 
 
 def _feature_importance(model: Any, feature_cols: list[str]) -> pd.DataFrame:
+    """抽取模型特征重要性；线性模型用 |coef| 近似。"""
     if hasattr(model, "feature_importances_"):
         imp = np.asarray(getattr(model, "feature_importances_"), dtype=float)
     elif hasattr(model, "coef_"):
@@ -188,12 +201,19 @@ def _group_backtest(
     n_groups: int = 10,
     min_obs: int = 30,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    对预测分数做逐日分组回测：
+    - 输出逐日分组收益明细 daily
+    - 输出汇总指标 summary
+    """
     rows: list[dict[str, Any]] = []
 
     for dt_value, cross in pred_df.groupby(date_col, sort=False):
+        # 当天有效样本不足时跳过。
         cross = cross[[score_col, ret_col]].replace([np.inf, -np.inf], np.nan).dropna()
         if len(cross) < max(n_groups, min_obs):
             continue
+        # 先 rank 再 qcut，减少并列值导致的分箱异常。
         rank = cross[score_col].rank(method="first")
         try:
             grp = pd.qcut(rank, q=n_groups, labels=False, duplicates="drop") + 1
@@ -203,6 +223,7 @@ def _group_backtest(
         grp_ret = cross.groupby("_group")[ret_col].mean()
 
         row: dict[str, Any] = {"trade_date": dt_value, "count": int(len(cross))}
+        # 逐组平均收益 + 多空（最高组减最低组）+ 当日 score IC。
         for i in range(1, n_groups + 1):
             row[f"group_{i}"] = float(grp_ret.get(i, np.nan))
         row["long_short"] = row.get(f"group_{n_groups}", np.nan) - row.get("group_1", np.nan)
@@ -214,6 +235,7 @@ def _group_backtest(
     if daily.empty:
         return daily, pd.DataFrame([{"metric": "obs_days", "value": 0}])
 
+    # 净值序列：方便看分组与多空策略曲线形态。
     daily["long_short_nav"] = (1.0 + daily["long_short"].fillna(0.0)).cumprod()
     if "group_1" in daily.columns:
         daily["group_1_nav"] = (1.0 + daily["group_1"].fillna(0.0)).cumprod()
@@ -222,8 +244,9 @@ def _group_backtest(
 
     ls_mean = float(daily["long_short"].mean())
     ls_std = float(daily["long_short"].std(ddof=0))
-    ls_ir = ls_mean / ls_std * np.sqrt(252) if ls_std > 0 else np.nan
+    ls_ir = ls_mean / ls_std * np.sqrt(252) if ls_std > 0 else np.nan  # 年化 IR 近似
 
+    # 汇总指标：样本天数、均值/波动/IR、胜率、IC、各组均值。
     metrics = [
         {"metric": "obs_days", "value": float(len(daily))},
         {"metric": "long_short_mean", "value": ls_mean},
@@ -242,28 +265,36 @@ def _group_backtest(
 
 
 def parse_args() -> argparse.Namespace:
+    """命令行参数定义。"""
     parser = argparse.ArgumentParser(description="Train LightGBM/XGBoost from A-share factor cache.")
+    # 数据与输出
     parser.add_argument("--cache-file", default="data/cache/full_data_v3_5year.pkl")
     parser.add_argument("--finance-dir", default="data/cache/finance")
     parser.add_argument("--index-file", default="data/cache/benchmark_000300.csv")
     parser.add_argument("--out-dir", default="tests/factor_lab_model_outputs")
+    # 样本范围
     parser.add_argument("--start-date", default="")
     parser.add_argument("--end-date", default="")
     parser.add_argument("--max-stocks", type=int, default=0, help="Use first N stocks for quick run; 0=all.")
+    # 目标与特征筛选参数
     parser.add_argument("--horizon", type=int, default=5)
     parser.add_argument("--n-factors", type=int, default=10)
     parser.add_argument("--min-ic-obs", type=int, default=30)
+    # 可交易性过滤参数
     parser.add_argument("--min-market-cap", type=float, default=3e9)
     parser.add_argument("--min-amount", type=float, default=2e8)
     parser.add_argument("--neutralize", action="store_true")
+    # 时间切分参数
     parser.add_argument("--valid-days", type=int, default=60)
     parser.add_argument("--test-days", type=int, default=60)
+    # 模型参数
     parser.add_argument("--model", default="auto", choices=["auto", "lightgbm", "xgboost", "linear"])
     parser.add_argument("--random-state", type=int, default=42)
     return parser.parse_args()
 
 
 def main() -> None:
+    # 0) 参数与输出目录
     args = parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
@@ -289,6 +320,7 @@ def main() -> None:
     )
     factor_panel = factor_result["panel"]
     ic_summary = factor_result["ic_summary"].copy()
+    # 先落盘 IC，便于直接核对选因子依据。
     ic_path = os.path.join(args.out_dir, "ic_summary.csv")
     ic_summary.to_csv(ic_path, index=False, encoding="utf-8-sig")
 
@@ -300,13 +332,16 @@ def main() -> None:
 
     # 3) 建模样本
     target_col = f"future_ret_{args.horizon}"
+    # 使用目标列 + 入选因子构建监督学习样本。
     model_df = factor_panel[["stock_code", "trade_date", target_col] + selected_factors].copy()
+    # 模型训练不接受 NaN/Inf，先统一清洗。
     model_df = model_df.replace([np.inf, -np.inf], np.nan).dropna(subset=[target_col] + selected_factors)
     if model_df.empty:
         raise ValueError("Model dataset is empty after dropna.")
     model_df["trade_date"] = pd.to_datetime(model_df["trade_date"], errors="coerce")
     model_df = model_df.dropna(subset=["trade_date"]).sort_values("trade_date").reset_index(drop=True)
 
+    # 时间切分：训练在前，验证/测试在后，严格时序。
     split = _time_split(model_df, date_col="trade_date", valid_days=args.valid_days, test_days=args.test_days)
     x_train = split.train[selected_factors].astype(float)
     y_train = split.train[target_col].to_numpy(dtype=float)
@@ -318,6 +353,7 @@ def main() -> None:
     # 4) 训练模型
     model_used, model = _build_model(args.model, random_state=args.random_state)
     fit_kwargs: dict[str, Any] = {}
+    # 树模型可附带验证集用于训练日志/早停接口兼容。
     if model_used in ("lightgbm", "xgboost") and len(split.valid) > 0:
         fit_kwargs = {"eval_set": [(x_valid, y_valid)]}
     model.fit(x_train, y_train, **fit_kwargs) if fit_kwargs else model.fit(x_train, y_train)
@@ -361,6 +397,7 @@ def main() -> None:
     daily_group.to_csv(group_daily_path, index=False, encoding="utf-8-sig")
     group_summary.to_csv(group_summary_path, index=False, encoding="utf-8-sig")
 
+    # 8) 汇总元信息，便于结果复盘与可重复实验。
     meta = {
         "run_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "input": vars(args),

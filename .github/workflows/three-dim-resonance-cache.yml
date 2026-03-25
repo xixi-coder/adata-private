@@ -2,7 +2,7 @@ name: 初始化三维共振云端缓存
 
 on:
   schedule:
-    - cron: "30 22 * * 0-4" # 北京时间工作日 06:30（UTC 周日到周四 22:30）
+    - cron: "20 23 * * 0-4" # 北京时间工作日 06:30（UTC 周日到周四 22:30）
   workflow_dispatch:
     inputs:
       checkpoint_every:

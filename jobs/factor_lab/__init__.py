@@ -1,2 +1,1 @@
-"""Factor lab batch jobs."""
-
+"""factor_lab 批处理脚本集合（因子计算、训练、评估与诊断）。"""
