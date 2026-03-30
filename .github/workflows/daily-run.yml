@@ -6,7 +6,7 @@ on:
   workflow_dispatch:      # 允许手动运行
 
 concurrency:
-  group: a-share-cloud-market-cache
+  group: short-term-intraday-daily-run
   cancel-in-progress: false
 
 jobs:
