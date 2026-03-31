@@ -6,7 +6,7 @@
 
 - `jobs/common/`：云端同步、Google Drive、打包解包、A 股元数据过滤等公共能力。
 - `jobs/three_dim_resonance/`：三维共振策略的云端缓存初始化与每日执行入口。
-- `jobs/short_term/`：短线策略缓存初始化与分时扫描入口。
+- `jobs/short_term/`：短线策略分时扫描入口。
 - `jobs/dividend_sync/`：分红缓存一次性增量同步到 Google Drive 的入口。
 
 当前三维共振相关入口：
@@ -27,7 +27,6 @@
 
 - `.github/workflows/three-dim-resonance-cache.yml`：初始化三维共振云端缓存
 - `.github/workflows/three-dim-resonance-daily.yml`：运行三维共振日策略
-- `.github/workflows/init-short-term-cache.yml`：初始化短线策略缓存
 - `.github/workflows/daily-run.yml`：运行短线分时策略
 
 策略核心实现统一放到 `strategies/` 目录：

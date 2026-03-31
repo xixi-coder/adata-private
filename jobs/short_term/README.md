@@ -20,5 +20,4 @@
 
 对应 workflow：
 
-- `.github/workflows/init-short-term-cache.yml`
 - `.github/workflows/daily-run.yml`
