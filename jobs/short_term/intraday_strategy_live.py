@@ -90,10 +90,14 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        # 日线候选池大小（只对前 N 只股票抓分钟线，控制扫描成本）
         self.candidate_size = int(candidate_size)
+        # 分时信号判定时间窗
         self.signal_start_time = signal_start_time
         self.signal_end_time = signal_end_time
+        # 开盘区间长度，用于计算“开盘区间高点”
         self.opening_range_minutes = int(opening_range_minutes)
+        # 信号阈值：突破幅度、当时涨幅区间、量能约束
         self.min_breakout_pct = float(min_breakout_pct)
         self.min_price_change_pct = float(min_price_change_pct)
         self.max_price_change_pct = float(max_price_change_pct)
@@ -145,6 +149,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
 
         dfx["trade_date"] = dfx["trade_time"].dt.strftime("%Y-%m-%d")
         dfx["time_only"] = dfx["trade_time"].dt.strftime("%H:%M:%S")
+        # 下面这些是分时信号会直接用到的衍生字段
         dfx["cum_amount"] = dfx["amount"].cumsum()
         dfx["cum_volume"] = dfx["volume"].cumsum()
         dfx["vwap"] = (dfx["cum_amount"] / dfx["cum_volume"]).where(dfx["cum_volume"] > 0, dfx["price"])
@@ -178,6 +183,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         if not self.stock_data:
             self.load_data()
 
+        # 实盘扫描仅针对“今天”，非交易日直接跳过并写入备注
         target_date = self._now_shanghai().strftime("%Y-%m-%d")
         is_trade_day = self.is_trade_day(target_date)
         if is_trade_day:
@@ -207,6 +213,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         return bool(cond1 and cond2 and cond3 and cond4 and cond5 and cond6 and cond7)
 
     def build_daily_candidates(self, trade_date: str) -> pd.DataFrame:
+        # 候选依据日 = 扫描日的前一交易日，避免用到未收盘/未稳定的日线
         prev_date = self._previous_trade_date(trade_date)
         if not prev_date:
             return pd.DataFrame()
@@ -237,6 +244,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         return candidate_df.reset_index(drop=True)
 
     def fetch_minute_data(self, code: str, trade_date: str = "", prefer_cache: bool = True) -> pd.DataFrame:
+        # 先复用本地分钟缓存；缺失时再请求接口，降低重复调用
         if prefer_cache and trade_date:
             cached_df = self._load_cached_minute_data(trade_date, code)
             if not cached_df.empty:
@@ -300,14 +308,17 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         if minute_df.empty:
             return {}
 
+        # 基准线：开盘区间高点（默认 09:30-09:45）
         opening_high = self._opening_range_high(minute_df)
         if opening_high <= 0:
             return {}
 
+        # 先做一次“量能预检”，避免在弱量股票上逐分钟扫描
         amount_ratio_30 = self._first_30_amount_ratio(minute_df, float(candidate_row["prev_amount"]))
         if amount_ratio_30 < self.min_first30_amount_ratio:
             return {}
 
+        # 只在策略设定窗口内找第一个满足条件的时刻
         signal_window = minute_df[
             (minute_df["time_only"] >= self.signal_start_time) & (minute_df["time_only"] <= self.signal_end_time)
         ].copy()
@@ -315,10 +326,15 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             return {}
 
         for _, row in signal_window.iterrows():
+            # 突破开盘区间高点
             breakout_ok = row["price"] >= opening_high * (1.0 + self.min_breakout_pct)
+            # 站上分时均价，避免“假突破”
             vwap_ok = row["price"] >= row["vwap"] * 1.002
+            # 当时涨幅落在可交易区间内（过低没强度，过高追涨风险大）
             price_change_ok = self.min_price_change_pct <= row["change_pct"] <= self.max_price_change_pct
+            # 累计成交额门槛，过滤流动性不足
             amount_ok = row["cum_amount"] >= self.min_intraday_amount
+            # 回到近 5 分钟高位附近，确认短线动能
             reclaim_ok = row["price"] >= row["rolling_high_5"] * 0.999
             if breakout_ok and vwap_ok and price_change_ok and amount_ok and reclaim_ok:
                 return {
@@ -352,6 +368,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             self.last_minute_trade_dates = []
             return pd.DataFrame(), resolved_trade_date, is_trade_day, note
 
+        # 对每只候选股执行：分钟数据获取 -> 信号判定
         minute_map: Dict[str, pd.DataFrame] = {}
         signals: List[Dict] = []
         for _, row in candidates.iterrows():
@@ -361,6 +378,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             if signal:
                 signals.append(signal)
 
+        # 无论是否出信号，都落分钟缓存，便于后续排查与回测复盘
         self.last_minute_trade_dates = self._extract_trade_dates(minute_map)
         self.cache_minute_data(resolved_trade_date, minute_map)
         if not signals:
@@ -379,8 +397,9 @@ if __name__ == "__main__":
         trailing_stop_pct=0.06,
         max_hold_days=4,
     )
+    # 阶段1：同步云端缓存并准备日线数据底座
     sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
-    strategy.load_data(allow_online_update=True)
+    strategy.load_data(allow_online_update=False)
     strategy.sync_active_cache_to_shared()
     now = strategy._now_shanghai()
     resolved_trade_date, is_trade_day, note = strategy.resolve_scan_trade_date()
@@ -393,6 +412,7 @@ if __name__ == "__main__":
         signal_df = strategy._sort_by_daily_score(signal_df)
         note = run_note or note
 
+    # 阶段2：生成并落盘本次候选、信号和汇总
     output_dir = os.path.join(CURRENT_DIR, "outputs")
     os.makedirs(output_dir, exist_ok=True)
     ts = now.strftime("%Y%m%d_%H%M%S")
@@ -442,6 +462,7 @@ if __name__ == "__main__":
     for path in [summary_txt_path, latest_summary_txt_path]:
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(summary_lines) + "\n")
+    # 阶段3：回传缓存（含分钟缓存）到云端，供后续任务复用
     sync_cache_to_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
     print(strategy.to_chinese_signals(signal_df).to_string(index=False))
 

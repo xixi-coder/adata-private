@@ -222,7 +222,8 @@ class ShortTermDisagreementStrategy:
         now = self._now_shanghai()
         today_str = now.strftime("%Y-%m-%d")
         try:
-            trade_dates = self._trade_dates_for_years(adata_module, [now.year - 1, now.year, now.year + 1])
+            # 仅依赖“去年+今年”交易日历即可推断最近可用交易日，避免请求未来年份接口导致阻塞。
+            trade_dates = self._trade_dates_for_years(adata_module, [now.year - 1, now.year])
         except Exception as exc:
             fallback_date = self._fallback_target_date_from_benchmark(today_str)
             print(f"获取交易日历失败，回退到本地基准推断更新目标日: {fallback_date} ({exc})")
