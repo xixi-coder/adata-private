@@ -1,0 +1,3 @@
+# Put one m3u8 URL per line.
+# The script will use the last non-empty line each run.
+https://xhslive-video.xhscdn.com/stream/47/281/176/01e9ce774e52a1f02f08c8019d4ee49ff3_570213716812287445_176.m3u8
