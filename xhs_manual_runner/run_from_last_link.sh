@@ -62,10 +62,11 @@ else
 fi
 
 TXT_PATH="$(grep -E '^TXT:[[:space:]]+' "$LOG_FILE" | tail -n 1 | sed -E 's/^TXT:[[:space:]]*//')"
-if [ -z "$TXT_PATH" ] || [ ! -f "$TXT_PATH" ]; then
+if [ -z "$TXT_PATH" ]; then
   TXT_PATH="$BASE_DIR/audio.mp3.txt"
 fi
 
 echo "DONE"
 echo "TXT_PATH=$TXT_PATH"
 echo "USED_URL=$M3U8_URL"
+echo "LOG_FILE=$LOG_FILE"
