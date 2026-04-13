@@ -399,7 +399,7 @@ if __name__ == "__main__":
     )
     # 阶段1：同步云端缓存并准备日线数据底座
     sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
-    strategy.load_data(allow_online_update=False)
+    strategy.load_data(allow_online_update=True)
     strategy.sync_active_cache_to_shared()
     now = strategy._now_shanghai()
     resolved_trade_date, is_trade_day, note = strategy.resolve_scan_trade_date()
