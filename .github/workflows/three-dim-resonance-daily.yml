@@ -1,8 +1,6 @@
 name: 运行三维共振日策略
 
 on:
-  schedule:
-    - cron: "40 7 * * 1-5"
   workflow_dispatch:
     inputs:
       trade_date:
