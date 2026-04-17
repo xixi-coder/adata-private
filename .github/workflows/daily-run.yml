@@ -3,6 +3,7 @@ name: 运行短线分时策略
 on:
   schedule:
     - cron: '20 2 * * 1-5'   # 北京时间周一到周五 10:20（覆盖 09:45-10:30 分时信号窗口）
+    - cron: '30 6 * * 1-5'   # 北京时间周一到周五 14:30（覆盖收盘前半小时）
   workflow_dispatch:      # 允许手动运行
 
 concurrency:
@@ -41,6 +42,7 @@ jobs:
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          INTRADAY_SIGNAL_END_TIME: ${{ github.event.schedule == '30 6 * * 1-5' && '14:30:00' || '10:30:00' }}
         run: |
           python jobs/short_term/intraday_strategy_live.py
 

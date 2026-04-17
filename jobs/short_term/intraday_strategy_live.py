@@ -137,6 +137,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         dfx["stock_code"] = code
         dfx["trade_time"] = pd.to_datetime(dfx["trade_time"], errors="coerce")
         dfx = dfx.dropna(subset=["trade_time"]).sort_values("trade_time")
+        dfx = dfx.drop_duplicates(subset=["trade_time"], keep="last")
 
         numeric_cols = ["price", "change", "change_pct", "volume", "avg_price", "amount"]
         for col in numeric_cols:
@@ -174,6 +175,13 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         if "stock_code" not in df.columns:
             df["stock_code"] = code
         return self._normalize_minute_df(code, df)
+
+    def _should_refresh_minute_cache(self, trade_date: str) -> bool:
+        """
+        下午盘任务需要看到更长的分时区间, 因此在交易日后半段自动刷新同日分钟缓存。
+        """
+        now = self._now_shanghai()
+        return trade_date == now.strftime("%Y-%m-%d") and now.time() >= dt.time(13, 0)
 
     def _previous_trade_date(self, target_date: str) -> str:
         bench_dates = [d for d in self.benchmark_df.index if d < target_date]
@@ -245,12 +253,20 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
 
     def fetch_minute_data(self, code: str, trade_date: str = "", prefer_cache: bool = True) -> pd.DataFrame:
         # 先复用本地分钟缓存；缺失时再请求接口，降低重复调用
+        cached_df = pd.DataFrame()
         if prefer_cache and trade_date:
             cached_df = self._load_cached_minute_data(trade_date, code)
-            if not cached_df.empty:
+            if not cached_df.empty and not self._should_refresh_minute_cache(trade_date):
                 return cached_df
-        df = adata.stock.market.get_market_min(stock_code=code)
-        return self._normalize_minute_df(code, df)
+
+        fresh_df = self._normalize_minute_df(code, adata.stock.market.get_market_min(stock_code=code))
+        if cached_df.empty:
+            return fresh_df
+        if fresh_df.empty:
+            return cached_df
+
+        merged_df = pd.concat([cached_df, fresh_df], ignore_index=True)
+        return self._normalize_minute_df(code, merged_df)
 
     def cache_minute_data(self, trade_date: str, minute_map: Dict[str, pd.DataFrame]):
         out_dir = os.path.join(self.minute_cache_dir, trade_date)
@@ -387,8 +403,12 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
 
 
 if __name__ == "__main__":
+    signal_start_time = os.getenv("INTRADAY_SIGNAL_START_TIME", "09:45:00")
+    signal_end_time = os.getenv("INTRADAY_SIGNAL_END_TIME", "10:30:00")
     strategy = IntradaySignalStrategy(
         candidate_size=60,
+        signal_start_time=signal_start_time,
+        signal_end_time=signal_end_time,
         max_positions=6,
         universe_size=None,
         max_position_weight=0.2,
