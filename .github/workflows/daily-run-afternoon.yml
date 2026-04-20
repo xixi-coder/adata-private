@@ -1,8 +1,8 @@
-name: 运行短线分时策略
+name: 运行短线分时策略-下午版
 
 on:
   schedule:
-    - cron: '20 2 * * 1-5'   # 北京时间周一到周五 10:20（覆盖 09:45-10:30 分时信号窗口）
+    - cron: '30 6 * * 1-5'   # 北京时间周一到周五 14:30（收盘前半小时）
   workflow_dispatch:      # 允许手动运行
 
 concurrency:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  run-short-term-intraday:
+  run-short-term-intraday-afternoon:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -34,13 +34,15 @@ jobs:
       - name: Ensure cache directory exists
         run: |
           mkdir -p data/cache
-          
+
       - name: Run script
         env:
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          INTRADAY_SIGNAL_START_TIME: "09:30:00"
+          INTRADAY_SIGNAL_END_TIME: "14:30:00"
         run: |
           python jobs/short_term/intraday_strategy_live.py
 
@@ -48,7 +50,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: intraday-live-${{ github.run_number }}
+          name: intraday-live-pm-${{ github.run_number }}
           path: |
             jobs/short_term/outputs/latest_candidates.csv
             jobs/short_term/outputs/latest_signals.csv
@@ -149,7 +151,7 @@ jobs:
               body_lines.extend(["", "分时信号文件未生成。"])
 
           msg = EmailMessage()
-          msg["Subject"] = f"[{status_zh}] 短线策略信号"
+          msg["Subject"] = f"[{status_zh}] 短线策略信号-下午版"
           msg["From"] = smtp_user
           msg["To"] = mail_to
           msg.set_content("\n".join(body_lines))

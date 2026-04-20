@@ -21,3 +21,4 @@
 对应 workflow：
 
 - `.github/workflows/daily-run.yml`
+- `.github/workflows/daily-run-afternoon.yml`

@@ -97,4 +97,10 @@ data/
 *.csv
 *.png
 *.json
+*.mp3
+*.log
+*.mp4
 intraday_live_outputs/
+xhs_manual_runner/*.mp3
+xhs_manual_runner/*.url
+xhs_manual_runner/audio_460ea37feaacf048.mp3.txt

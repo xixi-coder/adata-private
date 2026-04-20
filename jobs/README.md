@@ -28,6 +28,7 @@
 - `.github/workflows/three-dim-resonance-cache.yml`：初始化三维共振云端缓存
 - `.github/workflows/three-dim-resonance-daily.yml`：运行三维共振日策略
 - `.github/workflows/daily-run.yml`：运行短线分时策略
+- `.github/workflows/daily-run-afternoon.yml`：运行短线分时策略下午版
 
 策略核心实现统一放到 `strategies/` 目录：
 
