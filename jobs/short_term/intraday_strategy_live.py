@@ -86,6 +86,13 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         max_price_change_pct=9.5,
         min_first30_amount_ratio=0.08,
         min_intraday_amount=80_000_000,
+        confirmation_minutes=3,
+        max_vwap_extension_pct=0.035,
+        max_minute_return_pct=0.025,
+        max_open_to_signal_pct=0.045,
+        max_opening_gap_pct=0.055,
+        min_intraday_market_change_pct=-0.8,
+        intraday_market_index_codes=None,
         *args,
         **kwargs,
     ):
@@ -103,8 +110,17 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         self.max_price_change_pct = float(max_price_change_pct)
         self.min_first30_amount_ratio = float(min_first30_amount_ratio)
         self.min_intraday_amount = float(min_intraday_amount)
+        # 过滤单分钟脉冲：突破要连续站稳，且不能离分时均价过远或瞬时拉升过急。
+        self.confirmation_minutes = max(1, int(confirmation_minutes))
+        self.max_vwap_extension_pct = float(max_vwap_extension_pct)
+        self.max_minute_return_pct = float(max_minute_return_pct)
+        self.max_open_to_signal_pct = float(max_open_to_signal_pct)
+        self.max_opening_gap_pct = float(max_opening_gap_pct)
+        self.min_intraday_market_change_pct = float(min_intraday_market_change_pct)
+        self.intraday_market_index_codes = list(intraday_market_index_codes or ["000300", "399006"])
         self.minute_cache_dir = os.path.join(self.cache_dir, "minute_live")
         self.last_minute_trade_dates: List[str] = []
+        self.last_intraday_market_snapshot: Dict[str, float] = {}
 
     @staticmethod
     def _now_shanghai() -> dt.datetime:
@@ -198,27 +214,48 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             return target_date, True, ""
         return target_date, False, f"{target_date} 不是交易日，已跳过分时扫描。"
 
-    def _daily_candidate_score(self, row: pd.Series) -> float:
+    def _daily_candidate_score(self, code: str, row: pd.Series) -> float:
         amount_ratio = row["amount"] / row["amt_ma5"] if row["amt_ma5"] > 0 else 0.0
         turn_ratio = row["turnover_ratio"] / row["turn_ma5"] if row["turn_ma5"] > 0 else 0.0
+        breakout_pct = (row["close"] / row["close_hh30_prev"] - 1.0) * 100.0 if row["close_hh30_prev"] > 0 else 0.0
+        limit = self._board_limit(code) * 100.0
+        is_main_board = limit <= 10.0
+        ret20_hot_line = 55.0 if is_main_board else 95.0
         return (
             row["pct_change"] * 1.1
             + row["ret5"] * 0.3
-            + turn_ratio * 2.0
-            + amount_ratio * 1.6
+            + min(turn_ratio, 2.8) * 2.0
+            + min(amount_ratio, 3.0) * 1.6
+            + breakout_pct * 0.9
             + row["close_pos"] * 1.8
             - row["upper_shadow_pct"] * 0.6
+            - max(amount_ratio - 3.5, 0.0) * 1.2
+            - max(turn_ratio - 3.2, 0.0) * 1.4
+            - max(row["ret20"] - ret20_hot_line, 0.0) * 0.08
         )
 
-    def _is_daily_candidate(self, row: pd.Series) -> bool:
+    def _is_daily_candidate(self, code: str, row: pd.Series) -> bool:
+        limit = self._board_limit(code) * 100.0
+        is_main_board = limit <= 10.0
+        amount_ratio = row["amount"] / row["amt_ma5"] if row["amt_ma5"] > 0 else 0.0
+        turn_ratio = row["turnover_ratio"] / row["turn_ma5"] if row["turn_ma5"] > 0 else 0.0
+        lower_rise = max(3.5 if is_main_board else 4.5, limit * 0.30)
+        upper_rise = min(9.85 if is_main_board else limit * 0.92, limit * 0.985)
+        max_turnover = 35.0 if is_main_board else 45.0
+        max_prev_rise = 8.8 if is_main_board else 14.0
+        max_gap_open = 5.5 if is_main_board else 8.5
+        max_ret20 = 70.0 if is_main_board else 125.0
         cond1 = row["close"] > row["ma5"] > row["ma10"] > row["ma20"]
-        cond2 = 3.0 <= row["pct_change"] <= 19.5
-        cond3 = 2.5 <= row["turnover_ratio"] <= 45.0
-        cond4 = row["turn_ma5"] > 0 and row["turnover_ratio"] >= (row["turn_ma5"] * 1.05)
-        cond5 = row["amount"] >= max(row["amt_ma5"] * 1.1, 120_000_000)
-        cond6 = row["ret5"] >= 2.0 and row["ret10"] >= 4.0
-        cond7 = row["close_pos"] >= 0.6 and row["upper_shadow_pct"] <= 3.5
-        return bool(cond1 and cond2 and cond3 and cond4 and cond5 and cond6 and cond7)
+        cond2 = lower_rise <= row["pct_change"] <= upper_rise
+        cond3 = 3.0 <= row["turnover_ratio"] <= max_turnover
+        cond4 = 1.10 <= turn_ratio <= 3.8
+        cond5 = row["amount"] >= max(row["amt_ma5"] * 1.15, 150_000_000) and amount_ratio <= 4.5
+        cond6 = row["ret5"] >= 3.0 and row["ret10"] >= 6.0 and row["ret20"] <= max_ret20
+        cond7 = row["close_pos"] >= 0.68 and row["upper_shadow_pct"] <= 2.8
+        cond8 = row["close"] >= (row["close_hh30_prev"] * 0.985) or row["high"] >= (row["high_hh10_prev"] * 0.995)
+        cond9 = -4.0 <= row["prev_pct_change"] <= max_prev_rise
+        cond10 = row["gap_open_pct"] <= max_gap_open
+        return bool(cond1 and cond2 and cond3 and cond4 and cond5 and cond6 and cond7 and cond8 and cond9 and cond10)
 
     def build_daily_candidates(self, trade_date: str) -> pd.DataFrame:
         # 候选依据日 = 扫描日的前一交易日，避免用到未收盘/未稳定的日线
@@ -231,7 +268,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             if prev_date not in df.index:
                 continue
             row = df.loc[prev_date]
-            if not self._is_daily_candidate(row):
+            if not self._is_daily_candidate(code, row):
                 continue
             rows.append(
                 {
@@ -241,7 +278,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                     "prev_close": float(row["close"]),
                     "prev_amount": float(row["amount"]),
                     "prev_pct_change": float(row["pct_change"]),
-                    "daily_score": self._daily_candidate_score(row),
+                    "daily_score": self._daily_candidate_score(code, row),
                 }
             )
 
@@ -320,6 +357,32 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         amount = float(first30["amount"].sum()) if not first30.empty else 0.0
         return amount / prev_amount if prev_amount > 0 else 0.0
 
+    def _intraday_market_ok(self) -> bool:
+        snapshots: Dict[str, float] = {}
+        for index_code in self.intraday_market_index_codes:
+            try:
+                index_df = adata.stock.market.get_market_index_min(index_code=index_code)
+            except Exception:
+                continue
+            if index_df is None or index_df.empty or "change_pct" not in index_df.columns:
+                continue
+            change_pct = pd.to_numeric(index_df["change_pct"], errors="coerce").dropna()
+            if change_pct.empty:
+                continue
+            snapshots[index_code] = float(change_pct.iloc[-1])
+        self.last_intraday_market_snapshot = snapshots
+        if not snapshots:
+            return True
+        return all(change_pct >= self.min_intraday_market_change_pct for change_pct in snapshots.values())
+
+    def _has_recent_confirmation(self, signal_window: pd.DataFrame, current_index: int) -> bool:
+        if self.confirmation_minutes <= 1:
+            return bool(signal_window["base_signal_ok"].iloc[current_index])
+        if current_index + 1 < self.confirmation_minutes:
+            return False
+        recent = signal_window.iloc[current_index + 1 - self.confirmation_minutes : current_index + 1]
+        return bool(recent["base_signal_ok"].all())
+
     def generate_signal_for_stock(self, candidate_row: pd.Series, minute_df: pd.DataFrame) -> Dict:
         if minute_df.empty:
             return {}
@@ -341,18 +404,38 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         if signal_window.empty:
             return {}
 
-        for _, row in signal_window.iterrows():
-            # 突破开盘区间高点
-            breakout_ok = row["price"] >= opening_high * (1.0 + self.min_breakout_pct)
-            # 站上分时均价，避免“假突破”
-            vwap_ok = row["price"] >= row["vwap"] * 1.002
-            # 当时涨幅落在可交易区间内（过低没强度，过高追涨风险大）
-            price_change_ok = self.min_price_change_pct <= row["change_pct"] <= self.max_price_change_pct
-            # 累计成交额门槛，过滤流动性不足
-            amount_ok = row["cum_amount"] >= self.min_intraday_amount
-            # 回到近 5 分钟高位附近，确认短线动能
-            reclaim_ok = row["price"] >= row["rolling_high_5"] * 0.999
-            if breakout_ok and vwap_ok and price_change_ok and amount_ok and reclaim_ok:
+        open_price = float(minute_df["price"].iloc[0])
+        opening_gap_pct = float(minute_df["change_pct"].iloc[0]) / 100.0
+        signal_window["breakout_ok"] = signal_window["price"] >= opening_high * (1.0 + self.min_breakout_pct)
+        signal_window["vwap_ok"] = signal_window["price"] >= signal_window["vwap"] * 1.002
+        signal_window["price_change_ok"] = signal_window["change_pct"].between(
+            self.min_price_change_pct,
+            self.max_price_change_pct,
+        )
+        signal_window["amount_ok"] = signal_window["cum_amount"] >= self.min_intraday_amount
+        signal_window["reclaim_ok"] = signal_window["price"] >= signal_window["rolling_high_5"] * 0.999
+        signal_window["vwap_extension_ok"] = (
+            signal_window["price"] <= signal_window["vwap"] * (1.0 + self.max_vwap_extension_pct)
+        )
+        signal_window["minute_return_ok"] = signal_window["minute_return"] <= self.max_minute_return_pct
+        signal_window["open_to_signal_ok"] = (
+            signal_window["price"] <= open_price * (1.0 + self.max_open_to_signal_pct)
+        )
+        signal_window["opening_gap_ok"] = opening_gap_pct <= self.max_opening_gap_pct
+        signal_window["base_signal_ok"] = (
+            signal_window["breakout_ok"]
+            & signal_window["vwap_ok"]
+            & signal_window["price_change_ok"]
+            & signal_window["amount_ok"]
+            & signal_window["reclaim_ok"]
+            & signal_window["vwap_extension_ok"]
+            & signal_window["minute_return_ok"]
+            & signal_window["open_to_signal_ok"]
+            & signal_window["opening_gap_ok"]
+        )
+
+        for current_index, (_, row) in enumerate(signal_window.iterrows()):
+            if self._has_recent_confirmation(signal_window, current_index):
                 return {
                     "trade_date": row["trade_date"],
                     "signal_time": row["trade_time"].strftime("%Y-%m-%d %H:%M:%S"),
@@ -384,6 +467,15 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             self.last_minute_trade_dates = []
             return pd.DataFrame(), resolved_trade_date, is_trade_day, note
 
+        if not self._intraday_market_ok():
+            snapshot = ", ".join(
+                f"{code}:{change_pct:.2f}%" for code, change_pct in self.last_intraday_market_snapshot.items()
+            )
+            note = f"盘中指数环境偏弱，跳过开仓扫描（{snapshot}）。"
+            print(note)
+            self.last_minute_trade_dates = []
+            return pd.DataFrame(), resolved_trade_date, is_trade_day, note
+
         # 对每只候选股执行：分钟数据获取 -> 信号判定
         minute_map: Dict[str, pd.DataFrame] = {}
         signals: List[Dict] = []
@@ -405,10 +497,22 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
 if __name__ == "__main__":
     signal_start_time = os.getenv("INTRADAY_SIGNAL_START_TIME", "09:45:00")
     signal_end_time = os.getenv("INTRADAY_SIGNAL_END_TIME", "10:30:00")
+    confirmation_minutes = int(os.getenv("INTRADAY_CONFIRMATION_MINUTES", "3"))
+    max_vwap_extension_pct = float(os.getenv("INTRADAY_MAX_VWAP_EXTENSION_PCT", "0.035"))
+    max_minute_return_pct = float(os.getenv("INTRADAY_MAX_MINUTE_RETURN_PCT", "0.025"))
+    max_open_to_signal_pct = float(os.getenv("INTRADAY_MAX_OPEN_TO_SIGNAL_PCT", "0.045"))
+    max_opening_gap_pct = float(os.getenv("INTRADAY_MAX_OPENING_GAP_PCT", "0.055"))
+    min_intraday_market_change_pct = float(os.getenv("INTRADAY_MIN_MARKET_CHANGE_PCT", "-0.8"))
     strategy = IntradaySignalStrategy(
         candidate_size=60,
         signal_start_time=signal_start_time,
         signal_end_time=signal_end_time,
+        confirmation_minutes=confirmation_minutes,
+        max_vwap_extension_pct=max_vwap_extension_pct,
+        max_minute_return_pct=max_minute_return_pct,
+        max_open_to_signal_pct=max_open_to_signal_pct,
+        max_opening_gap_pct=max_opening_gap_pct,
+        min_intraday_market_change_pct=min_intraday_market_change_pct,
         max_positions=6,
         universe_size=None,
         max_position_weight=0.2,
