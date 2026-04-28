@@ -20,6 +20,7 @@ if PROJECT_ROOT not in sys.path:
 
 import adata
 from jobs.common.cloud_cache_sync import SHARED_MARKET_CACHE_ARCHIVE, sync_cache_from_drive, sync_cache_to_drive
+from jobs.common.a_share_metadata import load_stock_metadata
 from strategies.a_share_allocation import AShareAllocationStrategy, StrategyConfig
 from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
 
@@ -208,10 +209,12 @@ def _portfolio_review(day_scores: pd.DataFrame, positions: list[dict[str, Any]])
     return pd.DataFrame(rows)
 
 
-def _candidate_review(day_scores: pd.DataFrame, limit: int = 50) -> pd.DataFrame:
+def _candidate_review(day_scores: pd.DataFrame, stock_meta: dict[str, dict[str, Any]], limit: int = 50) -> pd.DataFrame:
     rows = []
-    source = day_scores.sort_values("final_score", ascending=False).head(limit)
+    source = day_scores[day_scores["final_score"].notna()].sort_values("final_score", ascending=False).head(limit)
     for row in source.itertuples():
+        stock_code = str(row.stock_code).zfill(6)
+        stock_name = stock_meta.get(stock_code, {}).get("short_name") or stock_code
         ret_1d = float(row.ret_1d) if pd.notna(row.ret_1d) else np.nan
         ret_5 = float(row.ret_5) if pd.notna(row.ret_5) else np.nan
         ret_20 = float(row.ret_20) if pd.notna(row.ret_20) else np.nan
@@ -246,7 +249,8 @@ def _candidate_review(day_scores: pd.DataFrame, limit: int = 50) -> pd.DataFrame
 
         rows.append(
             {
-                "股票代码": row.stock_code,
+                "股票代码": stock_code,
+                "股票名称": stock_name,
                 "收盘价": round(close, 3),
                 "日涨跌%": round(ret_1d * 100, 2) if pd.notna(ret_1d) else "",
                 "5日涨跌%": round(ret_5 * 100, 2) if pd.notna(ret_5) else "",
@@ -333,13 +337,13 @@ def _build_email_body(
         [
             "",
             "E. 今日策略候选 Top",
-            "字段顺序：股票代码 | 收盘价 | 日涨跌% | 总分 | 趋势分 | 短线分 | 入选依据 | 操作提示",
-            "字段说明：收盘价=最近交易日收盘价；日涨跌%=当日涨跌幅；总分=策略综合评分，越高越符合候选条件；趋势分=中短期趋势强度评分，主要参考均线、涨幅、接近阶段高点等；短线分=短线活跃度评分，主要参考近期涨跌、量能和强势程度；入选依据=触发候选的核心原因；操作提示=观察或交易节奏建议。",
+            "字段顺序：股票代码 | 股票名称 | 收盘价 | 日涨跌% | 总分 | 趋势分 | 短线分 | 入选依据 | 操作提示",
+            "字段说明：股票名称=交易所股票简称；收盘价=最近交易日收盘价；日涨跌%=当日涨跌幅；总分=策略综合评分，越高越符合候选条件；趋势分=中短期趋势强度评分，主要参考均线、涨幅、接近阶段高点等；短线分=短线活跃度评分，主要参考近期涨跌、量能和强势程度；入选依据=触发候选的核心原因；操作提示=观察或交易节奏建议。",
         ]
     )
     for line in _format_table(
         top_df,
-        ["股票代码", "收盘价", "日涨跌%", "总分", "趋势分", "短线分", "入选依据", "操作提示"],
+        ["股票代码", "股票名称", "收盘价", "日涨跌%", "总分", "趋势分", "短线分", "入选依据", "操作提示"],
         limit=15,
     ):
         lines.append(line)
@@ -416,6 +420,7 @@ def main() -> None:
     if os.path.exists(strategy.benchmark_cache_file):
         strategy.load_benchmark()
     strategy.compute_scores(include_dividend=include_dividend)
+    stock_meta = load_stock_metadata(PROJECT_ROOT)
 
     target_ts = pd.to_datetime(trade_date)
     available_dates = sorted(d for d in strategy.score_df["trade_date"].drop_duplicates().tolist() if d <= target_ts)
@@ -427,7 +432,8 @@ def main() -> None:
 
     day_scores = strategy.score_df[strategy.score_df["trade_date"] == signal_date].copy()
     day_scores = day_scores.sort_values("final_score", ascending=False)
-    top_raw_df = day_scores[
+    qualified_scores = day_scores[day_scores["final_score"].notna()].copy()
+    top_raw_df = qualified_scores[
         [
             "stock_code",
             "close",
@@ -448,7 +454,7 @@ def main() -> None:
             "volume_ratio_5_20",
         ]
     ].head(50)
-    top_df = _candidate_review(day_scores, limit=50)
+    top_df = _candidate_review(day_scores, stock_meta, limit=50)
 
     top_raw_df.to_csv(os.path.join(OUTPUT_DIR, "latest_top_candidates_raw.csv"), index=False, encoding="utf-8-sig")
     top_df.to_csv(os.path.join(OUTPUT_DIR, "latest_top_candidates.csv"), index=False, encoding="utf-8-sig")
