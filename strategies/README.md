@@ -4,6 +4,7 @@
 
 当前目录：
 
+- `strategies/a_share_allocation/`：A股多风格组合策略，覆盖核心低波、股息增强、趋势动量和短线强势。
 - `strategies/three_dim_resonance/`：三维共振策略与解析文档。
 - `strategies/short_term/`：短线日线策略、激进版和接力版。
 - `strategies/trend/`：周趋势 + 基本面增强策略。

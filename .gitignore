@@ -101,6 +101,7 @@ data/
 *.log
 *.mp4
 intraday_live_outputs/
+jobs/a_share_allocation/outputs/
 xhs_manual_runner/*.mp3
 xhs_manual_runner/*.url
 xhs_manual_runner/audio_460ea37feaacf048.mp3.txt

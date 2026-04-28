@@ -64,6 +64,12 @@ sh /Users/xixi/pythonProject/adata/xhs_manual_runner/xhs_pipeline.sh "<m3u8_url>
 - `WHISPER_MODEL_PATH`：模型路径
 - `WHISPER_LANG`：语言，默认 `zh`
 - `WHISPER_THREADS`：线程数，默认 CPU 核心数
+- `WHISPER_OFFSET_MS`：转写起始偏移，单位毫秒；开头暖场/静音导致重复幻觉时可设 `60000`
+- `WHISPER_DURATION_MS`：转写时长，单位毫秒；`0` 表示从偏移处转完整段
+- `WHISPER_MAX_CONTEXT`：Whisper 上下文长度，默认 `0`，减少长音频把前文幻觉带到后文
+- `WHISPER_LOGPROB_THOLD`：低置信重试阈值，默认 `-0.4`
+- `WHISPER_NO_SPEECH_THOLD`：无语音阈值，默认 `0.75`
+- `FORCE_TRANSCRIBE`：`1` 表示即使已有 txt 也重新转写
 - `FAST_AUDIO_ONLY`：`1` 表示跳过 mp4，仅生成 mp3（更快）
 - `XHS_PIPELINE_PATH`：在 `run_from_last_link.sh` 中覆盖 pipeline 脚本路径
 
@@ -72,6 +78,14 @@ sh /Users/xixi/pythonProject/adata/xhs_manual_runner/xhs_pipeline.sh "<m3u8_url>
 ```bash
 export WHISPER_MODEL_PATH="$HOME/Downloads/ggml-medium.bin"
 export FAST_AUDIO_ONLY=1
+sh /Users/xixi/pythonProject/adata/xhs_manual_runner/run_from_last_link.sh
+```
+
+如果日志里大段重复类似“咱们再来一遍”，通常是开头暖场/静音把 Whisper 带偏了。可以跳过前 60 秒并强制重转：
+
+```bash
+export WHISPER_OFFSET_MS=60000
+export FORCE_TRANSCRIBE=1
 sh /Users/xixi/pythonProject/adata/xhs_manual_runner/run_from_last_link.sh
 ```
 

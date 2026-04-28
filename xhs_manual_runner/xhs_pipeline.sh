@@ -10,6 +10,12 @@ Environment variables:
   WHISPER_MODEL_PATH   Whisper model path (default auto-detect: ~/Downloads/ggml-medium.bin)
   WHISPER_LANG         Whisper language (default: zh)
   WHISPER_THREADS      Whisper threads (default: CPU core count)
+  WHISPER_OFFSET_MS    Start offset for transcription in ms (default: 0)
+  WHISPER_DURATION_MS  Transcription duration in ms, 0=all remaining audio (default: 0)
+  WHISPER_MAX_CONTEXT  Max previous text context tokens, 0=disable carry-over (default: 0)
+  WHISPER_LOGPROB_THOLD Decoder fail log-prob threshold (default: -0.4)
+  WHISPER_NO_SPEECH_THOLD No-speech threshold (default: 0.75)
+  FORCE_TRANSCRIBE     1=rerun whisper even if transcript txt already exists (default: 0)
   FAST_AUDIO_ONLY      1=skip mp4 and only generate mp3 for fastest pipeline (default: 0)
 
 Auto env loading:
@@ -94,6 +100,12 @@ else
   CPU_CORES="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 fi
 WHISPER_THREADS="${WHISPER_THREADS:-$CPU_CORES}"
+WHISPER_OFFSET_MS="${WHISPER_OFFSET_MS:-0}"
+WHISPER_DURATION_MS="${WHISPER_DURATION_MS:-0}"
+WHISPER_MAX_CONTEXT="${WHISPER_MAX_CONTEXT:-0}"
+WHISPER_LOGPROB_THOLD="${WHISPER_LOGPROB_THOLD:--0.4}"
+WHISPER_NO_SPEECH_THOLD="${WHISPER_NO_SPEECH_THOLD:-0.75}"
+FORCE_TRANSCRIBE="${FORCE_TRANSCRIBE:-0}"
 FAST_AUDIO_ONLY="${FAST_AUDIO_ONLY:-0}"
 
 USER_AGENT="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
@@ -108,6 +120,12 @@ echo "Config:"
 echo "  Whisper model: $WHISPER_MODEL_PATH"
 echo "  Whisper lang:  $WHISPER_LANG"
 echo "  Whisper thds:  $WHISPER_THREADS"
+echo "  Whisper off:   $WHISPER_OFFSET_MS ms"
+echo "  Whisper dur:   $WHISPER_DURATION_MS ms"
+echo "  Whisper ctx:   $WHISPER_MAX_CONTEXT"
+echo "  Whisper lpt:   $WHISPER_LOGPROB_THOLD"
+echo "  Whisper nth:   $WHISPER_NO_SPEECH_THOLD"
+echo "  Force trans:   $FORCE_TRANSCRIBE"
 echo "  Fast audio:    $FAST_AUDIO_ONLY"
 echo "  Output dir:    $OUT_DIR"
 echo "  URL id:        $URL_ID"
@@ -166,11 +184,21 @@ fi
 TXT_CANDIDATE_1="${AUDIO_FILE}.txt"
 TXT_CANDIDATE_2="$OUT_DIR/audio_${URL_ID}.txt"
 
-if [ -f "$TXT_CANDIDATE_1" ] || [ -f "$TXT_CANDIDATE_2" ]; then
+if [ "$FORCE_TRANSCRIBE" != "1" ] && { [ -f "$TXT_CANDIDATE_1" ] || [ -f "$TXT_CANDIDATE_2" ]; }; then
   echo "[2/2] Reusing existing transcript for URL id $URL_ID"
 else
   echo "[2/2] Running whisper-cli..."
-  whisper-cli -m "$WHISPER_MODEL_PATH" -f "$AUDIO_FILE" -l "$WHISPER_LANG" -t "$WHISPER_THREADS" -otxt
+  whisper-cli \
+    -m "$WHISPER_MODEL_PATH" \
+    -f "$AUDIO_FILE" \
+    -l "$WHISPER_LANG" \
+    -t "$WHISPER_THREADS" \
+    -ot "$WHISPER_OFFSET_MS" \
+    -d "$WHISPER_DURATION_MS" \
+    -mc "$WHISPER_MAX_CONTEXT" \
+    -lpt "$WHISPER_LOGPROB_THOLD" \
+    -nth "$WHISPER_NO_SPEECH_THOLD" \
+    -otxt
 fi
 
 if [ -f "$TXT_CANDIDATE_1" ]; then
