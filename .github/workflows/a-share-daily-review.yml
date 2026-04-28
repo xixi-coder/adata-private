@@ -69,6 +69,7 @@ jobs:
             jobs/a_share_allocation/outputs/latest_email_body.txt
             jobs/a_share_allocation/outputs/latest_summary.json
             jobs/a_share_allocation/outputs/latest_top_candidates.csv
+            jobs/a_share_allocation/outputs/latest_top_candidates_raw.csv
             jobs/a_share_allocation/outputs/latest_portfolio_review.csv
             jobs/a_share_allocation/outputs/latest_metrics.csv
             jobs/a_share_allocation/outputs/latest_trades.csv

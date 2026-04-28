@@ -208,13 +208,66 @@ def _portfolio_review(day_scores: pd.DataFrame, positions: list[dict[str, Any]])
     return pd.DataFrame(rows)
 
 
+def _candidate_review(day_scores: pd.DataFrame, limit: int = 50) -> pd.DataFrame:
+    rows = []
+    source = day_scores.sort_values("final_score", ascending=False).head(limit)
+    for row in source.itertuples():
+        ret_1d = float(row.ret_1d) if pd.notna(row.ret_1d) else np.nan
+        ret_5 = float(row.ret_5) if pd.notna(row.ret_5) else np.nan
+        ret_20 = float(row.ret_20) if pd.notna(row.ret_20) else np.nan
+        close = float(row.close)
+        ma20 = float(row.ma20) if pd.notna(row.ma20) else np.nan
+        ma60 = float(row.ma60) if pd.notna(row.ma60) else np.nan
+        close_to_high = float(row.close_to_high_60) if pd.notna(row.close_to_high_60) else np.nan
+        volume_ratio = float(row.volume_ratio_5_20) if pd.notna(row.volume_ratio_5_20) else np.nan
+
+        trend_state = "上升趋势" if pd.notna(ma60) and close > ma60 else "趋势未确认"
+        if pd.notna(ret_1d) and ret_1d < 0:
+            if pd.notna(ma20) and close >= ma20 and pd.notna(ma60) and close >= ma60:
+                action_hint = "绿盘回踩观察，不追；重点看能否守住20日线/60日线"
+            else:
+                action_hint = "绿盘走弱，暂不作为买点"
+        elif pd.notna(ret_1d) and ret_1d > 0.05:
+            action_hint = "涨幅偏大，避免追高；等回踩或次日确认"
+        else:
+            action_hint = "可观察，需配合量能和指数环境"
+
+        reasons = []
+        if pd.notna(ret_20) and ret_20 > 0:
+            reasons.append(f"20日涨幅{ret_20 * 100:.1f}%")
+        if pd.notna(close_to_high) and close_to_high >= 0.92:
+            reasons.append(f"接近60日高点{close_to_high * 100:.1f}%")
+        if pd.notna(volume_ratio) and volume_ratio >= 1.2:
+            reasons.append(f"5日量能为20日均量{volume_ratio:.1f}倍")
+        if pd.notna(ma60) and close > ma60:
+            reasons.append("站上60日线")
+        if not reasons:
+            reasons.append("综合评分靠前")
+
+        rows.append(
+            {
+                "股票代码": row.stock_code,
+                "收盘价": round(close, 3),
+                "日涨跌%": round(ret_1d * 100, 2) if pd.notna(ret_1d) else "",
+                "5日涨跌%": round(ret_5 * 100, 2) if pd.notna(ret_5) else "",
+                "20日涨跌%": round(ret_20 * 100, 2) if pd.notna(ret_20) else "",
+                "总分": round(float(row.final_score), 2),
+                "趋势分": round(float(row.trend_score), 2),
+                "短线分": round(float(row.short_score), 2),
+                "状态": trend_state,
+                "入选依据": "；".join(reasons),
+                "操作提示": action_hint,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def _format_table(df: pd.DataFrame, columns: list[str], limit: int = 10) -> list[str]:
     if df.empty:
         return ["无"]
     lines = []
-    for idx, row in enumerate(df.head(limit).itertuples(index=False), start=1):
-        values = row._asdict()
-        parts = [_format_cell(values.get(col, "")) for col in columns]
+    for idx, (_, row) in enumerate(df.head(limit).iterrows(), start=1):
+        parts = [_format_cell(row.get(col, "")) for col in columns]
         lines.append(f"{idx}. " + " | ".join(parts))
     return lines
 
@@ -277,7 +330,11 @@ def _build_email_body(
     lines.append("4. 关注财报、政策、商品价格和外围市场对主线风险偏好的影响。")
 
     lines.extend(["", "E. 今日策略候选 Top"])
-    for line in _format_table(top_df, ["stock_code", "close", "final_score", "trend_score", "dividend_yield_ttm"], limit=15):
+    for line in _format_table(
+        top_df,
+        ["股票代码", "收盘价", "日涨跌%", "总分", "趋势分", "短线分", "入选依据", "操作提示"],
+        limit=15,
+    ):
         lines.append(line)
 
     lines.extend(
@@ -363,10 +420,12 @@ def main() -> None:
 
     day_scores = strategy.score_df[strategy.score_df["trade_date"] == signal_date].copy()
     day_scores = day_scores.sort_values("final_score", ascending=False)
-    top_df = day_scores[
+    top_raw_df = day_scores[
         [
             "stock_code",
             "close",
+            "ret_1d",
+            "ret_5",
             "final_score",
             "core_score",
             "dividend_score",
@@ -376,9 +435,15 @@ def main() -> None:
             "amount_ma20",
             "ret_20",
             "vol_60",
+            "ma20",
+            "ma60",
+            "close_to_high_60",
+            "volume_ratio_5_20",
         ]
     ].head(50)
+    top_df = _candidate_review(day_scores, limit=50)
 
+    top_raw_df.to_csv(os.path.join(OUTPUT_DIR, "latest_top_candidates_raw.csv"), index=False, encoding="utf-8-sig")
     top_df.to_csv(os.path.join(OUTPUT_DIR, "latest_top_candidates.csv"), index=False, encoding="utf-8-sig")
     pd.DataFrame(strategy.trade_logs).to_csv(os.path.join(OUTPUT_DIR, "latest_trades.csv"), index=False, encoding="utf-8-sig")
     pd.DataFrame(strategy.equity_curve).to_csv(os.path.join(OUTPUT_DIR, "latest_equity.csv"), index=False, encoding="utf-8-sig")
