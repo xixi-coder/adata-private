@@ -18,29 +18,47 @@ from adata.xueqiu.differ import (
 logger = logging.getLogger("adata")
 
 
-def _format_event(event: ChangeEvent) -> str:
+def _display_user(uid, name_map=None):
+    """根据 uid 与可选名称映射，返回用于展示的用户标识。
+
+    - 若 name_map 中配置了该 uid 的名称（备注），展示为「名称(uid)」；
+    - 否则仅展示 uid。
+    """
+    name = (name_map or {}).get(str(uid))
+    if name:
+        return f"{name}({uid})"
+    return f"{uid}"
+
+
+def _format_event(event: ChangeEvent, name_map=None) -> str:
     """将单个变化事件格式化为一行可读文本。
 
-    - 新增自选股：展示被监控用户 ID、股票代码与股票名称。
-    - 新发布动态：展示被监控用户 ID、发布时间、正文内容与来源链接。
+    - 新增自选股：展示被监控用户、股票代码与股票名称。
+    - 新发布动态：展示被监控用户、发布时间、正文内容与来源链接。
     - 其他未知类型：兜底展示事件本身。
+
+    :param name_map: 可选的 uid -> 名称 映射，用于把用户 ID 展示为可读名称。
     """
+    user = _display_user(event.uid, name_map)
     if event.change_type == CHANGE_TYPE_NEW_WATCHLIST_STOCK:
-        return (f"[新增自选股] 用户 {event.uid} 新增股票 "
+        return (f"[新增自选股] 用户 {user} 新增股票 "
                 f"{event.stock_code} {event.short_name}")
     if event.change_type == CHANGE_TYPE_NEW_POST:
-        return (f"[新发布动态] 用户 {event.uid} 于 {event.publish_time} "
+        return (f"[新发布动态] 用户 {user} 于 {event.publish_time} "
                 f"发布：{event.content} （来源：{event.source_url}）")
     # 兜底：未知的变化类型
-    return f"[变化] 用户 {event.uid}：{event}"
+    return f"[变化] 用户 {user}：{event}"
 
 
-def build_summary(events: list) -> str:
-    """根据全部变化事件构造通知摘要文本（需求 7.1）。"""
+def build_summary(events: list, name_map=None) -> str:
+    """根据全部变化事件构造通知摘要文本（需求 7.1）。
+
+    :param name_map: 可选的 uid -> 名称 映射，用于把用户 ID 展示为可读名称。
+    """
     lines = [f"检测到 {len(events)} 条变化："]
     # 逐条格式化，编号从 1 开始便于阅读
     for index, event in enumerate(events, start=1):
-        lines.append(f"{index}. {_format_event(event)}")
+        lines.append(f"{index}. {_format_event(event, name_map)}")
     return "\n".join(lines)
 
 
@@ -142,12 +160,14 @@ class Notifier:
     - 单个渠道发送失败时记录「通知发送失败」错误并继续其余渠道（需求 7.4）。
     """
 
-    def __init__(self, channels: list = None):
+    def __init__(self, channels: list = None, name_map: dict = None):
         # 未配置渠道时回退到默认控制台渠道（需求 7.5）
         if channels:
             self.channels = channels
         else:
             self.channels = [ConsoleChannel()]
+        # 可选的 uid -> 名称 映射，用于把用户 ID 展示为可读名称
+        self.name_map = name_map or {}
 
     def notify(self, events: list) -> None:
         """向所有已配置渠道分发变化事件。"""
@@ -155,8 +175,8 @@ class Notifier:
         if not events:
             return
 
-        # 构造包含全部事件的摘要（需求 7.1）
-        summary = build_summary(events)
+        # 构造包含全部事件的摘要（需求 7.1），带上名称映射
+        summary = build_summary(events, self.name_map)
 
         # 逐个渠道发送，单渠道失败不影响其余渠道（需求 7.3、7.4）
         for channel in self.channels:

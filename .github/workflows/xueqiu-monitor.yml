@@ -38,7 +38,7 @@ jobs:
 
       - name: Run xueqiu watchlist monitor
         env:
-          # 被监控用户 ID（逗号分隔）与登录 Cookie，配置在仓库 Secrets/Variables
+          # 被监控用户，逗号分隔，支持 "id" 或 "id:名称"（如 4267080012:GODIFAR）
           XUEQIU_UIDS: ${{ vars.XUEQIU_UIDS }}
           XUEQIU_COOKIE: ${{ secrets.XUEQIU_COOKIE }}
           # 163 邮件通知配置

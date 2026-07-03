@@ -85,9 +85,10 @@ class XueqiuMonitor:
             else XueqiuCollector(credential=config.credential)
         # 快照存储：默认使用默认目录
         self.store = store if store is not None else SnapshotStore()
-        # 通知器：默认按配置渠道构造（渠道为空时 Notifier 内部回退到控制台渠道）
+        # 通知器：默认按配置渠道构造，并把 uid->名称映射作为 name_map 传入，
+        # 使通知中以「名称(uid)」展示（渠道为空时 Notifier 内部回退到控制台渠道）
         self.notifier = notifier if notifier is not None \
-            else Notifier(config.channels)
+            else Notifier(config.channels, name_map=getattr(config, "user_names", None))
 
     def run_once(self) -> list:
         """执行一轮完整监听：逐用户采集→比对→写快照，汇总事件后通知。

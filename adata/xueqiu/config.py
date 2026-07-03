@@ -19,7 +19,7 @@ class MonitorConfig:
     """
 
     def __init__(self, user_ids, interval_seconds=None,
-                 channels=None, credential=None):
+                 channels=None, credential=None, user_names=None):
         # 对用户 ID 名单进行归一化：剔除非法 ID、去重并保留首次出现顺序
         valid_ids, warnings = self.normalize_user_ids(user_ids)
         # 登记为 Monitored_User 的合法用户 ID 列表（需求 1.1）
@@ -32,6 +32,8 @@ class MonitorConfig:
         self.channels = channels
         # 访问雪球接口所需的凭证（如 Cookie）；为 None 时匿名访问
         self.credential = credential
+        # 可选的 uid -> 展示名称（备注名/昵称）映射，用于通知展示；为 None 时用空映射
+        self.user_names = user_names or {}
 
     @staticmethod
     def normalize_user_ids(user_ids):

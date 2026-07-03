@@ -13,8 +13,10 @@
 动态恒为空、不会产生动态变化事件。
 
 环境变量：
-  XUEQIU_UIDS   必填，被监控雪球用户 ID，逗号分隔，例如 "1247347556,4267080012"
-                （兼容单个 XUEQIU_UID）
+  XUEQIU_UIDS   必填，被监控雪球用户，逗号分隔。每项支持两种写法：
+                - 纯 ID：           "1247347556,4267080012"
+                - ID:名称（备注）： "4267080012:GODIFAR,1247347556:方三文"
+                配了名称时，通知里会显示为「名称(ID)」。（兼容单个 XUEQIU_UID）
   XUEQIU_COOKIE 选填，登录 Cookie 串；不配则匿名（匿名下多数自选股不可见）
   MAIL_163_USER / SMTP_USER   发件 163 邮箱账号
   MAIL_163_PASS / SMTP_PASS   163 邮箱 SMTP 授权码
@@ -69,13 +71,38 @@ class WatchlistOnlyCollector:
         return pd.DataFrame([], columns=_POSTS_COLUMNS)
 
 
-def _read_user_ids():
-    """从环境变量读取被监控用户 ID 列表（兼容 XUEQIU_UIDS / XUEQIU_UID）。"""
+def _read_users():
+    """从环境变量读取被监控用户，支持「id」或「id:名称」两种写法。
+
+    XUEQIU_UIDS 逗号分隔，每项可为：
+      - 纯 ID：``4267080012``
+      - 带名称：``4267080012:GODIFAR``（名称用于通知里显示为「名称(ID)」）
+
+    :return: (user_ids 列表, name_map 字典 {uid: 名称})
+    """
     raw = os.environ.get("XUEQIU_UIDS") or os.environ.get("XUEQIU_UID") or ""
-    return [x.strip() for x in raw.split(",") if x.strip()]
+    user_ids = []
+    name_map = {}
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        # 用第一个冒号（中英文皆可）分隔 ID 与名称
+        sep = ":" if ":" in item else ("：" if "：" in item else None)
+        if sep:
+            uid, name = item.split(sep, 1)
+            uid, name = uid.strip(), name.strip()
+        else:
+            uid, name = item, ""
+        if not uid:
+            continue
+        user_ids.append(uid)
+        if name:
+            name_map[uid] = name
+    return user_ids, name_map
 
 
-def _build_notifier():
+def _build_notifier(name_map=None):
     """按环境变量构造通知器：配置了邮件则用邮件渠道，否则退回控制台。"""
     smtp_user = (os.environ.get("SMTP_USER") or os.environ.get("MAIL_163_USER") or "").strip()
     smtp_pass = (os.environ.get("SMTP_PASS") or os.environ.get("MAIL_163_PASS") or "").strip()
@@ -93,37 +120,41 @@ def _build_notifier():
     else:
         logger.warning("未配置完整邮件 Secrets，改用控制台通知渠道")
         channels.append(ConsoleChannel())
-    return Notifier(channels=channels)
+    # 传入名称映射，使通知中把用户 ID 展示为「名称(ID)」
+    return Notifier(channels=channels, name_map=name_map)
 
 
 def main():
     # 本地运行时加载 .env.local；GitHub Actions 走注入的环境变量
     load_local_env()
 
-    user_ids = _read_user_ids()
+    user_ids, name_map = _read_users()
     if not user_ids:
-        logger.error("未配置被监控用户：请设置环境变量 XUEQIU_UIDS（逗号分隔）")
+        logger.error("未配置被监控用户：请设置环境变量 XUEQIU_UIDS（逗号分隔，支持 id:名称）")
         raise SystemExit(1)
 
     cookie = os.environ.get("XUEQIU_COOKIE") or None
     snapshot_dir = os.environ.get("XUEQIU_SNAPSHOT_DIR", _DEFAULT_SNAPSHOT_DIR)
 
-    logger.info("被监控用户：%s", user_ids)
+    logger.info("被监控用户：%s", [
+        f"{name_map[u]}({u})" if u in name_map else u for u in user_ids
+    ])
     logger.info("快照目录：%s", snapshot_dir)
 
-    config = MonitorConfig(user_ids=user_ids, credential=cookie)
+    config = MonitorConfig(user_ids=user_ids, credential=cookie, user_names=name_map)
     monitor = XueqiuMonitor(
         config,
         collector=WatchlistOnlyCollector(credential=cookie),
         store=SnapshotStore(base_dir=snapshot_dir),
-        notifier=_build_notifier(),
+        notifier=_build_notifier(name_map=name_map),
     )
 
     # 执行一轮：采集→比对→（有变化则）邮件通知
     events = monitor.run_once()
     logger.info("本轮检测到 %d 条新增自选股变化", len(events))
     for e in events:
-        logger.info("  新增自选股 用户%s %s %s", e.uid, e.stock_code, e.short_name)
+        who = f"{name_map[e.uid]}({e.uid})" if e.uid in name_map else e.uid
+        logger.info("  新增自选股 用户%s %s %s", who, e.stock_code, e.short_name)
     return 0
 
 
