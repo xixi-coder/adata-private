@@ -2,6 +2,10 @@
   "uid": "7535489890",
   "watchlist": [
     {
+      "stock_code": "000725.SZ",
+      "short_name": "京东方A"
+    },
+    {
       "stock_code": "600176.SH",
       "short_name": "中国巨石"
     },
@@ -135,5 +139,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-03 16:06:50"
+  "collected_at": "2026-07-03 16:26:51"
 }
