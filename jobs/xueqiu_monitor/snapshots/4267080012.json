@@ -1,0 +1,495 @@
+{
+  "uid": "4267080012",
+  "watchlist": [
+    {
+      "stock_code": "688432.SH",
+      "short_name": "有研硅"
+    },
+    {
+      "stock_code": "301165.SZ",
+      "short_name": "锐捷网络"
+    },
+    {
+      "stock_code": "600460.SH",
+      "short_name": "士兰微"
+    },
+    {
+      "stock_code": "002407.SZ",
+      "short_name": "多氟多"
+    },
+    {
+      "stock_code": "002409.SZ",
+      "short_name": "雅克科技"
+    },
+    {
+      "stock_code": "300390.SZ",
+      "short_name": "天华新能"
+    },
+    {
+      "stock_code": "600392.SH",
+      "short_name": "盛和资源"
+    },
+    {
+      "stock_code": "000636.SZ",
+      "short_name": "风华高科"
+    },
+    {
+      "stock_code": "688019.SH",
+      "short_name": "安集科技"
+    },
+    {
+      "stock_code": "688012.SH",
+      "short_name": "中微公司"
+    },
+    {
+      "stock_code": "688777.SH",
+      "short_name": "中控技术"
+    },
+    {
+      "stock_code": "688820.SH",
+      "short_name": "盛合晶微"
+    },
+    {
+      "stock_code": "300438.SZ",
+      "short_name": "鹏辉能源"
+    },
+    {
+      "stock_code": "603259.SH",
+      "short_name": "药明康德"
+    },
+    {
+      "stock_code": "002738.SZ",
+      "short_name": "中矿资源"
+    },
+    {
+      "stock_code": "688002.SH",
+      "short_name": "睿创微纳"
+    },
+    {
+      "stock_code": "688072.SH",
+      "short_name": "拓荆科技"
+    },
+    {
+      "stock_code": "688392.SH",
+      "short_name": "骄成超声"
+    },
+    {
+      "stock_code": "300408.SZ",
+      "short_name": "三环集团"
+    },
+    {
+      "stock_code": "601231.SH",
+      "short_name": "环旭电子"
+    },
+    {
+      "stock_code": "003031.SZ",
+      "short_name": "中瓷电子"
+    },
+    {
+      "stock_code": "03200",
+      "short_name": "大族数控"
+    },
+    {
+      "stock_code": "300870.SZ",
+      "short_name": "欧陆通"
+    },
+    {
+      "stock_code": "000792.SZ",
+      "short_name": "盐湖股份"
+    },
+    {
+      "stock_code": "EWY",
+      "short_name": "韩国ETF-iShares MSCI"
+    },
+    {
+      "stock_code": "600989.SH",
+      "short_name": "宝丰能源"
+    },
+    {
+      "stock_code": "688515.SH",
+      "short_name": "裕太微-U"
+    },
+    {
+      "stock_code": "300034.SZ",
+      "short_name": "钢研高纳"
+    },
+    {
+      "stock_code": "688818.SH",
+      "short_name": "电科蓝天"
+    },
+    {
+      "stock_code": "600482.SH",
+      "short_name": "中国动力"
+    },
+    {
+      "stock_code": "300919.SZ",
+      "short_name": "中伟新材"
+    },
+    {
+      "stock_code": "002353.SZ",
+      "short_name": "杰瑞股份"
+    },
+    {
+      "stock_code": "688183.SH",
+      "short_name": "生益电子"
+    },
+    {
+      "stock_code": "600089.SH",
+      "short_name": "特变电工"
+    },
+    {
+      "stock_code": "688498.SH",
+      "short_name": "源杰科技"
+    },
+    {
+      "stock_code": "300373.SZ",
+      "short_name": "扬杰科技"
+    },
+    {
+      "stock_code": "600183.SH",
+      "short_name": "生益科技"
+    },
+    {
+      "stock_code": "688469.SH",
+      "short_name": "芯联集成-U"
+    },
+    {
+      "stock_code": "002475.SZ",
+      "short_name": "立讯精密"
+    },
+    {
+      "stock_code": "300769.SZ",
+      "short_name": "德方纳米"
+    },
+    {
+      "stock_code": "688063.SH",
+      "short_name": "派能科技"
+    },
+    {
+      "stock_code": "688082.SH",
+      "short_name": "盛美上海"
+    },
+    {
+      "stock_code": "603799.SH",
+      "short_name": "华友钴业"
+    },
+    {
+      "stock_code": "603786.SH",
+      "short_name": "科博达"
+    },
+    {
+      "stock_code": "002460.SZ",
+      "short_name": "赣锋锂业"
+    },
+    {
+      "stock_code": "02577",
+      "short_name": "英诺赛科"
+    },
+    {
+      "stock_code": "300604.SZ",
+      "short_name": "长川科技"
+    },
+    {
+      "stock_code": "00020.SZ",
+      "short_name": "商汤-W"
+    },
+    {
+      "stock_code": "688549.SH",
+      "short_name": "中巨芯-U"
+    },
+    {
+      "stock_code": "688047.SH",
+      "short_name": "龙芯中科"
+    },
+    {
+      "stock_code": "002850.SZ",
+      "short_name": "科达利"
+    },
+    {
+      "stock_code": "600547.SH",
+      "short_name": "山东黄金"
+    },
+    {
+      "stock_code": "300750.SZ",
+      "short_name": "宁德时代"
+    },
+    {
+      "stock_code": "300450.SZ",
+      "short_name": "先导智能"
+    },
+    {
+      "stock_code": "002975.SZ",
+      "short_name": "博杰股份"
+    },
+    {
+      "stock_code": "688775.SH",
+      "short_name": "影石创新"
+    },
+    {
+      "stock_code": "300274.SZ",
+      "short_name": "阳光电源"
+    },
+    {
+      "stock_code": "688256.SH",
+      "short_name": "寒武纪"
+    },
+    {
+      "stock_code": "300476.SZ",
+      "short_name": "胜宏科技"
+    },
+    {
+      "stock_code": "002156.SZ",
+      "short_name": "通富微电"
+    },
+    {
+      "stock_code": "002074.SZ",
+      "short_name": "国轩高科"
+    },
+    {
+      "stock_code": "000988.SZ",
+      "short_name": "华工科技"
+    },
+    {
+      "stock_code": "09888",
+      "short_name": "百度集团-SW"
+    },
+    {
+      "stock_code": "688800.SH",
+      "short_name": "瑞可达"
+    },
+    {
+      "stock_code": "688578.SH",
+      "short_name": "艾力斯"
+    },
+    {
+      "stock_code": "300548.SZ",
+      "short_name": "长芯博创"
+    },
+    {
+      "stock_code": "688313.SH",
+      "short_name": "仕佳光子"
+    },
+    {
+      "stock_code": "688083.SH",
+      "short_name": "中望软件"
+    },
+    {
+      "stock_code": "601869.SH",
+      "short_name": "长飞光纤"
+    },
+    {
+      "stock_code": "603986.SH",
+      "short_name": "兆易创新"
+    },
+    {
+      "stock_code": "688521.SH",
+      "short_name": "芯原股份"
+    },
+    {
+      "stock_code": "000977.SZ",
+      "short_name": "浪潮信息"
+    },
+    {
+      "stock_code": "300740.SZ",
+      "short_name": "水羊股份"
+    },
+    {
+      "stock_code": "002600.SZ",
+      "short_name": "领益智造"
+    },
+    {
+      "stock_code": "601689.SH",
+      "short_name": "拓普集团"
+    },
+    {
+      "stock_code": "601138.SH",
+      "short_name": "工业富联"
+    },
+    {
+      "stock_code": "300757.SZ",
+      "short_name": "罗博特科"
+    },
+    {
+      "stock_code": "002050.SZ",
+      "short_name": "三花智控"
+    },
+    {
+      "stock_code": "300620.SZ",
+      "short_name": "光库科技"
+    },
+    {
+      "stock_code": "688347.SH",
+      "short_name": "华虹宏力"
+    },
+    {
+      "stock_code": "002670.SZ",
+      "short_name": "国盛证券"
+    },
+    {
+      "stock_code": "09660",
+      "short_name": "地平线机器人-W"
+    },
+    {
+      "stock_code": "301200.SZ",
+      "short_name": "大族数控"
+    },
+    {
+      "stock_code": "688787.SH",
+      "short_name": "海天瑞声"
+    },
+    {
+      "stock_code": "688018.SH",
+      "short_name": "乐鑫科技"
+    },
+    {
+      "stock_code": "09688",
+      "short_name": "再鼎医药"
+    },
+    {
+      "stock_code": "000408.SZ",
+      "short_name": "藏格矿业"
+    },
+    {
+      "stock_code": "688591.SH",
+      "short_name": "泰凌微"
+    },
+    {
+      "stock_code": "01276",
+      "short_name": "恒瑞医药"
+    },
+    {
+      "stock_code": "002916.SZ",
+      "short_name": "深南电路"
+    },
+    {
+      "stock_code": "600760.SH",
+      "short_name": "中航沈飞"
+    },
+    {
+      "stock_code": "300199.SZ",
+      "short_name": "翰宇药业"
+    },
+    {
+      "stock_code": "09992",
+      "short_name": "泡泡玛特"
+    },
+    {
+      "stock_code": "002174.SZ",
+      "short_name": "游族网络"
+    },
+    {
+      "stock_code": "09926",
+      "short_name": "康方生物"
+    },
+    {
+      "stock_code": "688062.SH",
+      "short_name": "迈威生物-U"
+    },
+    {
+      "stock_code": "01801",
+      "short_name": "信达生物"
+    },
+    {
+      "stock_code": "BK0773",
+      "short_name": "DRG/DIP"
+    },
+    {
+      "stock_code": "603893.SH",
+      "short_name": "瑞芯微"
+    },
+    {
+      "stock_code": "002281.SZ",
+      "short_name": "光迅科技"
+    },
+    {
+      "stock_code": "300502.SZ",
+      "short_name": "新易盛"
+    },
+    {
+      "stock_code": "002130.SZ",
+      "short_name": "沃尔核材"
+    },
+    {
+      "stock_code": "688981.SH",
+      "short_name": "中芯国际"
+    },
+    {
+      "stock_code": "603019.SH",
+      "short_name": "中科曙光"
+    },
+    {
+      "stock_code": ".NBI",
+      "short_name": "纳斯达克生物科技指数"
+    },
+    {
+      "stock_code": "LLY",
+      "short_name": "礼来"
+    },
+    {
+      "stock_code": "BK0750",
+      "short_name": "共同富裕示范区"
+    },
+    {
+      "stock_code": ".NDX",
+      "short_name": "纳斯达克100指数"
+    },
+    {
+      "stock_code": "09633",
+      "short_name": "农夫山泉"
+    },
+    {
+      "stock_code": "399292.SZ",
+      "short_name": "民企发展"
+    },
+    {
+      "stock_code": "000016.SH",
+      "short_name": "上证50"
+    },
+    {
+      "stock_code": "AVGO",
+      "short_name": "博通"
+    },
+    {
+      "stock_code": "688235.SH",
+      "short_name": "百济神州"
+    },
+    {
+      "stock_code": "09988",
+      "short_name": "阿里巴巴-W"
+    },
+    {
+      "stock_code": "300308.SZ",
+      "short_name": "中际旭创"
+    },
+    {
+      "stock_code": "HKHSTECH",
+      "short_name": "恒生科技指数"
+    },
+    {
+      "stock_code": "AMD",
+      "short_name": "AMD"
+    },
+    {
+      "stock_code": "AAPL",
+      "short_name": "苹果"
+    },
+    {
+      "stock_code": "MSFT",
+      "short_name": "微软"
+    },
+    {
+      "stock_code": "TSLA",
+      "short_name": "特斯拉"
+    },
+    {
+      "stock_code": "META",
+      "short_name": "Meta"
+    },
+    {
+      "stock_code": "NVDA",
+      "short_name": "英伟达"
+    }
+  ],
+  "posts": [],
+  "collected_at": "2026-07-03 15:42:38"
+}
