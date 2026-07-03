@@ -1,0 +1,65 @@
+name: 雪球关注用户自选股监听
+
+on:
+  schedule:
+    # 北京时间工作日 9:00-15:00 每小时一次（UTC 1-7 点）
+    - cron: "0 1-7 * * 1-5"
+  workflow_dispatch: # 允许手动触发
+
+# 同一时间只跑一个，避免快照提交冲突
+concurrency:
+  group: xueqiu-user-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write # 需要把最新快照提交回仓库
+
+jobs:
+  monitor-watchlist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Shanghai
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run xueqiu watchlist monitor
+        env:
+          # 被监控用户 ID（逗号分隔）与登录 Cookie，配置在仓库 Secrets/Variables
+          XUEQIU_UIDS: ${{ vars.XUEQIU_UIDS }}
+          XUEQIU_COOKIE: ${{ secrets.XUEQIU_COOKIE }}
+          # 163 邮件通知配置
+          SMTP_HOST: smtp.163.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.MAIL_163_USER }}
+          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          python jobs/xueqiu_monitor/run.py
+
+      - name: Commit updated snapshots
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 快照 json 默认被 .gitignore 忽略，用 -f 强制加入
+          git add -f jobs/xueqiu_monitor/snapshots/*.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "快照无变化，跳过提交"
+          else
+            git commit -m "chore(xueqiu): 更新自选股快照 [skip ci]"
+            git push
+          fi

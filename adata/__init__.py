@@ -14,6 +14,7 @@ from adata.common.utils.sunrequests import SunProxy
 from adata.fund import fund
 from adata.sentiment import sentiment
 from adata.stock import stock
+from adata.xueqiu import xueqiu
 
 
 def version():
