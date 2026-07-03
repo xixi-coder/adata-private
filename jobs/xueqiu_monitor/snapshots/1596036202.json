@@ -1,0 +1,439 @@
+{
+  "uid": "1596036202",
+  "watchlist": [
+    {
+      "stock_code": "603986.SH",
+      "short_name": "兆易创新"
+    },
+    {
+      "stock_code": "NVDA",
+      "short_name": "英伟达"
+    },
+    {
+      "stock_code": "300115.SZ",
+      "short_name": "长盈精密"
+    },
+    {
+      "stock_code": "INTC",
+      "short_name": "英特尔"
+    },
+    {
+      "stock_code": "002384.SZ",
+      "short_name": "东山精密"
+    },
+    {
+      "stock_code": "000559.SZ",
+      "short_name": "万向钱潮"
+    },
+    {
+      "stock_code": "002639.SZ",
+      "short_name": "雪人集团"
+    },
+    {
+      "stock_code": "300604.SZ",
+      "short_name": "长川科技"
+    },
+    {
+      "stock_code": "603667.SH",
+      "short_name": "五洲新春"
+    },
+    {
+      "stock_code": "002536.SZ",
+      "short_name": "飞龙股份"
+    },
+    {
+      "stock_code": "300377.SZ",
+      "short_name": "赢时胜"
+    },
+    {
+      "stock_code": "300395.SZ",
+      "short_name": "菲利华"
+    },
+    {
+      "stock_code": "001359.SZ",
+      "short_name": "平安电工"
+    },
+    {
+      "stock_code": "603728.SH",
+      "short_name": "鸣志电器"
+    },
+    {
+      "stock_code": "002709.SZ",
+      "short_name": "天赐材料"
+    },
+    {
+      "stock_code": "002759.SZ",
+      "short_name": "天际股份"
+    },
+    {
+      "stock_code": "300476.SZ",
+      "short_name": "胜宏科技"
+    },
+    {
+      "stock_code": "301018.SZ",
+      "short_name": "申菱环境"
+    },
+    {
+      "stock_code": "300007.SZ",
+      "short_name": "汉威科技"
+    },
+    {
+      "stock_code": "300436.SZ",
+      "short_name": "广生堂"
+    },
+    {
+      "stock_code": "603259.SH",
+      "short_name": "药明康德"
+    },
+    {
+      "stock_code": "300409.SZ",
+      "short_name": "道氏技术"
+    },
+    {
+      "stock_code": "600580.SH",
+      "short_name": "卧龙电驱"
+    },
+    {
+      "stock_code": "002475.SZ",
+      "short_name": "立讯精密"
+    },
+    {
+      "stock_code": "002837.SZ",
+      "short_name": "英维克"
+    },
+    {
+      "stock_code": "300806.SZ",
+      "short_name": "斯迪克"
+    },
+    {
+      "stock_code": "300322.SZ",
+      "short_name": "硕贝德"
+    },
+    {
+      "stock_code": "301392.SZ",
+      "short_name": "汇成真空"
+    },
+    {
+      "stock_code": "002938.SZ",
+      "short_name": "鹏鼎控股"
+    },
+    {
+      "stock_code": "002378.SZ",
+      "short_name": "章源钨业"
+    },
+    {
+      "stock_code": "600111.SH",
+      "short_name": "北方稀土"
+    },
+    {
+      "stock_code": "600392.SH",
+      "short_name": "盛和资源"
+    },
+    {
+      "stock_code": "300378.SZ",
+      "short_name": "鼎捷数智"
+    },
+    {
+      "stock_code": "603280.SH",
+      "short_name": "南方路机"
+    },
+    {
+      "stock_code": "002265.SZ",
+      "short_name": "建设工业"
+    },
+    {
+      "stock_code": "002645.SZ",
+      "short_name": "华宏科技"
+    },
+    {
+      "stock_code": "603236.SH",
+      "short_name": "移远通信"
+    },
+    {
+      "stock_code": "603893.SH",
+      "short_name": "瑞芯微"
+    },
+    {
+      "stock_code": "600050.SH",
+      "short_name": "中国联通"
+    },
+    {
+      "stock_code": "301191.SZ",
+      "short_name": "菲菱科思"
+    },
+    {
+      "stock_code": "000158.SZ",
+      "short_name": "常山北明"
+    },
+    {
+      "stock_code": "300170.SZ",
+      "short_name": "汉得信息"
+    },
+    {
+      "stock_code": "000887.SZ",
+      "short_name": "中鼎股份"
+    },
+    {
+      "stock_code": "002245.SZ",
+      "short_name": "蔚蓝锂芯"
+    },
+    {
+      "stock_code": "601689.SH",
+      "short_name": "拓普集团"
+    },
+    {
+      "stock_code": "300458.SZ",
+      "short_name": "全志科技"
+    },
+    {
+      "stock_code": "300383.SZ",
+      "short_name": "光环新网"
+    },
+    {
+      "stock_code": "000988.SZ",
+      "short_name": "华工科技"
+    },
+    {
+      "stock_code": "300251.SZ",
+      "short_name": "光线传媒"
+    },
+    {
+      "stock_code": "600120.SH",
+      "short_name": "浙江东方"
+    },
+    {
+      "stock_code": "302132.SZ",
+      "short_name": "中航成飞"
+    },
+    {
+      "stock_code": "BJZ",
+      "short_name": "BJZ信托"
+    },
+    {
+      "stock_code": "CRDO",
+      "short_name": "Credo Technology"
+    },
+    {
+      "stock_code": "301536.SZ",
+      "short_name": "星宸科技"
+    },
+    {
+      "stock_code": "300570.SZ",
+      "short_name": "太辰光"
+    },
+    {
+      "stock_code": "603039.SH",
+      "short_name": "泛微网络"
+    },
+    {
+      "stock_code": "300442.SZ",
+      "short_name": "润泽科技"
+    },
+    {
+      "stock_code": "002281.SZ",
+      "short_name": "光迅科技"
+    },
+    {
+      "stock_code": "002130.SZ",
+      "short_name": "沃尔核材"
+    },
+    {
+      "stock_code": "300563.SZ",
+      "short_name": "神宇股份"
+    },
+    {
+      "stock_code": "603533.SH",
+      "short_name": "掌阅科技"
+    },
+    {
+      "stock_code": "300058.SZ",
+      "short_name": "蓝色光标"
+    },
+    {
+      "stock_code": "002315.SZ",
+      "short_name": "焦点科技"
+    },
+    {
+      "stock_code": "301171.SZ",
+      "short_name": "易点天下"
+    },
+    {
+      "stock_code": "00883.SZ",
+      "short_name": "中国海洋石油"
+    },
+    {
+      "stock_code": "300310.SZ",
+      "short_name": "宜通世纪"
+    },
+    {
+      "stock_code": "002230.SZ",
+      "short_name": "科大讯飞"
+    },
+    {
+      "stock_code": "603083.SH",
+      "short_name": "剑桥科技"
+    },
+    {
+      "stock_code": "300059.SZ",
+      "short_name": "东方财富"
+    },
+    {
+      "stock_code": "603019.SH",
+      "short_name": "中科曙光"
+    },
+    {
+      "stock_code": "300757.SZ",
+      "short_name": "罗博特科"
+    },
+    {
+      "stock_code": "000628.SZ",
+      "short_name": "高新发展"
+    },
+    {
+      "stock_code": "002456.SZ",
+      "short_name": "欧菲光"
+    },
+    {
+      "stock_code": "300623.SZ",
+      "short_name": "捷捷微电"
+    },
+    {
+      "stock_code": "600318.SH",
+      "short_name": "新力金融"
+    },
+    {
+      "stock_code": "300663.SZ",
+      "short_name": "科蓝软件"
+    },
+    {
+      "stock_code": "000001.SH",
+      "short_name": "上证指数"
+    },
+    {
+      "stock_code": "600418.SH",
+      "short_name": "江淮汽车"
+    },
+    {
+      "stock_code": "TSLA",
+      "short_name": "特斯拉"
+    },
+    {
+      "stock_code": "002600.SZ",
+      "short_name": "领益智造"
+    },
+    {
+      "stock_code": "300576.SZ",
+      "short_name": "容大感光"
+    },
+    {
+      "stock_code": "600733.SH",
+      "short_name": "北汽蓝谷"
+    },
+    {
+      "stock_code": "600268.SH",
+      "short_name": "国电南自"
+    },
+    {
+      "stock_code": "300429.SZ",
+      "short_name": "强力新材"
+    },
+    {
+      "stock_code": "600895.SH",
+      "short_name": "张江高科"
+    },
+    {
+      "stock_code": "300346.SZ",
+      "short_name": "南大光电"
+    },
+    {
+      "stock_code": "300046.SZ",
+      "short_name": "台基股份"
+    },
+    {
+      "stock_code": "300014.SZ",
+      "short_name": "亿纬锂能"
+    },
+    {
+      "stock_code": "300762.SZ",
+      "short_name": "上海瀚讯"
+    },
+    {
+      "stock_code": "300496.SZ",
+      "short_name": "中科创达"
+    },
+    {
+      "stock_code": "000938.SZ",
+      "short_name": "紫光股份"
+    },
+    {
+      "stock_code": "301236.SZ",
+      "short_name": "软通动力"
+    },
+    {
+      "stock_code": "002466.SZ",
+      "short_name": "天齐锂业"
+    },
+    {
+      "stock_code": "002594.SZ",
+      "short_name": "比亚迪"
+    },
+    {
+      "stock_code": "002463.SZ",
+      "short_name": "沪电股份"
+    },
+    {
+      "stock_code": "300274.SZ",
+      "short_name": "阳光电源"
+    },
+    {
+      "stock_code": "002371.SZ",
+      "short_name": "北方华创"
+    },
+    {
+      "stock_code": "002156.SZ",
+      "short_name": "通富微电"
+    },
+    {
+      "stock_code": "000400.SZ",
+      "short_name": "许继电气"
+    },
+    {
+      "stock_code": "600900.SH",
+      "short_name": "长江电力"
+    },
+    {
+      "stock_code": "000977.SZ",
+      "short_name": "浪潮信息"
+    },
+    {
+      "stock_code": "300394.SZ",
+      "short_name": "天孚通信"
+    },
+    {
+      "stock_code": "300308.SZ",
+      "short_name": "中际旭创"
+    },
+    {
+      "stock_code": "300502.SZ",
+      "short_name": "新易盛"
+    },
+    {
+      "stock_code": "601138.SH",
+      "short_name": "工业富联"
+    },
+    {
+      "stock_code": "300750.SZ",
+      "short_name": "宁德时代"
+    },
+    {
+      "stock_code": "601127.SH",
+      "short_name": "赛力斯"
+    },
+    {
+      "stock_code": "600406.SH",
+      "short_name": "国电南瑞"
+    }
+  ],
+  "posts": [],
+  "collected_at": "2026-07-03 21:04:30"
+}

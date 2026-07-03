@@ -2,6 +2,14 @@
   "uid": "7535489890",
   "watchlist": [
     {
+      "stock_code": "301308.SZ",
+      "short_name": "江波龙"
+    },
+    {
+      "stock_code": "688017.SH",
+      "short_name": "绿的谐波"
+    },
+    {
       "stock_code": "000725.SZ",
       "short_name": "京东方A"
     },
@@ -139,5 +147,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-03 16:26:51"
+  "collected_at": "2026-07-03 21:04:29"
 }

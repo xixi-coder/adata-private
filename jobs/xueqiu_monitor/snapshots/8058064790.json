@@ -1,0 +1,935 @@
+{
+  "uid": "8058064790",
+  "watchlist": [
+    {
+      "stock_code": "DRAM",
+      "short_name": "Roundhill记忆ETF"
+    },
+    {
+      "stock_code": "MU",
+      "short_name": "美光科技"
+    },
+    {
+      "stock_code": "513310.SH",
+      "short_name": "中韩半导体ETF华泰柏瑞"
+    },
+    {
+      "stock_code": "159967.SZ",
+      "short_name": "创业板成长ETF华夏"
+    },
+    {
+      "stock_code": "300308.SZ",
+      "short_name": "中际旭创"
+    },
+    {
+      "stock_code": "QCOM",
+      "short_name": "高通"
+    },
+    {
+      "stock_code": "QCML",
+      "short_name": "2倍做多QCOM每日ETF"
+    },
+    {
+      "stock_code": "NVDA",
+      "short_name": "英伟达"
+    },
+    {
+      "stock_code": "INTC",
+      "short_name": "英特尔"
+    },
+    {
+      "stock_code": "TSM",
+      "short_name": "台积电"
+    },
+    {
+      "stock_code": "AVGO",
+      "short_name": "博通"
+    },
+    {
+      "stock_code": "SOXX",
+      "short_name": "半导体板块指数ETF-iShares"
+    },
+    {
+      "stock_code": "GOOG",
+      "short_name": "谷歌C"
+    },
+    {
+      "stock_code": "300394.SZ",
+      "short_name": "天孚通信"
+    },
+    {
+      "stock_code": "AAOI",
+      "short_name": "应用光电"
+    },
+    {
+      "stock_code": "SIMO",
+      "short_name": "慧荣科技"
+    },
+    {
+      "stock_code": "VRT",
+      "short_name": "维谛技术"
+    },
+    {
+      "stock_code": "COHR",
+      "short_name": "Coherent"
+    },
+    {
+      "stock_code": "ORCL",
+      "short_name": "甲骨文"
+    },
+    {
+      "stock_code": "TECL",
+      "short_name": "科技行业3倍做多"
+    },
+    {
+      "stock_code": "SOXL",
+      "short_name": "半导体3X多-Direxion"
+    },
+    {
+      "stock_code": "PDD",
+      "short_name": "拼多多"
+    },
+    {
+      "stock_code": "LITE",
+      "short_name": "Lumentum控股"
+    },
+    {
+      "stock_code": "ASML",
+      "short_name": "阿斯麦"
+    },
+    {
+      "stock_code": "AMZN",
+      "short_name": "亚马逊"
+    },
+    {
+      "stock_code": "NOK",
+      "short_name": "诺基亚"
+    },
+    {
+      "stock_code": "ARM",
+      "short_name": "Arm Holdings"
+    },
+    {
+      "stock_code": "AMD",
+      "short_name": "AMD"
+    },
+    {
+      "stock_code": "POWI",
+      "short_name": "帕沃英蒂格盛"
+    },
+    {
+      "stock_code": "ETN",
+      "short_name": "伊顿公司"
+    },
+    {
+      "stock_code": "FORM",
+      "short_name": "FormFactor"
+    },
+    {
+      "stock_code": "TER",
+      "short_name": "泰瑞达"
+    },
+    {
+      "stock_code": "300502.SZ",
+      "short_name": "新易盛"
+    },
+    {
+      "stock_code": "EUV",
+      "short_name": "光刻与半导体光子学"
+    },
+    {
+      "stock_code": "AXTI",
+      "short_name": "AXT"
+    },
+    {
+      "stock_code": "TSEM",
+      "short_name": "Tower半导体"
+    },
+    {
+      "stock_code": "SNDK",
+      "short_name": "闪迪"
+    },
+    {
+      "stock_code": "603986.SH",
+      "short_name": "兆易创新"
+    },
+    {
+      "stock_code": "STX",
+      "short_name": "希捷科技"
+    },
+    {
+      "stock_code": "300274.SZ",
+      "short_name": "阳光电源"
+    },
+    {
+      "stock_code": "07709",
+      "short_name": "XL二南方海力士"
+    },
+    {
+      "stock_code": "600011.SH",
+      "short_name": "XD华能国"
+    },
+    {
+      "stock_code": "600406.SH",
+      "short_name": "国电南瑞"
+    },
+    {
+      "stock_code": "WDC",
+      "short_name": "西部数据"
+    },
+    {
+      "stock_code": "RKLB",
+      "short_name": "Rocket Lab"
+    },
+    {
+      "stock_code": "NVTS",
+      "short_name": "纳微半导体"
+    },
+    {
+      "stock_code": "MRVL",
+      "short_name": "迈威尔科技"
+    },
+    {
+      "stock_code": "CIEN",
+      "short_name": "Ciena科技"
+    },
+    {
+      "stock_code": "07747",
+      "short_name": "南方两倍做多三星电子"
+    },
+    {
+      "stock_code": "02899",
+      "short_name": "紫金矿业"
+    },
+    {
+      "stock_code": "02259",
+      "short_name": "紫金黄金国际"
+    },
+    {
+      "stock_code": "IREN",
+      "short_name": "IREN LIMITED ORD"
+    },
+    {
+      "stock_code": "CRWV",
+      "short_name": "CoreWeave"
+    },
+    {
+      "stock_code": "02099",
+      "short_name": "中国黄金国际"
+    },
+    {
+      "stock_code": "KORU",
+      "short_name": "韩25/50每日3倍做多"
+    },
+    {
+      "stock_code": "FRO",
+      "short_name": "Frontline"
+    },
+    {
+      "stock_code": "GOOGL",
+      "short_name": "谷歌A"
+    },
+    {
+      "stock_code": "MSFT",
+      "short_name": "微软"
+    },
+    {
+      "stock_code": "01787",
+      "short_name": "山东黄金"
+    },
+    {
+      "stock_code": "EWY",
+      "short_name": "韩国ETF-iShares MSCI"
+    },
+    {
+      "stock_code": "SMH",
+      "short_name": "半导体ETF-VanEck Vectors"
+    },
+    {
+      "stock_code": "TSLA",
+      "short_name": "特斯拉"
+    },
+    {
+      "stock_code": "01818",
+      "short_name": "招金矿业"
+    },
+    {
+      "stock_code": "META",
+      "short_name": "Meta"
+    },
+    {
+      "stock_code": "AAPL",
+      "short_name": "苹果"
+    },
+    {
+      "stock_code": "002155.SZ",
+      "short_name": "湖南黄金"
+    },
+    {
+      "stock_code": "517520.SH",
+      "short_name": "黄金股ETF"
+    },
+    {
+      "stock_code": "TCOM",
+      "short_name": "携程"
+    },
+    {
+      "stock_code": "PBR",
+      "short_name": "巴西石油公司"
+    },
+    {
+      "stock_code": "EXPE",
+      "short_name": "Expedia"
+    },
+    {
+      "stock_code": "603993.SH",
+      "short_name": "洛阳钼业"
+    },
+    {
+      "stock_code": "600547.SH",
+      "short_name": "山东黄金"
+    },
+    {
+      "stock_code": "03993",
+      "short_name": "洛阳钼业"
+    },
+    {
+      "stock_code": "00966.SZ",
+      "short_name": "中国太平"
+    },
+    {
+      "stock_code": "09988",
+      "short_name": "阿里巴巴-W"
+    },
+    {
+      "stock_code": "00700.SZ",
+      "short_name": "腾讯控股"
+    },
+    {
+      "stock_code": "01508",
+      "short_name": "中国再保险"
+    },
+    {
+      "stock_code": "00596.SZ",
+      "short_name": "浪潮数字企业"
+    },
+    {
+      "stock_code": "01286",
+      "short_name": "鹰普精密"
+    },
+    {
+      "stock_code": "03750",
+      "short_name": "宁德时代"
+    },
+    {
+      "stock_code": "01651",
+      "short_name": "津上机床中国"
+    },
+    {
+      "stock_code": "02318",
+      "short_name": "中国平安"
+    },
+    {
+      "stock_code": "601899.SH",
+      "short_name": "紫金矿业"
+    },
+    {
+      "stock_code": "00941.SZ",
+      "short_name": "中国移动"
+    },
+    {
+      "stock_code": "03986",
+      "short_name": "兆易创新"
+    },
+    {
+      "stock_code": "02628",
+      "short_name": "中国人寿"
+    },
+    {
+      "stock_code": "02671",
+      "short_name": "美联股份"
+    },
+    {
+      "stock_code": "01378",
+      "short_name": "中国宏桥"
+    },
+    {
+      "stock_code": "NBIS",
+      "short_name": "Nebius Group"
+    },
+    {
+      "stock_code": "MUU",
+      "short_name": "每日MU 2倍做多"
+    },
+    {
+      "stock_code": "IGV",
+      "short_name": "北美科技软件股指数ETF-iShares"
+    },
+    {
+      "stock_code": "UGL",
+      "short_name": "黄金2X做多-ProShares"
+    },
+    {
+      "stock_code": "AGQ",
+      "short_name": "白银2X做多-ProShares"
+    },
+    {
+      "stock_code": "APP",
+      "short_name": "Applovin"
+    },
+    {
+      "stock_code": "PLTR",
+      "short_name": "Palantir"
+    },
+    {
+      "stock_code": "02600",
+      "short_name": "中国铝业"
+    },
+    {
+      "stock_code": "00883.SZ",
+      "short_name": "中国海洋石油"
+    },
+    {
+      "stock_code": "ROK",
+      "short_name": "罗克韦尔自动化"
+    },
+    {
+      "stock_code": "000408.SZ",
+      "short_name": "藏格矿业"
+    },
+    {
+      "stock_code": "300750.SZ",
+      "short_name": "宁德时代"
+    },
+    {
+      "stock_code": "520990.SH",
+      "short_name": "港股央企红利ETF景顺"
+    },
+    {
+      "stock_code": "513180.SH",
+      "short_name": "恒生科技ETF华夏"
+    },
+    {
+      "stock_code": "00857.SZ",
+      "short_name": "中国石油股份"
+    },
+    {
+      "stock_code": "TLT",
+      "short_name": "美国国债20+年ETF-iShares"
+    },
+    {
+      "stock_code": "600938.SH",
+      "short_name": "中国海油"
+    },
+    {
+      "stock_code": "BWXT",
+      "short_name": "BWX Technologies"
+    },
+    {
+      "stock_code": "SCCO",
+      "short_name": "南方铜业"
+    },
+    {
+      "stock_code": "01138",
+      "short_name": "中远海能"
+    },
+    {
+      "stock_code": "02601",
+      "short_name": "中国太保"
+    },
+    {
+      "stock_code": "FCX",
+      "short_name": "Freeport McMoRan"
+    },
+    {
+      "stock_code": "01258",
+      "short_name": "中国有色矿业"
+    },
+    {
+      "stock_code": "01336",
+      "short_name": "新华保险"
+    },
+    {
+      "stock_code": "00358.SZ",
+      "short_name": "江西铜业股份"
+    },
+    {
+      "stock_code": "B",
+      "short_name": "巴里克矿业"
+    },
+    {
+      "stock_code": "NEM",
+      "short_name": "纽蒙特矿业"
+    },
+    {
+      "stock_code": "513120.SH",
+      "short_name": "港股创新药ETF广发"
+    },
+    {
+      "stock_code": "513060.SH",
+      "short_name": "恒生医疗ETF博时"
+    },
+    {
+      "stock_code": "AU",
+      "short_name": "AngloGold Ashanti"
+    },
+    {
+      "stock_code": "DRD",
+      "short_name": "DRDGOLD"
+    },
+    {
+      "stock_code": "01208",
+      "short_name": "五矿资源"
+    },
+    {
+      "stock_code": "02328",
+      "short_name": "中国财险"
+    },
+    {
+      "stock_code": "BTG",
+      "short_name": "B2gold"
+    },
+    {
+      "stock_code": "600089.SH",
+      "short_name": "特变电工"
+    },
+    {
+      "stock_code": "09866",
+      "short_name": "蔚来-SW"
+    },
+    {
+      "stock_code": "09660",
+      "short_name": "地平线机器人-W"
+    },
+    {
+      "stock_code": "09863",
+      "short_name": "零跑汽车"
+    },
+    {
+      "stock_code": "06181",
+      "short_name": "老铺黄金"
+    },
+    {
+      "stock_code": "AEM",
+      "short_name": "伊格尔矿业"
+    },
+    {
+      "stock_code": "IBIT",
+      "short_name": "iShares Bitcoin Trust ETF"
+    },
+    {
+      "stock_code": "300866.SZ",
+      "short_name": "安克创新"
+    },
+    {
+      "stock_code": "002027.SZ",
+      "short_name": "分众传媒"
+    },
+    {
+      "stock_code": "ETHA",
+      "short_name": "以太币-美元参考利率"
+    },
+    {
+      "stock_code": "LEU",
+      "short_name": "Centrus Energy"
+    },
+    {
+      "stock_code": "09992",
+      "short_name": "泡泡玛特"
+    },
+    {
+      "stock_code": "TMF",
+      "short_name": "长期国债3X做多-Direxion"
+    },
+    {
+      "stock_code": "KWEB",
+      "short_name": "中概互联网指数ETF-KraneShares"
+    },
+    {
+      "stock_code": "01428",
+      "short_name": "耀才证券金融"
+    },
+    {
+      "stock_code": "BABA",
+      "short_name": "阿里巴巴"
+    },
+    {
+      "stock_code": "09926",
+      "short_name": "康方生物"
+    },
+    {
+      "stock_code": "03033",
+      "short_name": "南方恒生科技"
+    },
+    {
+      "stock_code": "02269",
+      "short_name": "药明生物"
+    },
+    {
+      "stock_code": "09961",
+      "short_name": "携程集团-S"
+    },
+    {
+      "stock_code": "601318.SH",
+      "short_name": "中国平安"
+    },
+    {
+      "stock_code": "600941.SH",
+      "short_name": "中国移动"
+    },
+    {
+      "stock_code": "02097",
+      "short_name": "蜜雪集团"
+    },
+    {
+      "stock_code": "600519.SH",
+      "short_name": "贵州茅台"
+    },
+    {
+      "stock_code": "00981.SZ",
+      "short_name": "中芯国际"
+    },
+    {
+      "stock_code": "TCEHY",
+      "short_name": "腾讯控股ADR"
+    },
+    {
+      "stock_code": "01810",
+      "short_name": "小米集团-W"
+    },
+    {
+      "stock_code": "TQQQ",
+      "short_name": "纳指3X做多-ProShares"
+    },
+    {
+      "stock_code": "03690",
+      "short_name": "美团-W"
+    },
+    {
+      "stock_code": "BRK.B",
+      "short_name": "伯克希尔-哈撒韦B"
+    },
+    {
+      "stock_code": "02577",
+      "short_name": "英诺赛科"
+    },
+    {
+      "stock_code": "09868",
+      "short_name": "小鹏集团-W"
+    },
+    {
+      "stock_code": "FUTU",
+      "short_name": "富途控股"
+    },
+    {
+      "stock_code": "HOOD",
+      "short_name": "Robinhood Markets"
+    },
+    {
+      "stock_code": "COIN",
+      "short_name": "Coinbase Global"
+    },
+    {
+      "stock_code": "00268.SZ",
+      "short_name": "金蝶国际"
+    },
+    {
+      "stock_code": "SAP",
+      "short_name": "SAP SE"
+    },
+    {
+      "stock_code": "URA",
+      "short_name": "铀矿ETF-Global X"
+    },
+    {
+      "stock_code": "KLTO",
+      "short_name": "Klotho Neurosciences"
+    },
+    {
+      "stock_code": "SMMT",
+      "short_name": "Summit Therapeutics"
+    },
+    {
+      "stock_code": "NOW",
+      "short_name": "ServiceNow"
+    },
+    {
+      "stock_code": "LKNCY",
+      "short_name": "瑞幸粉单"
+    },
+    {
+      "stock_code": "KC",
+      "short_name": "金山云"
+    },
+    {
+      "stock_code": "JD",
+      "short_name": "京东"
+    },
+    {
+      "stock_code": "01919",
+      "short_name": "中远海控"
+    },
+    {
+      "stock_code": "BIDU",
+      "short_name": "百度"
+    },
+    {
+      "stock_code": "XPEV",
+      "short_name": "小鹏集团"
+    },
+    {
+      "stock_code": "300059.SZ",
+      "short_name": "东方财富"
+    },
+    {
+      "stock_code": "605488.SH",
+      "short_name": "福莱新材"
+    },
+    {
+      "stock_code": "06936",
+      "short_name": "顺丰控股"
+    },
+    {
+      "stock_code": "DJT",
+      "short_name": "特朗普媒体科技"
+    },
+    {
+      "stock_code": "QTUM",
+      "short_name": "量子ETF-Defiance ETFs"
+    },
+    {
+      "stock_code": "02386",
+      "short_name": "中石化炼化工程"
+    },
+    {
+      "stock_code": "TEM",
+      "short_name": "Tempus AI"
+    },
+    {
+      "stock_code": "000858.SZ",
+      "short_name": "五粮液"
+    },
+    {
+      "stock_code": "00388.SZ",
+      "short_name": "香港交易所"
+    },
+    {
+      "stock_code": "00902.SZ",
+      "short_name": "华能国际电力股份"
+    },
+    {
+      "stock_code": "VOO",
+      "short_name": "标普500ETF-Vanguard"
+    },
+    {
+      "stock_code": "QQQ",
+      "short_name": "纳指100ETF-Invesco"
+    },
+    {
+      "stock_code": "01071",
+      "short_name": "华电国际电力股份"
+    },
+    {
+      "stock_code": "513330.SH",
+      "short_name": "恒生互联网ETF华夏"
+    },
+    {
+      "stock_code": "YINN",
+      "short_name": "富时中国3倍做多ETF"
+    },
+    {
+      "stock_code": "BILI",
+      "short_name": "哔哩哔哩"
+    },
+    {
+      "stock_code": "GLD",
+      "short_name": "黄金ETF-SPDR"
+    },
+    {
+      "stock_code": "603605.SH",
+      "short_name": "珀莱雅"
+    },
+    {
+      "stock_code": "688981.SH",
+      "short_name": "中芯国际"
+    },
+    {
+      "stock_code": "SQQQ",
+      "short_name": "纳指3X做空-ProShares"
+    },
+    {
+      "stock_code": "01171",
+      "short_name": "兖矿能源"
+    },
+    {
+      "stock_code": "600188.SH",
+      "short_name": "兖矿能源"
+    },
+    {
+      "stock_code": "00728.SZ",
+      "short_name": "中国电信"
+    },
+    {
+      "stock_code": "MSTR",
+      "short_name": "Strategy"
+    },
+    {
+      "stock_code": "XOM",
+      "short_name": "埃克森美孚"
+    },
+    {
+      "stock_code": "OXY",
+      "short_name": "西方石油"
+    },
+    {
+      "stock_code": "MPWR",
+      "short_name": "Monolithic Power"
+    },
+    {
+      "stock_code": "600575.SH",
+      "short_name": "淮河能源"
+    },
+    {
+      "stock_code": "01088",
+      "short_name": "中国神华"
+    },
+    {
+      "stock_code": "TNA",
+      "short_name": "美国小盘股3X多-Direxion"
+    },
+    {
+      "stock_code": "IWM",
+      "short_name": "罗素2000指数ETF-iShares"
+    },
+    {
+      "stock_code": "688111.SH",
+      "short_name": "XD金山办"
+    },
+    {
+      "stock_code": "03668",
+      "short_name": "兖煤澳大利亚"
+    },
+    {
+      "stock_code": "600036.SH",
+      "short_name": "招商银行"
+    },
+    {
+      "stock_code": "600985.SH",
+      "short_name": "淮北矿业"
+    },
+    {
+      "stock_code": "515220.SH",
+      "short_name": "煤炭ETF国泰"
+    },
+    {
+      "stock_code": "DPST",
+      "short_name": "区域银行3X做多-Direxion"
+    },
+    {
+      "stock_code": "601088.SH",
+      "short_name": "中国神华"
+    },
+    {
+      "stock_code": "VIXY",
+      "short_name": "恐慌指数做多-ProShares"
+    },
+    {
+      "stock_code": "SQM",
+      "short_name": "智利矿业化工"
+    },
+    {
+      "stock_code": "SNOW",
+      "short_name": "Snowflake"
+    },
+    {
+      "stock_code": "601225.SH",
+      "short_name": "陕西煤业"
+    },
+    {
+      "stock_code": "00525.SZ",
+      "short_name": "广深铁路股份"
+    },
+    {
+      "stock_code": "PSQ",
+      "short_name": "做空纳指-ProShares"
+    },
+    {
+      "stock_code": "00836.SZ",
+      "short_name": "华润电力"
+    },
+    {
+      "stock_code": "NVO",
+      "short_name": "诺和诺德"
+    },
+    {
+      "stock_code": "01797",
+      "short_name": "东方甄选"
+    },
+    {
+      "stock_code": "UBER",
+      "short_name": "优步"
+    },
+    {
+      "stock_code": "600887.SH",
+      "short_name": "伊利股份"
+    },
+    {
+      "stock_code": "03888",
+      "short_name": "金山软件"
+    },
+    {
+      "stock_code": "COSG",
+      "short_name": "COSMOS GROUP HOLDINGS"
+    },
+    {
+      "stock_code": "BTU",
+      "short_name": "Peabody"
+    },
+    {
+      "stock_code": "02128",
+      "short_name": "中国联塑"
+    },
+    {
+      "stock_code": "RLX",
+      "short_name": "雾芯科技"
+    },
+    {
+      "stock_code": "513050.SH",
+      "short_name": "中概互联网ETF易方达"
+    },
+    {
+      "stock_code": "SDOW",
+      "short_name": "道指3X做空-ProShares"
+    },
+    {
+      "stock_code": "FXP",
+      "short_name": "中国港股2X做空-ProShares"
+    },
+    {
+      "stock_code": ".IXIC",
+      "short_name": "纳斯达克综合指数"
+    },
+    {
+      "stock_code": "YXI",
+      "short_name": "港股做空-ProShares"
+    },
+    {
+      "stock_code": "HKHSI",
+      "short_name": "恒生指数"
+    },
+    {
+      "stock_code": "000001.SH",
+      "short_name": "上证指数"
+    },
+    {
+      "stock_code": "000300.SH",
+      "short_name": "沪深300"
+    },
+    {
+      "stock_code": ".DJI",
+      "short_name": "道琼斯指数"
+    }
+  ],
+  "posts": [],
+  "collected_at": "2026-07-03 21:04:30"
+}

@@ -1,0 +1,895 @@
+{
+  "uid": "1247347556",
+  "watchlist": [
+    {
+      "stock_code": "SPCX",
+      "short_name": "SpaceX"
+    },
+    {
+      "stock_code": "02513",
+      "short_name": "智谱"
+    },
+    {
+      "stock_code": "GLW",
+      "short_name": "康宁"
+    },
+    {
+      "stock_code": "PMRTY",
+      "short_name": "POP MRT INTR DRC"
+    },
+    {
+      "stock_code": "002867.SZ",
+      "short_name": "周大生"
+    },
+    {
+      "stock_code": "06181",
+      "short_name": "老铺黄金"
+    },
+    {
+      "stock_code": "UUUU",
+      "short_name": "Energy Fuels"
+    },
+    {
+      "stock_code": "CCJ",
+      "short_name": "Cameco Corp"
+    },
+    {
+      "stock_code": "00992.SZ",
+      "short_name": "联想集团"
+    },
+    {
+      "stock_code": "SNPS",
+      "short_name": "新思科技"
+    },
+    {
+      "stock_code": "688363.SH",
+      "short_name": "华熙生物"
+    },
+    {
+      "stock_code": "SMTC",
+      "short_name": "先科电子"
+    },
+    {
+      "stock_code": "688775.SH",
+      "short_name": "影石创新"
+    },
+    {
+      "stock_code": "INOD",
+      "short_name": "Innodata"
+    },
+    {
+      "stock_code": "03818",
+      "short_name": "中国动向"
+    },
+    {
+      "stock_code": "688256.SH",
+      "short_name": "寒武纪"
+    },
+    {
+      "stock_code": "RBLX",
+      "short_name": "Roblox"
+    },
+    {
+      "stock_code": "PGY",
+      "short_name": "Pagaya Technologies"
+    },
+    {
+      "stock_code": "COIN",
+      "short_name": "Coinbase Global"
+    },
+    {
+      "stock_code": "09992",
+      "short_name": "泡泡玛特"
+    },
+    {
+      "stock_code": "PANW",
+      "short_name": "Palo Alto网络"
+    },
+    {
+      "stock_code": "CRWD",
+      "short_name": "CrowdStrike Holdings"
+    },
+    {
+      "stock_code": "CRDO",
+      "short_name": "Credo Technology"
+    },
+    {
+      "stock_code": "02097",
+      "short_name": "蜜雪集团"
+    },
+    {
+      "stock_code": "80020",
+      "short_name": "商汤-WR"
+    },
+    {
+      "stock_code": "01024",
+      "short_name": "快手-W"
+    },
+    {
+      "stock_code": "603288.SH",
+      "short_name": "海天味业"
+    },
+    {
+      "stock_code": "CRCL",
+      "short_name": "Circle"
+    },
+    {
+      "stock_code": "COHR",
+      "short_name": "Coherent"
+    },
+    {
+      "stock_code": "CRWV",
+      "short_name": "CoreWeave"
+    },
+    {
+      "stock_code": "VRNA",
+      "short_name": "维罗纳制药"
+    },
+    {
+      "stock_code": "UNH",
+      "short_name": "联合健康"
+    },
+    {
+      "stock_code": "NTRA",
+      "short_name": "Natera"
+    },
+    {
+      "stock_code": "TXN",
+      "short_name": "德州仪器"
+    },
+    {
+      "stock_code": "JOYY",
+      "short_name": "欢聚"
+    },
+    {
+      "stock_code": "NOC",
+      "short_name": "诺斯洛普-格鲁门"
+    },
+    {
+      "stock_code": "RTX",
+      "short_name": "雷神技术"
+    },
+    {
+      "stock_code": "LMT",
+      "short_name": "洛克希德-马丁"
+    },
+    {
+      "stock_code": "SIRI",
+      "short_name": "Sirius XM控股"
+    },
+    {
+      "stock_code": "LULU",
+      "short_name": "Lululemon Athletica"
+    },
+    {
+      "stock_code": "TEM",
+      "short_name": "Tempus AI"
+    },
+    {
+      "stock_code": "00883.SZ",
+      "short_name": "中国海洋石油"
+    },
+    {
+      "stock_code": "PLTR",
+      "short_name": "Palantir"
+    },
+    {
+      "stock_code": "00857.SZ",
+      "short_name": "中国石油股份"
+    },
+    {
+      "stock_code": "HD",
+      "short_name": "家得宝"
+    },
+    {
+      "stock_code": "ULTA",
+      "short_name": "Ulta Beauty"
+    },
+    {
+      "stock_code": "DIDIY",
+      "short_name": "滴滴粉单市场"
+    },
+    {
+      "stock_code": "LLY",
+      "short_name": "礼来"
+    },
+    {
+      "stock_code": "CB",
+      "short_name": "安达保险"
+    },
+    {
+      "stock_code": "ASML",
+      "short_name": "阿斯麦"
+    },
+    {
+      "stock_code": "DJT",
+      "short_name": "特朗普媒体科技"
+    },
+    {
+      "stock_code": "600938.SH",
+      "short_name": "中国海油"
+    },
+    {
+      "stock_code": "CVX",
+      "short_name": "雪佛龙"
+    },
+    {
+      "stock_code": "600900.SH",
+      "short_name": "长江电力"
+    },
+    {
+      "stock_code": "EBAY",
+      "short_name": "eBay"
+    },
+    {
+      "stock_code": "06186",
+      "short_name": "中国飞鹤"
+    },
+    {
+      "stock_code": "AMC",
+      "short_name": "AMC娱乐"
+    },
+    {
+      "stock_code": "PTON",
+      "short_name": "Peloton Interactive"
+    },
+    {
+      "stock_code": "AMD",
+      "short_name": "AMD"
+    },
+    {
+      "stock_code": "02469",
+      "short_name": "粉笔"
+    },
+    {
+      "stock_code": "NVR",
+      "short_name": "NVR INC"
+    },
+    {
+      "stock_code": "01519",
+      "short_name": "极兔速递-W"
+    },
+    {
+      "stock_code": "DSX",
+      "short_name": "黛安娜船舶"
+    },
+    {
+      "stock_code": "NTRS",
+      "short_name": "Northern Trust"
+    },
+    {
+      "stock_code": "IMAX",
+      "short_name": "IMAX Corp."
+    },
+    {
+      "stock_code": "SCHW",
+      "short_name": "嘉信理财"
+    },
+    {
+      "stock_code": "MU",
+      "short_name": "美光科技"
+    },
+    {
+      "stock_code": "601225.SH",
+      "short_name": "陕西煤业"
+    },
+    {
+      "stock_code": "002432.SZ",
+      "short_name": "九安医疗"
+    },
+    {
+      "stock_code": "PROSY",
+      "short_name": "PROSUS NV SPNSRD"
+    },
+    {
+      "stock_code": "TAL",
+      "short_name": "好未来"
+    },
+    {
+      "stock_code": "ARKK",
+      "short_name": "创新ETF-ARK"
+    },
+    {
+      "stock_code": "CVNA",
+      "short_name": "Carvana Co."
+    },
+    {
+      "stock_code": "600660.SH",
+      "short_name": "福耀玻璃"
+    },
+    {
+      "stock_code": "03606",
+      "short_name": "福耀玻璃"
+    },
+    {
+      "stock_code": "WB",
+      "short_name": "微博"
+    },
+    {
+      "stock_code": "META",
+      "short_name": "Meta"
+    },
+    {
+      "stock_code": "SNAP",
+      "short_name": "Snap Inc."
+    },
+    {
+      "stock_code": "ABNB",
+      "short_name": "爱彼迎"
+    },
+    {
+      "stock_code": "BEKE",
+      "short_name": "贝壳"
+    },
+    {
+      "stock_code": "09901",
+      "short_name": "新东方-S"
+    },
+    {
+      "stock_code": "HPQ",
+      "short_name": "惠普"
+    },
+    {
+      "stock_code": "UNG",
+      "short_name": "美国天然气价ETF-Concierge Technologies"
+    },
+    {
+      "stock_code": "COOP",
+      "short_name": "Mr. Cooper Group"
+    },
+    {
+      "stock_code": "300750.SZ",
+      "short_name": "宁德时代"
+    },
+    {
+      "stock_code": "FUTU",
+      "short_name": "富途控股"
+    },
+    {
+      "stock_code": "RIVN",
+      "short_name": "Rivian Automotive"
+    },
+    {
+      "stock_code": "03333",
+      "short_name": "中国恒大"
+    },
+    {
+      "stock_code": "SE",
+      "short_name": "Sea Limited"
+    },
+    {
+      "stock_code": "FTNT",
+      "short_name": "飞塔信息"
+    },
+    {
+      "stock_code": "MRNA",
+      "short_name": "Moderna"
+    },
+    {
+      "stock_code": "03988",
+      "short_name": "中国银行"
+    },
+    {
+      "stock_code": "03328",
+      "short_name": "交通银行"
+    },
+    {
+      "stock_code": "01288",
+      "short_name": "农业银行"
+    },
+    {
+      "stock_code": "01398",
+      "short_name": "工商银行"
+    },
+    {
+      "stock_code": "ZH",
+      "short_name": "知乎"
+    },
+    {
+      "stock_code": "TIGR",
+      "short_name": "老虎证券"
+    },
+    {
+      "stock_code": "02202",
+      "short_name": "万科企业"
+    },
+    {
+      "stock_code": "603386.SH",
+      "short_name": "骏亚科技"
+    },
+    {
+      "stock_code": "GOTU",
+      "short_name": "高途"
+    },
+    {
+      "stock_code": "09988",
+      "short_name": "阿里巴巴-W"
+    },
+    {
+      "stock_code": "000876.SZ",
+      "short_name": "新希望"
+    },
+    {
+      "stock_code": "ADVM",
+      "short_name": "Adverum"
+    },
+    {
+      "stock_code": "GME",
+      "short_name": "游戏驿站"
+    },
+    {
+      "stock_code": "01658",
+      "short_name": "邮储银行"
+    },
+    {
+      "stock_code": "601658.SH",
+      "short_name": "邮储银行"
+    },
+    {
+      "stock_code": "GOOG",
+      "short_name": "谷歌C"
+    },
+    {
+      "stock_code": "AAPL",
+      "short_name": "苹果"
+    },
+    {
+      "stock_code": ".INX",
+      "short_name": "标普500指数"
+    },
+    {
+      "stock_code": "PDD",
+      "short_name": "拼多多"
+    },
+    {
+      "stock_code": "SQQQ",
+      "short_name": "纳指3X做空-ProShares"
+    },
+    {
+      "stock_code": "DASH",
+      "short_name": "Doordash"
+    },
+    {
+      "stock_code": "PNGAY",
+      "short_name": "中国平安ADR"
+    },
+    {
+      "stock_code": "INTC",
+      "short_name": "英特尔"
+    },
+    {
+      "stock_code": "00001.SZ",
+      "short_name": "长和"
+    },
+    {
+      "stock_code": "01113",
+      "short_name": "长实集团"
+    },
+    {
+      "stock_code": "SNOW",
+      "short_name": "Snowflake"
+    },
+    {
+      "stock_code": "ORCL",
+      "short_name": "甲骨文"
+    },
+    {
+      "stock_code": "03690",
+      "short_name": "美团-W"
+    },
+    {
+      "stock_code": "TSM",
+      "short_name": "台积电"
+    },
+    {
+      "stock_code": "AMAT",
+      "short_name": "应用材料公司"
+    },
+    {
+      "stock_code": "HKHSI",
+      "short_name": "恒生指数"
+    },
+    {
+      "stock_code": "000333.SZ",
+      "short_name": "美的集团"
+    },
+    {
+      "stock_code": "SFTBY",
+      "short_name": "软银集团"
+    },
+    {
+      "stock_code": "BK",
+      "short_name": "纽约梅隆银行"
+    },
+    {
+      "stock_code": "USB",
+      "short_name": "美国合众银行"
+    },
+    {
+      "stock_code": "OXY",
+      "short_name": "西方石油"
+    },
+    {
+      "stock_code": "CCL",
+      "short_name": "嘉年华集团"
+    },
+    {
+      "stock_code": "GILD",
+      "short_name": "吉利德科学"
+    },
+    {
+      "stock_code": "MMM",
+      "short_name": "3M公司"
+    },
+    {
+      "stock_code": "TM",
+      "short_name": "丰田汽车"
+    },
+    {
+      "stock_code": "NTDOY",
+      "short_name": "任天堂"
+    },
+    {
+      "stock_code": "COST",
+      "short_name": "好市多"
+    },
+    {
+      "stock_code": "MCD",
+      "short_name": "麦当劳"
+    },
+    {
+      "stock_code": "MO",
+      "short_name": "奥驰亚"
+    },
+    {
+      "stock_code": "01088",
+      "short_name": "中国神华"
+    },
+    {
+      "stock_code": "600233.SH",
+      "short_name": "圆通速递"
+    },
+    {
+      "stock_code": "03900",
+      "short_name": "绿城中国"
+    },
+    {
+      "stock_code": "ZM",
+      "short_name": "Zoom通讯"
+    },
+    {
+      "stock_code": "000069.SZ",
+      "short_name": "华侨城A"
+    },
+    {
+      "stock_code": "UBER",
+      "short_name": "优步"
+    },
+    {
+      "stock_code": "02318",
+      "short_name": "中国平安"
+    },
+    {
+      "stock_code": "601318.SH",
+      "short_name": "中国平安"
+    },
+    {
+      "stock_code": "002142.SZ",
+      "short_name": "宁波银行"
+    },
+    {
+      "stock_code": "03968",
+      "short_name": "招商银行"
+    },
+    {
+      "stock_code": "601169.SH",
+      "short_name": "北京银行"
+    },
+    {
+      "stock_code": "601998.SH",
+      "short_name": "中信银行"
+    },
+    {
+      "stock_code": "601939.SH",
+      "short_name": "建设银行"
+    },
+    {
+      "stock_code": "601328.SH",
+      "short_name": "交通银行"
+    },
+    {
+      "stock_code": "601818.SH",
+      "short_name": "光大银行"
+    },
+    {
+      "stock_code": "601398.SH",
+      "short_name": "工商银行"
+    },
+    {
+      "stock_code": "601988.SH",
+      "short_name": "中国银行"
+    },
+    {
+      "stock_code": "000001.SZ",
+      "short_name": "平安银行"
+    },
+    {
+      "stock_code": "601288.SH",
+      "short_name": "农业银行"
+    },
+    {
+      "stock_code": "600000.SH",
+      "short_name": "浦发银行"
+    },
+    {
+      "stock_code": "601166.SH",
+      "short_name": "兴业银行"
+    },
+    {
+      "stock_code": "BILI",
+      "short_name": "哔哩哔哩"
+    },
+    {
+      "stock_code": "NVDA",
+      "short_name": "英伟达"
+    },
+    {
+      "stock_code": "000651.SZ",
+      "short_name": "格力电器"
+    },
+    {
+      "stock_code": "SBUX",
+      "short_name": "星巴克"
+    },
+    {
+      "stock_code": "DIS",
+      "short_name": "迪士尼"
+    },
+    {
+      "stock_code": "002558.SZ",
+      "short_name": "巨人网络"
+    },
+    {
+      "stock_code": ".DJI",
+      "short_name": "道琼斯指数"
+    },
+    {
+      "stock_code": "MOMO",
+      "short_name": "挚文集团"
+    },
+    {
+      "stock_code": "IBM",
+      "short_name": "IBM Corp"
+    },
+    {
+      "stock_code": "01988",
+      "short_name": "民生银行"
+    },
+    {
+      "stock_code": "600016.SH",
+      "short_name": "民生银行"
+    },
+    {
+      "stock_code": "601360.SH",
+      "short_name": "三六零"
+    },
+    {
+      "stock_code": "000810.SZ",
+      "short_name": "创维数字"
+    },
+    {
+      "stock_code": "00751.SZ",
+      "short_name": "创维集团"
+    },
+    {
+      "stock_code": "000858.SZ",
+      "short_name": "五粮液"
+    },
+    {
+      "stock_code": "PG",
+      "short_name": "宝洁"
+    },
+    {
+      "stock_code": "000002.SZ",
+      "short_name": "万科A"
+    },
+    {
+      "stock_code": "JD",
+      "short_name": "京东"
+    },
+    {
+      "stock_code": "01810",
+      "short_name": "小米集团-W"
+    },
+    {
+      "stock_code": "QQQ",
+      "short_name": "纳指100ETF-Invesco"
+    },
+    {
+      "stock_code": ".IXIC",
+      "short_name": "纳斯达克综合指数"
+    },
+    {
+      "stock_code": "QCOM",
+      "short_name": "高通"
+    },
+    {
+      "stock_code": "VOOV",
+      "short_name": "标普500价值ETF-Vanguard"
+    },
+    {
+      "stock_code": "VOO",
+      "short_name": "标普500ETF-Vanguard"
+    },
+    {
+      "stock_code": "300300.SZ",
+      "short_name": "海峡创新"
+    },
+    {
+      "stock_code": "300498.SZ",
+      "short_name": "温氏股份"
+    },
+    {
+      "stock_code": "VOOG",
+      "short_name": "标普500增长ETF-Vanguard"
+    },
+    {
+      "stock_code": "KO",
+      "short_name": "可口可乐"
+    },
+    {
+      "stock_code": "002352.SZ",
+      "short_name": "顺丰控股"
+    },
+    {
+      "stock_code": "02608",
+      "short_name": "阳光100中国"
+    },
+    {
+      "stock_code": "TCEHY",
+      "short_name": "腾讯控股ADR"
+    },
+    {
+      "stock_code": "FSLR",
+      "short_name": "第一太阳能"
+    },
+    {
+      "stock_code": "BABA",
+      "short_name": "阿里巴巴"
+    },
+    {
+      "stock_code": "600559.SH",
+      "short_name": "老白干酒"
+    },
+    {
+      "stock_code": "000423.SZ",
+      "short_name": "东阿阿胶"
+    },
+    {
+      "stock_code": "600519.SH",
+      "short_name": "贵州茅台"
+    },
+    {
+      "stock_code": "00700.SZ",
+      "short_name": "腾讯控股"
+    },
+    {
+      "stock_code": "BRK.A",
+      "short_name": "伯克希尔-哈撒韦A"
+    },
+    {
+      "stock_code": "601088.SH",
+      "short_name": "中国神华"
+    },
+    {
+      "stock_code": "600036.SH",
+      "short_name": "招商银行"
+    },
+    {
+      "stock_code": "CMG",
+      "short_name": "墨式烧烤"
+    },
+    {
+      "stock_code": "EDU",
+      "short_name": "新东方"
+    },
+    {
+      "stock_code": "01211",
+      "short_name": "比亚迪股份"
+    },
+    {
+      "stock_code": "XOM",
+      "short_name": "埃克森美孚"
+    },
+    {
+      "stock_code": "BIDU",
+      "short_name": "百度"
+    },
+    {
+      "stock_code": "AMZN",
+      "short_name": "亚马逊"
+    },
+    {
+      "stock_code": "01333",
+      "short_name": "博雷顿"
+    },
+    {
+      "stock_code": "EA",
+      "short_name": "艺电"
+    },
+    {
+      "stock_code": "UPS",
+      "short_name": "联合包裹"
+    },
+    {
+      "stock_code": "PM",
+      "short_name": "菲利普莫里斯"
+    },
+    {
+      "stock_code": "TSLA",
+      "short_name": "特斯拉"
+    },
+    {
+      "stock_code": "AXP",
+      "short_name": "美国运通"
+    },
+    {
+      "stock_code": "BAC",
+      "short_name": "美国银行"
+    },
+    {
+      "stock_code": "BRK.B",
+      "short_name": "伯克希尔-哈撒韦B"
+    },
+    {
+      "stock_code": "FDX",
+      "short_name": "联邦快递"
+    },
+    {
+      "stock_code": "GE",
+      "short_name": "GE航空航天"
+    },
+    {
+      "stock_code": "JNJ",
+      "short_name": "强生"
+    },
+    {
+      "stock_code": "MRK",
+      "short_name": "默沙东"
+    },
+    {
+      "stock_code": "NTES",
+      "short_name": "网易"
+    },
+    {
+      "stock_code": "UHAL",
+      "short_name": "U-Haul Holding"
+    },
+    {
+      "stock_code": "WFC",
+      "short_name": "富国银行"
+    },
+    {
+      "stock_code": "WMT",
+      "short_name": "沃尔玛"
+    },
+    {
+      "stock_code": "BA",
+      "short_name": "波音"
+    },
+    {
+      "stock_code": "MSFT",
+      "short_name": "微软"
+    },
+    {
+      "stock_code": "NFLX",
+      "short_name": "奈飞"
+    },
+    {
+      "stock_code": "SPY",
+      "short_name": "标普500 ETF-SPDR"
+    }
+  ],
+  "posts": [],
+  "collected_at": "2026-07-03 21:04:31"
+}
