@@ -123,7 +123,7 @@
     },
     {
       "stock_code": "SLB",
-      "short_name": "SLB"
+      "short_name": "SLB LMTD ORD"
     },
     {
       "stock_code": "SU",
@@ -447,5 +447,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-03 15:42:40"
+  "collected_at": "2026-07-03 15:58:35"
 }
