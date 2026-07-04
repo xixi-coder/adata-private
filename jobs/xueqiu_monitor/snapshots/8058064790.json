@@ -207,7 +207,7 @@
     },
     {
       "stock_code": "IREN",
-      "short_name": "IREN LIMITED ORD"
+      "short_name": "IREN"
     },
     {
       "stock_code": "CRWV",
@@ -931,5 +931,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-03 23:55:11"
+  "collected_at": "2026-07-04 14:25:18"
 }
