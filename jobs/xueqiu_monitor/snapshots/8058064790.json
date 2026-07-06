@@ -30,6 +30,10 @@
       "short_name": "2倍做多QCOM每日ETF"
     },
     {
+      "stock_code": "MRVL",
+      "short_name": "迈威尔科技"
+    },
+    {
       "stock_code": "NVDA",
       "short_name": "英伟达"
     },
@@ -50,12 +54,12 @@
       "short_name": "半导体板块指数ETF-iShares"
     },
     {
-      "stock_code": "GOOG",
-      "short_name": "谷歌C"
-    },
-    {
       "stock_code": "300394.SZ",
       "short_name": "天孚通信"
+    },
+    {
+      "stock_code": "GOOG",
+      "short_name": "谷歌C"
     },
     {
       "stock_code": "AAOI",
@@ -126,12 +130,12 @@
       "short_name": "FormFactor"
     },
     {
-      "stock_code": "TER",
-      "short_name": "泰瑞达"
-    },
-    {
       "stock_code": "300502.SZ",
       "short_name": "新易盛"
+    },
+    {
+      "stock_code": "TER",
+      "short_name": "泰瑞达"
     },
     {
       "stock_code": "EUV",
@@ -146,16 +150,12 @@
       "short_name": "Tower半导体"
     },
     {
-      "stock_code": "SNDK",
-      "short_name": "闪迪"
-    },
-    {
       "stock_code": "603986.SH",
       "short_name": "兆易创新"
     },
     {
-      "stock_code": "STX",
-      "short_name": "希捷科技"
+      "stock_code": "SNDK",
+      "short_name": "闪迪"
     },
     {
       "stock_code": "300274.SZ",
@@ -174,6 +174,10 @@
       "short_name": "国电南瑞"
     },
     {
+      "stock_code": "STX",
+      "short_name": "希捷科技"
+    },
+    {
       "stock_code": "WDC",
       "short_name": "西部数据"
     },
@@ -184,10 +188,6 @@
     {
       "stock_code": "NVTS",
       "short_name": "纳微半导体"
-    },
-    {
-      "stock_code": "MRVL",
-      "short_name": "迈威尔科技"
     },
     {
       "stock_code": "CIEN",
@@ -207,7 +207,7 @@
     },
     {
       "stock_code": "IREN",
-      "short_name": "IREN"
+      "short_name": "IREN LIMITED ORD"
     },
     {
       "stock_code": "CRWV",
@@ -931,5 +931,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-06 15:18:57"
+  "collected_at": "2026-07-06 20:10:27"
 }
