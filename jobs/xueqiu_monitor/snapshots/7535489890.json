@@ -2,6 +2,10 @@
   "uid": "7535489890",
   "watchlist": [
     {
+      "stock_code": "300502.SZ",
+      "short_name": "新易盛"
+    },
+    {
       "stock_code": "000977.SZ",
       "short_name": "浪潮信息"
     },
@@ -151,5 +155,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-06 20:10:26"
+  "collected_at": "2026-07-07 00:25:27"
 }
