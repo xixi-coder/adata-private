@@ -2,6 +2,14 @@
   "uid": "7535489890",
   "watchlist": [
     {
+      "stock_code": "000977.SZ",
+      "short_name": "浪潮信息"
+    },
+    {
+      "stock_code": "301165.SZ",
+      "short_name": "锐捷网络"
+    },
+    {
       "stock_code": "01810",
       "short_name": "小米集团-W"
     },
@@ -18,16 +26,8 @@
       "short_name": "京东方A"
     },
     {
-      "stock_code": "600176.SH",
-      "short_name": "中国巨石"
-    },
-    {
       "stock_code": "688432.SH",
       "short_name": "有研硅"
-    },
-    {
-      "stock_code": "002294.SZ",
-      "short_name": "信立泰"
     },
     {
       "stock_code": "600183.SH",
@@ -151,5 +151,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-05 23:18:05"
+  "collected_at": "2026-07-06 15:18:55"
 }
