@@ -1,6 +1,7 @@
 name: 运行三维共振日策略
 
 on:
+  # 三维共振当前仅作为高弹性候选补充，保留手动触发。
   workflow_dispatch:
     inputs:
       trade_date:
