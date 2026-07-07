@@ -264,6 +264,43 @@ class IntradayStrategyMinuteCacheTest(unittest.TestCase):
         self.assertTrue(strategy._is_daily_candidate("603000", stable_row))
         self.assertFalse(strategy._is_daily_candidate("603000", blowoff_row))
 
+    def test_runtime_window_blocks_late_run(self):
+        strategy = IntradaySignalStrategy(candidate_size=1)
+        with patch.object(
+            strategy,
+            "_now_shanghai",
+            return_value=dt.datetime(2026, 4, 17, 14, 5, tzinfo=dt.timezone(dt.timedelta(hours=8))),
+        ):
+            status = strategy._runtime_window_status("2026-04-17")
+
+        self.assertFalse(status["ok"])
+        self.assertIn("跳过分时扫描", status["note"])
+
+    def test_candidate_profile_distinguishes_styles(self):
+        strategy = IntradaySignalStrategy(candidate_size=1)
+        weak_row = _daily_row(pct_change=6.6, upper_shadow_pct=0.8, close_pos=0.91, ret5=6.0, ret10=12.0)
+        leader_row = _daily_row(
+            pct_change=8.9,
+            upper_shadow_pct=0.8,
+            close_pos=0.92,
+            ret5=8.5,
+            ret10=15.0,
+            amount=320_000_000,
+            turnover_ratio=10.0,
+            turn_ma5=5.0,
+        )
+        repair_row = _daily_row(
+            pct_change=7.0,
+            upper_shadow_pct=1.8,
+            close_pos=0.82,
+            ret5=5.0,
+            ret10=9.0,
+        )
+
+        self.assertEqual(strategy._candidate_profile("603000", weak_row)["candidate_type"], "弱转强")
+        self.assertEqual(strategy._candidate_profile("603000", leader_row)["candidate_type"], "龙头加速")
+        self.assertEqual(strategy._candidate_profile("603000", repair_row)["candidate_type"], "分歧修复")
+
     def test_signal_rejects_chasing_far_from_open(self):
         strategy = IntradaySignalStrategy(
             candidate_size=1,

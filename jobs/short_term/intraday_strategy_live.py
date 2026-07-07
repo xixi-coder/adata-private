@@ -25,6 +25,7 @@ SIGNAL_COLUMNS_ZH = {
     "signal_time": "信号时间",
     "code": "股票代码",
     "short_name": "股票简称",
+    "candidate_type": "候选类型",
     "signal_price": "信号价格",
     "change_pct": "当时涨幅(%)",
     "vwap": "分时均价",
@@ -33,16 +34,19 @@ SIGNAL_COLUMNS_ZH = {
     "first30_amount_ratio": "前30分钟成交额比",
     "prev_pct_change": "前日涨幅(%)",
     "daily_score": "日线候选分",
+    "candidate_note": "候选说明",
 }
 
 CANDIDATE_COLUMNS_ZH = {
     "code": "股票代码",
     "short_name": "股票简称",
+    "candidate_type": "候选类型",
     "prev_date": "候选依据日期",
     "prev_close": "前日收盘价",
     "prev_amount": "前日成交额",
     "prev_pct_change": "前日涨幅(%)",
     "daily_score": "日线候选分",
+    "candidate_note": "候选说明",
 }
 
 MINUTE_COLUMNS_ZH = {
@@ -125,6 +129,21 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
     @staticmethod
     def _now_shanghai() -> dt.datetime:
         return dt.datetime.now(ZoneInfo("Asia/Shanghai"))
+
+    @staticmethod
+    def _time_from_text(text: str, default: dt.time) -> dt.time:
+        try:
+            return dt.datetime.strptime(text, "%H:%M:%S").time()
+        except Exception:
+            return default
+
+    @staticmethod
+    def _shift_time_text(text: str, minutes: int) -> str:
+        try:
+            base = dt.datetime.strptime(text, "%H:%M:%S")
+        except Exception:
+            return text
+        return (base + dt.timedelta(minutes=minutes)).strftime("%H:%M:%S")
 
     @staticmethod
     def _extract_trade_dates(minute_map: Dict[str, pd.DataFrame]) -> List[str]:
@@ -214,6 +233,85 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             return target_date, True, ""
         return target_date, False, f"{target_date} 不是交易日，已跳过分时扫描。"
 
+    def _runtime_window_status(self, trade_date: str) -> dict:
+        now = self._now_shanghai()
+        start_time = self._time_from_text(self.signal_start_time, dt.time(9, 30))
+        end_time = self._time_from_text(
+            os.getenv("INTRADAY_RUNTIME_END_TIME", self._shift_time_text(self.signal_end_time, 30)),
+            dt.time(15, 0),
+        )
+        if now.time() < start_time:
+            return {
+                "ok": False,
+                "note": (
+                    f"{trade_date} 当前时间 {now.strftime('%H:%M:%S')} 早于运行窗口 "
+                    f"{start_time.strftime('%H:%M:%S')}，跳过分时扫描。"
+                ),
+            }
+        if now.time() > end_time:
+            return {
+                "ok": False,
+                "note": (
+                    f"{trade_date} 当前时间 {now.strftime('%H:%M:%S')} 晚于运行窗口 "
+                    f"{end_time.strftime('%H:%M:%S')}，跳过分时扫描。"
+                ),
+            }
+        return {
+            "ok": True,
+            "note": f"{trade_date} 处于运行窗口 {start_time.strftime('%H:%M:%S')}~{end_time.strftime('%H:%M:%S')}",
+        }
+
+    def _candidate_profile(self, code: str, row: pd.Series) -> dict:
+        limit = self._board_limit(code) * 100.0
+        is_main_board = limit <= 10.0
+        amount_ratio = row["amount"] / row["amt_ma5"] if row["amt_ma5"] > 0 else 0.0
+        turn_ratio = row["turnover_ratio"] / row["turn_ma5"] if row["turn_ma5"] > 0 else 0.0
+        hot_pct = min(limit * 0.82, 8.8 if is_main_board else 12.5)
+        weak_pct_low = max(3.5 if is_main_board else 4.5, limit * 0.30)
+        weak_pct_high = min(7.5 if is_main_board else 10.5, limit * 0.9)
+
+        candidate_type = "强势观察"
+        candidate_note = "当前结构偏强，等待分时确认。"
+        type_bonus = 0.0
+
+        if (
+            row["pct_change"] >= hot_pct
+            and row["close_pos"] >= 0.82
+            and row["upper_shadow_pct"] <= 1.6
+            and amount_ratio >= 1.4
+            and turn_ratio >= 1.15
+        ):
+            candidate_type = "龙头加速"
+            candidate_note = "前日已接近加速段，次日只接受温和高开后的承接。"
+            type_bonus = 0.55
+        elif (
+            row["upper_shadow_pct"] >= 1.0
+            and row["upper_shadow_pct"] <= 2.8
+            and row["close_pos"] >= 0.75
+            and row["close"] >= row["close_hh30_prev"] * 0.99
+            and row["ret5"] >= 4.0
+        ):
+            candidate_type = "分歧修复"
+            candidate_note = "前日有分歧但收回高位，更适合等回踩确认。"
+            type_bonus = 0.35
+        elif (
+            weak_pct_low <= row["pct_change"] <= weak_pct_high
+            and row["close_pos"] >= 0.82
+            and row["upper_shadow_pct"] <= 1.2
+            and row["ret5"] >= 3.0
+        ):
+            candidate_type = "弱转强"
+            candidate_note = "前日强势但未过热，适合盘中突破确认。"
+            type_bonus = 0.75
+        elif row["close_pos"] >= 0.78 and row["upper_shadow_pct"] <= 2.0:
+            candidate_note = "整体偏强，但需要盘中进一步确认。"
+
+        return {
+            "candidate_type": candidate_type,
+            "candidate_note": candidate_note,
+            "type_bonus": type_bonus,
+        }
+
     def _daily_candidate_score(self, code: str, row: pd.Series) -> float:
         amount_ratio = row["amount"] / row["amt_ma5"] if row["amt_ma5"] > 0 else 0.0
         turn_ratio = row["turnover_ratio"] / row["turn_ma5"] if row["turn_ma5"] > 0 else 0.0
@@ -221,6 +319,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         limit = self._board_limit(code) * 100.0
         is_main_board = limit <= 10.0
         ret20_hot_line = 55.0 if is_main_board else 95.0
+        profile = self._candidate_profile(code, row)
         return (
             row["pct_change"] * 1.1
             + row["ret5"] * 0.3
@@ -232,6 +331,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             - max(amount_ratio - 3.5, 0.0) * 1.2
             - max(turn_ratio - 3.2, 0.0) * 1.4
             - max(row["ret20"] - ret20_hot_line, 0.0) * 0.08
+            + float(profile["type_bonus"])
         )
 
     def _is_daily_candidate(self, code: str, row: pd.Series) -> bool:
@@ -270,15 +370,18 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             row = df.loc[prev_date]
             if not self._is_daily_candidate(code, row):
                 continue
+            profile = self._candidate_profile(code, row)
             rows.append(
                 {
                     "code": code,
                     "short_name": self.stock_names.get(code, code),
+                    "candidate_type": profile["candidate_type"],
                     "prev_date": prev_date,
                     "prev_close": float(row["close"]),
                     "prev_amount": float(row["amount"]),
                     "prev_pct_change": float(row["pct_change"]),
                     "daily_score": self._daily_candidate_score(code, row),
+                    "candidate_note": profile["candidate_note"],
                 }
             )
 
@@ -387,6 +490,21 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         if minute_df.empty:
             return {}
 
+        candidate_type = str(candidate_row.get("candidate_type", "")).strip() or "强势观察"
+        candidate_note = str(candidate_row.get("candidate_note", "")).strip()
+        if candidate_type == "龙头加速":
+            open_to_signal_cap = min(self.max_open_to_signal_pct, 0.03)
+            vwap_extension_cap = min(self.max_vwap_extension_pct, 0.025)
+            minute_return_cap = min(self.max_minute_return_pct, 0.02)
+        elif candidate_type == "分歧修复":
+            open_to_signal_cap = min(self.max_open_to_signal_pct, 0.04)
+            vwap_extension_cap = min(self.max_vwap_extension_pct, 0.03)
+            minute_return_cap = min(self.max_minute_return_pct, 0.022)
+        else:
+            open_to_signal_cap = self.max_open_to_signal_pct
+            vwap_extension_cap = self.max_vwap_extension_pct
+            minute_return_cap = self.max_minute_return_pct
+
         # 基准线：开盘区间高点（默认 09:30-09:45）
         opening_high = self._opening_range_high(minute_df)
         if opening_high <= 0:
@@ -415,11 +533,11 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         signal_window["amount_ok"] = signal_window["cum_amount"] >= self.min_intraday_amount
         signal_window["reclaim_ok"] = signal_window["price"] >= signal_window["rolling_high_5"] * 0.999
         signal_window["vwap_extension_ok"] = (
-            signal_window["price"] <= signal_window["vwap"] * (1.0 + self.max_vwap_extension_pct)
+            signal_window["price"] <= signal_window["vwap"] * (1.0 + vwap_extension_cap)
         )
-        signal_window["minute_return_ok"] = signal_window["minute_return"] <= self.max_minute_return_pct
+        signal_window["minute_return_ok"] = signal_window["minute_return"] <= minute_return_cap
         signal_window["open_to_signal_ok"] = (
-            signal_window["price"] <= open_price * (1.0 + self.max_open_to_signal_pct)
+            signal_window["price"] <= open_price * (1.0 + open_to_signal_cap)
         )
         signal_window["opening_gap_ok"] = opening_gap_pct <= self.max_opening_gap_pct
         signal_window["base_signal_ok"] = (
@@ -441,6 +559,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                     "signal_time": row["trade_time"].strftime("%Y-%m-%d %H:%M:%S"),
                     "code": candidate_row["code"],
                     "short_name": candidate_row["short_name"],
+                    "candidate_type": candidate_type,
                     "signal_price": round(float(row["price"]), 3),
                     "change_pct": round(float(row["change_pct"]), 2),
                     "vwap": round(float(row["vwap"]), 3),
@@ -449,6 +568,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                     "first30_amount_ratio": round(amount_ratio_30, 4),
                     "prev_pct_change": round(float(candidate_row["prev_pct_change"]), 2),
                     "daily_score": round(float(candidate_row["daily_score"]), 3),
+                    "candidate_note": candidate_note,
                 }
         return {}
 
@@ -461,6 +581,13 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             print(note)
             self.last_minute_trade_dates = []
             return pd.DataFrame(), resolved_trade_date, False, note
+
+        runtime_status = self._runtime_window_status(resolved_trade_date)
+        if not runtime_status["ok"]:
+            print(runtime_status["note"])
+            self.last_minute_trade_dates = []
+            return pd.DataFrame(), resolved_trade_date, is_trade_day, runtime_status["note"]
+        note = runtime_status["note"]
 
         candidates = self.build_daily_candidates(resolved_trade_date)
         if candidates.empty:
@@ -527,9 +654,11 @@ if __name__ == "__main__":
     strategy.sync_active_cache_to_shared()
     now = strategy._now_shanghai()
     resolved_trade_date, is_trade_day, note = strategy.resolve_scan_trade_date()
-    if not is_trade_day:
+    runtime_status = strategy._runtime_window_status(resolved_trade_date) if is_trade_day else {"ok": False, "note": note}
+    if not is_trade_day or not runtime_status["ok"]:
         candidate_df = pd.DataFrame()
         signal_df = pd.DataFrame()
+        note = runtime_status["note"]
     else:
         candidate_df = strategy._sort_by_daily_score(strategy.build_daily_candidates(resolved_trade_date))
         signal_df, _, _, run_note = strategy.run_live_scan()
