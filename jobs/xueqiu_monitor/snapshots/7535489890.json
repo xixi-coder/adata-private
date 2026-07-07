@@ -10,16 +10,8 @@
       "short_name": "浪潮信息"
     },
     {
-      "stock_code": "301165.SZ",
-      "short_name": "锐捷网络"
-    },
-    {
       "stock_code": "01810",
       "short_name": "小米集团-W"
-    },
-    {
-      "stock_code": "301308.SZ",
-      "short_name": "江波龙"
     },
     {
       "stock_code": "688017.SH",
@@ -102,10 +94,6 @@
       "short_name": "英伟达"
     },
     {
-      "stock_code": "02476",
-      "short_name": "胜宏科技"
-    },
-    {
       "stock_code": "01888",
       "short_name": "建滔积层板"
     },
@@ -155,5 +143,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-07 14:52:14"
+  "collected_at": "2026-07-07 19:46:50"
 }
