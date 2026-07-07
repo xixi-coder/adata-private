@@ -69,6 +69,13 @@ MINUTE_COLUMNS_ZH = {
 }
 
 
+def _read_bool_env(name: str, default: bool) -> bool:
+    value = os.getenv(name, "").strip().lower()
+    if value == "":
+        return default
+    return value in {"1", "true", "yes", "y", "on"}
+
+
 class IntradaySignalStrategy(ShortTermDisagreementStrategy):
     """
     分时版短线信号扫描器
@@ -572,7 +579,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                 }
         return {}
 
-    def run_live_scan(self) -> tuple[pd.DataFrame, str, bool, str]:
+    def run_live_scan(self, enforce_runtime_window: bool = True) -> tuple[pd.DataFrame, str, bool, str]:
         if not self.stock_data:
             self.load_data()
 
@@ -582,12 +589,15 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             self.last_minute_trade_dates = []
             return pd.DataFrame(), resolved_trade_date, False, note
 
-        runtime_status = self._runtime_window_status(resolved_trade_date)
-        if not runtime_status["ok"]:
-            print(runtime_status["note"])
-            self.last_minute_trade_dates = []
-            return pd.DataFrame(), resolved_trade_date, is_trade_day, runtime_status["note"]
-        note = runtime_status["note"]
+        if enforce_runtime_window:
+            runtime_status = self._runtime_window_status(resolved_trade_date)
+            if not runtime_status["ok"]:
+                print(runtime_status["note"])
+                self.last_minute_trade_dates = []
+                return pd.DataFrame(), resolved_trade_date, is_trade_day, runtime_status["note"]
+            note = runtime_status["note"]
+        else:
+            note = "手动执行，已跳过运行窗口判断。"
 
         candidates = self.build_daily_candidates(resolved_trade_date)
         if candidates.empty:
