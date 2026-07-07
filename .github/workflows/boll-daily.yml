@@ -1,8 +1,8 @@
-name: 运行波动结构策略
+name: 运行BOLL战法策略
 
 on:
   schedule:
-    - cron: '30 7 * * 1-5'   # 北京时间周一到周五 15:30，盘后扫描日线波动结构
+    - cron: '45 7 * * 1-5'   # 北京时间周一到周五 15:45，盘后扫描BOLL震荡信号
   workflow_dispatch:
     inputs:
       trade_date:
@@ -11,11 +11,11 @@ on:
         default: ""
 
 concurrency:
-  group: volatility-daily-run
+  group: boll-daily-run
   cancel-in-progress: false
 
 jobs:
-  run-volatility-strategy:
+  run-boll-strategy:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -40,32 +40,27 @@ jobs:
         run: |
           mkdir -p data/cache
 
-      - name: Run volatility strategy
+      - name: Run BOLL strategy
         env:
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
           TRADE_DATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.trade_date || '' }}
-          VOLATILITY_ENABLE_MINE_CLEARANCE: "true"
-          VOLATILITY_MAX_MINE_CHECKS: "120"
-          VOLATILITY_MAX_TAG_CHECKS: "80"
-          VOLATILITY_MIN_EXPANSION_AMOUNT_RATIO1_20: "1.5"
-          VOLATILITY_MIN_SQUEEZE_MA60_SLOPE20: "-0.02"
-          VOLATILITY_MIN_SQUEEZE_CLOSE_TO_MA120: "-0.02"
+          BOLL_ENABLE_MINE_CLEARANCE: "true"
+          BOLL_MAX_MINE_CHECKS: "120"
         run: |
-          python jobs/volatility/run_daily.py
+          python jobs/boll/run_daily.py
 
       - name: Upload outputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: volatility-daily-${{ github.run_number }}
+          name: boll-daily-${{ github.run_number }}
           path: |
-            jobs/volatility/outputs/latest_candidates.csv
-            jobs/volatility/outputs/latest_summary.json
-            jobs/volatility/outputs/latest_email_body.txt
-            data/cache/stock_tags.csv
+            jobs/boll/outputs/latest_candidates.csv
+            jobs/boll/outputs/latest_summary.json
+            jobs/boll/outputs/latest_email_body.txt
           if-no-files-found: warn
           retention-days: 14
 
@@ -77,7 +72,7 @@ jobs:
           SMTP_USER: ${{ secrets.MAIL_163_USER }}
           SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          EMAIL_BODY_FILE: jobs/volatility/outputs/latest_email_body.txt
+          EMAIL_BODY_FILE: jobs/boll/outputs/latest_email_body.txt
         run: |
           python - <<'PY'
           import os
@@ -96,10 +91,10 @@ jobs:
               with open(body_file, "r", encoding="utf-8") as f:
                   body = f.read().strip()
           else:
-              body = "未生成波动结构策略正文。"
+              body = "未生成BOLL战法策略正文。"
 
           msg = EmailMessage()
-          msg["Subject"] = "波动结构策略扫描"
+          msg["Subject"] = "BOLL战法策略扫描"
           msg["From"] = smtp_user
           msg["To"] = mail_to
           msg.set_content(body)

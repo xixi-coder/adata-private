@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from strategies.volatility import QualityGateConfig, VolatilityStrategy, VolatilityStrategyConfig
+from jobs.volatility.run_daily import _attach_cluster_tags, _cluster_summary, _fetch_stock_tag_from_adata
 
 
 def _stock_frame(
@@ -104,7 +105,56 @@ class VolatilityStrategyTest(unittest.TestCase):
         self.assertFalse(signals.empty)
         self.assertIn("signal_type", signals.columns)
         self.assertIn("risk_level", signals.columns)
+        self.assertIn("amount_ratio1_20", signals.columns)
         self.assertTrue(set(signals["stock_code"]).issubset({"600010", "600011", "600012"}))
+
+    def test_cluster_summary_groups_expansion_candidates(self):
+        candidates = pd.DataFrame(
+            [
+                {"股票代码": "600010", "股票名称": "芯片一", "信号类型": "波动扩张", "评分": 88.0},
+                {"股票代码": "600011", "股票名称": "芯片二", "信号类型": "波动扩张", "评分": 82.0},
+                {"股票代码": "300010", "股票名称": "机器人", "信号类型": "波动扩张", "评分": 79.0},
+            ]
+        )
+        tagged = _attach_cluster_tags(
+            candidates,
+            {
+                "600010": {"industry": "半导体", "concept": ""},
+                "600011": {"industry": "半导体", "concept": ""},
+                "300010": {"industry": "机器人", "concept": ""},
+            },
+        )
+        summary = _cluster_summary(tagged)
+
+        self.assertEqual(summary[0]["tag"], "半导体")
+        self.assertEqual(summary[0]["count"], 2)
+        self.assertGreater(summary[0]["avg_score"], 80)
+
+    def test_fetch_stock_tag_from_adata_uses_industry_and_concepts(self):
+        class FakeInfo:
+            @staticmethod
+            def get_industry_sw(stock_code):
+                return pd.DataFrame(
+                    [
+                        {"stock_code": stock_code, "industry_name": "半导体", "industry_type": "一级行业"},
+                        {"stock_code": stock_code, "industry_name": "模拟芯片", "industry_type": "二级行业"},
+                    ]
+                )
+
+            @staticmethod
+            def get_concept_east(stock_code):
+                return pd.DataFrame([{"stock_code": stock_code, "name": "先进封装"}, {"stock_code": stock_code, "name": "人工智能"}])
+
+        class FakeStock:
+            info = FakeInfo()
+
+        class FakeAdata:
+            stock = FakeStock()
+
+        tags = _fetch_stock_tag_from_adata(FakeAdata(), "600010")
+
+        self.assertEqual(tags["industry"], "半导体")
+        self.assertIn("先进封装", tags["concept"])
 
 
 if __name__ == "__main__":

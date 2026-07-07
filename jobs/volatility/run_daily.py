@@ -117,6 +117,174 @@ def _format_table(df: pd.DataFrame, columns: list[str], limit: int = 15) -> list
     return lines
 
 
+def _fallback_board(code: str) -> str:
+    text = str(code).zfill(6)
+    if text.startswith(("300", "301")):
+        return "创业板"
+    if text.startswith(("688", "689")):
+        return "科创板"
+    if text.startswith(("600", "601", "603", "605")):
+        return "沪市主板"
+    if text.startswith(("000", "001", "002", "003")):
+        return "深市主板"
+    return "其他"
+
+
+def _stock_tags_cache_path() -> str:
+    return os.path.join(PROJECT_ROOT, "data", "cache", "stock_tags.csv")
+
+
+def _load_stock_tags() -> dict[str, dict[str, str]]:
+    candidates = [
+        os.path.join(PROJECT_ROOT, "data", "cache", "stock_tags.csv"),
+        os.path.join(PROJECT_ROOT, "data", "cache", "stock_industry.csv"),
+    ]
+    tag_path = next((path for path in candidates if os.path.exists(path)), "")
+    if not tag_path:
+        return {}
+    try:
+        df = pd.read_csv(tag_path, dtype={"stock_code": str})
+    except Exception as exc:
+        print(f"股票标签文件读取失败，使用代码板块兜底: {exc}")
+        return {}
+    if "stock_code" not in df.columns:
+        return {}
+    df["stock_code"] = df["stock_code"].astype(str).str.strip().str.replace(r"\.0$", "", regex=True).str.zfill(6)
+    industry_cols = ["industry", "industry_name", "sw_industry", "申万行业", "行业"]
+    concept_cols = ["concept", "concept_name", "concepts", "概念", "主题"]
+    tag_map: dict[str, dict[str, str]] = {}
+    for _, row in df.drop_duplicates("stock_code").iterrows():
+        industry = next((str(row[col]).strip() for col in industry_cols if col in df.columns and pd.notna(row[col])), "")
+        concept = next((str(row[col]).strip() for col in concept_cols if col in df.columns and pd.notna(row[col])), "")
+        tag_map[str(row["stock_code"])] = {"industry": industry, "concept": concept}
+    return tag_map
+
+
+def _fetch_stock_tag_from_adata(adata_module: Any, code: str) -> dict[str, str]:
+    industry = ""
+    concept = ""
+    try:
+        industry_df = adata_module.stock.info.get_industry_sw(stock_code=code)
+        if industry_df is not None and not industry_df.empty:
+            if "industry_type" in industry_df.columns:
+                first_level = industry_df[industry_df["industry_type"].astype(str).str.contains("一级", na=False)]
+                source = first_level if not first_level.empty else industry_df
+            else:
+                source = industry_df
+            if "industry_name" in source.columns:
+                industry = str(source.iloc[0].get("industry_name") or "").strip()
+    except Exception as exc:
+        print(f"行业标签获取失败，跳过 {code}: {exc}")
+
+    for method_name in ("get_concept_east", "get_concept_ths"):
+        if concept:
+            break
+        try:
+            concept_df = getattr(adata_module.stock.info, method_name)(stock_code=code)
+            if concept_df is not None and not concept_df.empty and "name" in concept_df.columns:
+                names = [str(item).strip() for item in concept_df["name"].dropna().tolist() if str(item).strip()]
+                concept = ";".join(dict.fromkeys(names[:6]))
+        except Exception as exc:
+            print(f"概念标签获取失败，跳过 {code} {method_name}: {exc}")
+
+    return {"industry": industry, "concept": concept}
+
+
+def _save_stock_tags(tag_map: dict[str, dict[str, str]]) -> None:
+    path = _stock_tags_cache_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    rows = []
+    for code, tags in sorted(tag_map.items()):
+        rows.append(
+            {
+                "stock_code": str(code).zfill(6),
+                "industry": str(tags.get("industry") or ""),
+                "concept": str(tags.get("concept") or ""),
+            }
+        )
+    pd.DataFrame(rows).to_csv(path, index=False, encoding="utf-8-sig")
+
+
+def _load_or_fetch_stock_tags(codes: list[str], max_fetch: int) -> dict[str, dict[str, str]]:
+    tag_map = _load_stock_tags()
+    if max_fetch <= 0:
+        return tag_map
+    missing = []
+    for code in codes:
+        code = str(code).zfill(6)
+        tags = tag_map.get(code, {})
+        if not str(tags.get("industry") or "").strip() and not str(tags.get("concept") or "").strip():
+            missing.append(code)
+    if not missing:
+        return tag_map
+
+    try:
+        import adata
+    except Exception as exc:
+        print(f"adata 导入失败，无法自动补充行业/概念标签: {exc}")
+        return tag_map
+
+    fetched = 0
+    for code in missing[:max_fetch]:
+        tags = _fetch_stock_tag_from_adata(adata, code)
+        if tags.get("industry") or tags.get("concept"):
+            tag_map[code] = tags
+            fetched += 1
+    if fetched:
+        _save_stock_tags(tag_map)
+        print(f"已补充并缓存股票行业/概念标签: {fetched} 只")
+    return tag_map
+
+
+def _attach_cluster_tags(candidates: pd.DataFrame, tag_map: dict[str, dict[str, str]]) -> pd.DataFrame:
+    out = candidates.copy()
+    if out.empty:
+        out["板块/主题"] = pd.Series(dtype=str)
+        return out
+
+    def resolve_tag(code: str) -> str:
+        code = str(code).zfill(6)
+        tags = tag_map.get(code, {})
+        industry = str(tags.get("industry") or "").strip()
+        concept = str(tags.get("concept") or "").strip()
+        if industry and industry.lower() != "nan":
+            return industry
+        if concept and concept.lower() != "nan":
+            return concept.split(";")[0].split(",")[0].split("，")[0]
+        return _fallback_board(code)
+
+    out["板块/主题"] = out["股票代码"].map(resolve_tag)
+    return out
+
+
+def _cluster_summary(candidates: pd.DataFrame) -> list[dict[str, Any]]:
+    if candidates.empty or "板块/主题" not in candidates.columns:
+        return []
+    source = candidates[candidates["信号类型"].eq("波动扩张")].copy()
+    if source.empty:
+        source = candidates.copy()
+    clusters = []
+    for tag, sub in source.groupby("板块/主题", dropna=False):
+        tag = str(tag or "未分类")
+        if not tag or tag.lower() == "nan":
+            tag = "未分类"
+        numeric_score = pd.to_numeric(sub["评分"], errors="coerce")
+        top_names = [
+            f"{row['股票代码']} {row['股票名称']}"
+            for _, row in sub.assign(_score=numeric_score).sort_values("_score", ascending=False).head(5).iterrows()
+        ]
+        clusters.append(
+            {
+                "tag": tag,
+                "count": int(len(sub)),
+                "avg_score": round(float(numeric_score.mean()), 2),
+                "max_score": round(float(numeric_score.max()), 2),
+                "top_names": top_names,
+            }
+        )
+    return sorted(clusters, key=lambda item: (-item["count"], -item["avg_score"], item["tag"]))[:8]
+
+
 def _load_mine_risks(codes: list[str], max_checks: int) -> dict[str, dict[str, Any]]:
     if max_checks <= 0 or not codes:
         return {}
@@ -161,9 +329,12 @@ def _to_output_df(signals: pd.DataFrame) -> pd.DataFrame:
                 "当日振幅%",
                 "20/60日振幅比",
                 "20日均成交额(亿)",
+                "当日/20日成交额比",
                 "5/20日成交额比",
                 "距20日线%",
                 "距60日线%",
+                "距120日线%",
+                "60日线20日斜率%",
                 "60日回撤%",
                 "观察价",
                 "失效价",
@@ -184,9 +355,12 @@ def _to_output_df(signals: pd.DataFrame) -> pd.DataFrame:
             "当日振幅%": (signals["range_pct"] * 100).round(2),
             "20/60日振幅比": signals["squeeze_ratio"].round(2),
             "20日均成交额(亿)": (signals["amount_ma20"] / 100_000_000).round(2),
+            "当日/20日成交额比": signals["amount_ratio1_20"].round(2),
             "5/20日成交额比": signals["amount_ratio5_20"].round(2),
             "距20日线%": (signals["close_to_ma20"] * 100).round(2),
             "距60日线%": (signals["close_to_ma60"] * 100).round(2),
+            "距120日线%": (signals["close_to_ma120"] * 100).round(2),
+            "60日线20日斜率%": (signals["ma60_slope20"] * 100).round(2),
             "60日回撤%": (signals["drawdown60"] * 100).round(2),
             "观察价": signals["watch_price"].round(3),
             "失效价": signals["invalid_price"].round(3),
@@ -199,6 +373,7 @@ def _to_output_df(signals: pd.DataFrame) -> pd.DataFrame:
 def _build_email_body(summary: dict[str, Any], candidates: pd.DataFrame) -> str:
     report = summary.get("quality_report", {})
     reject_counts = report.get("reject_counts", {})
+    clusters = summary.get("cluster_summary", [])
     lines = [
         "A股波动结构扫描",
         "",
@@ -208,8 +383,24 @@ def _build_email_body(summary: dict[str, Any], candidates: pd.DataFrame) -> str:
         f"- 候选数量: {summary.get('candidate_count', 0)}",
         f"- 股票池: 初始 {report.get('initial_stock_count', 0)}，通过票质过滤 {report.get('accepted_stock_count', 0)}，剔除 {report.get('rejected_stock_count', 0)}",
         "",
-        "票质过滤剔除原因",
+        "资金聚焦方向",
     ]
+    if clusters:
+        for idx, item in enumerate(clusters[:5], start=1):
+            tops = "，".join(item.get("top_names", [])[:3])
+            lines.append(
+                f"{idx}. {item['tag']}: {item['count']}只，平均分{item['avg_score']}，最高分{item['max_score']}"
+                + (f"，代表: {tops}" if tops else "")
+            )
+    else:
+        lines.append("- 暂无明显聚焦方向。")
+
+    lines.extend(
+        [
+        "",
+        "票质过滤剔除原因",
+        ]
+    )
     if reject_counts:
         for reason, count in sorted(reject_counts.items(), key=lambda item: (-item[1], item[0])):
             lines.append(f"- {reason}: {count}")
@@ -217,11 +408,11 @@ def _build_email_body(summary: dict[str, Any], candidates: pd.DataFrame) -> str:
         lines.append("- 无")
 
     lines.extend(["", "波动收敛 Top"])
-    lines.extend(_format_table(candidates[candidates["信号类型"].eq("波动收敛")], ["股票代码", "股票名称", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=12))
+    lines.extend(_format_table(candidates[candidates["信号类型"].eq("波动收敛")], ["股票代码", "股票名称", "板块/主题", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=12))
     lines.extend(["", "波动扩张 Top"])
-    lines.extend(_format_table(candidates[candidates["信号类型"].eq("波动扩张")], ["股票代码", "股票名称", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=12))
+    lines.extend(_format_table(candidates[candidates["信号类型"].eq("波动扩张")], ["股票代码", "股票名称", "板块/主题", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=12))
     lines.extend(["", "异常波动 Top"])
-    lines.extend(_format_table(candidates[candidates["信号类型"].eq("异常波动")], ["股票代码", "股票名称", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=8))
+    lines.extend(_format_table(candidates[candidates["信号类型"].eq("异常波动")], ["股票代码", "股票名称", "板块/主题", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=8))
     lines.extend(
         [
             "",
@@ -309,6 +500,9 @@ def main() -> None:
         squeeze_limit=_read_int_env("VOLATILITY_SQUEEZE_LIMIT", 80),
         expansion_limit=_read_int_env("VOLATILITY_EXPANSION_LIMIT", 80),
         anomaly_limit=_read_int_env("VOLATILITY_ANOMALY_LIMIT", 40),
+        min_expansion_amount_ratio1_20=_read_float_env("VOLATILITY_MIN_EXPANSION_AMOUNT_RATIO1_20", 1.5),
+        min_squeeze_ma60_slope20=_read_float_env("VOLATILITY_MIN_SQUEEZE_MA60_SLOPE20", -0.02),
+        min_squeeze_close_to_ma120=_read_float_env("VOLATILITY_MIN_SQUEEZE_CLOSE_TO_MA120", -0.02),
     )
 
     strategy = VolatilityStrategy(config)
@@ -329,6 +523,10 @@ def main() -> None:
         final_signals = rough_signals
 
     candidates = _to_output_df(final_signals)
+    tag_codes = candidates.sort_values("评分", ascending=False)["股票代码"].drop_duplicates().astype(str).tolist()
+    tag_map = _load_or_fetch_stock_tags(tag_codes, _read_int_env("VOLATILITY_MAX_TAG_CHECKS", 80))
+    candidates = _attach_cluster_tags(candidates, tag_map)
+    cluster_summary = _cluster_summary(candidates)
     candidates.to_csv(os.path.join(OUTPUT_DIR, "latest_candidates.csv"), index=False, encoding="utf-8-sig")
 
     signal_date = ""
@@ -345,6 +543,7 @@ def main() -> None:
         "note": trade_note,
         "candidate_count": int(len(candidates)),
         "quality_report": strategy.quality_report,
+        "cluster_summary": cluster_summary,
     }
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)
 

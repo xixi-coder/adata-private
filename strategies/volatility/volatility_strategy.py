@@ -32,6 +32,9 @@ class VolatilityStrategyConfig:
     squeeze_limit: int = 80
     expansion_limit: int = 80
     anomaly_limit: int = 40
+    min_expansion_amount_ratio1_20: float = 1.5
+    min_squeeze_ma60_slope20: float = -0.02
+    min_squeeze_close_to_ma120: float = -0.02
 
 
 class VolatilityStrategy:
@@ -244,6 +247,8 @@ class VolatilityStrategy:
         out["ret_20d"] = out["close"] / out["close"].shift(20) - 1.0
         out["ma20"] = out["close"].rolling(20, min_periods=15).mean()
         out["ma60"] = out["close"].rolling(60, min_periods=40).mean()
+        out["ma120"] = out["close"].rolling(120, min_periods=80).mean()
+        out["ma60_slope20"] = out["ma60"] / out["ma60"].shift(20) - 1.0
         out["amount_ma20"] = out["amount"].rolling(20, min_periods=10).mean()
         out["amount_ma5"] = out["amount"].rolling(5, min_periods=3).mean()
         out["valid_days20"] = out["amount"].gt(0).rolling(20, min_periods=1).sum()
@@ -270,10 +275,12 @@ class VolatilityStrategy:
         out["low60"] = out["low"].rolling(60, min_periods=30).min()
         out["drawdown60"] = 1.0 - out["close"] / out["high60"].replace(0, np.nan)
         out["squeeze_ratio"] = out["range_ma20"] / out["range_ma60"].replace(0, np.nan)
+        out["amount_ratio1_20"] = out["amount"] / out["amount_ma20"].replace(0, np.nan)
         out["amount_ratio5_20"] = out["amount_ma5"] / out["amount_ma20"].replace(0, np.nan)
         out["close_to_high20"] = out["close"] / out["high20"].replace(0, np.nan)
         out["close_to_ma20"] = out["close"] / out["ma20"].replace(0, np.nan) - 1.0
         out["close_to_ma60"] = out["close"] / out["ma60"].replace(0, np.nan) - 1.0
+        out["close_to_ma120"] = out["close"] / out["ma120"].replace(0, np.nan) - 1.0
         out["limit_like_days20"] = out["ret_1d"].abs().ge(0.095).rolling(20, min_periods=1).sum()
         out["extreme_range_days20"] = out["range_pct"].ge(0.16).rolling(20, min_periods=1).sum()
         out["close_pos"] = ((out["close"] - out["low"]) / (out["high"] - out["low"]).replace(0, np.nan)).clip(0, 1)
@@ -296,9 +303,10 @@ class VolatilityStrategy:
         )
         out["expansion_score"] = (
             grouped["range_pct"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.30
-            + grouped["amount_ratio5_20"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.30
+            + grouped["amount_ratio1_20"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.25
+            + grouped["amount_ratio5_20"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.10
             + grouped["close_to_high20"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.20
-            + grouped["ret_1d"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.20
+            + grouped["ret_1d"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.15
         )
         out["anomaly_score"] = (
             grouped["range_pct"].transform(lambda s: self._pct_rank(s, ascending=True)) * 0.35
@@ -340,17 +348,30 @@ class VolatilityStrategy:
     def _select_signal(self, day: pd.DataFrame, signal_type: str, score_col: str, limit: int) -> pd.DataFrame:
         source = day.copy()
         if signal_type == "波动收敛":
+            trend_ok = (
+                source["ma60_slope20"].ge(self.config.min_squeeze_ma60_slope20)
+                | source["close_to_ma120"].ge(self.config.min_squeeze_close_to_ma120)
+                | source["ma120"].isna()
+            )
             mask = (
                 source["squeeze_ratio"].between(0.35, 0.85)
                 & source["close_to_ma60"].between(-0.08, 0.12)
                 & source["ret_20d"].between(-0.18, 0.30)
+                & trend_ok
             )
         elif signal_type == "波动扩张":
+            perfect_bear = (
+                (source["close"] < source["ma20"])
+                & (source["ma20"] < source["ma60"])
+                & (source["ma60"] < source["ma120"])
+            )
             mask = (
                 (source["range_pct"] >= source["range_ma20"] * 1.35)
-                & (source["amount_ratio5_20"] >= 1.15)
+                & (source["amount_ratio1_20"] >= self.config.min_expansion_amount_ratio1_20)
+                & (source["amount_ratio5_20"] >= 1.05)
                 & (source["close"] >= source["ma20"])
                 & (source["ret_1d"] > 0)
+                & ~perfect_bear.fillna(False)
             )
         else:
             mask = (
@@ -392,9 +413,12 @@ class VolatilityStrategy:
             "range_pct",
             "squeeze_ratio",
             "amount_ma20",
+            "amount_ratio1_20",
             "amount_ratio5_20",
             "close_to_ma20",
             "close_to_ma60",
+            "close_to_ma120",
+            "ma60_slope20",
             "drawdown60",
             "watch_price",
             "invalid_price",
@@ -409,8 +433,12 @@ class VolatilityStrategy:
             parts.append(f"20日振幅/60日振幅={row['squeeze_ratio']:.2f}")
         if pd.notna(row.get("amount_ratio5_20")):
             parts.append(f"5日成交额/20日={row['amount_ratio5_20']:.2f}")
+        if pd.notna(row.get("amount_ratio1_20")):
+            parts.append(f"当日成交额/20日={row['amount_ratio1_20']:.2f}")
         if pd.notna(row.get("close_to_ma60")):
             parts.append(f"距60日线={row['close_to_ma60'] * 100:.1f}%")
+        if pd.notna(row.get("ma60_slope20")):
+            parts.append(f"60日线20日斜率={row['ma60_slope20'] * 100:.1f}%")
         if pd.notna(row.get("drawdown60")):
             parts.append(f"距60日高点回撤={row['drawdown60'] * 100:.1f}%")
         return "；".join(parts)
