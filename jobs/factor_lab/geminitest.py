@@ -9,7 +9,6 @@ from google.genai import types
 def generate():
     client = genai.Client(
         # api_key=os.environ.get("GEMINI_API_KEY"),
-        api_key='AIzaSyDONO3hwbBu9rtulHIWVcTv4cHF2mZUQ2A'
     )
 
     model = "gemini-3-flash-preview"

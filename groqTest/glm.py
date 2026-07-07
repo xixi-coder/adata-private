@@ -7,8 +7,7 @@ _REASONING_COLOR = "\033[90m" if _USE_COLOR else ""
 _RESET_COLOR = "\033[0m" if _USE_COLOR else ""
 
 client = OpenAI(
-    base_url="https://integrate.api.nvidia.com/v1",
-    api_key="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"
+    base_url="https://integrate.api.nvidia.com/v1"
 )
 
 completion = client.chat.completions.create(
