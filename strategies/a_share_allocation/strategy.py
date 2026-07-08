@@ -291,11 +291,31 @@ class AShareAllocationStrategy:
         df["volume_ma5"] = g["volume"].rolling(5, min_periods=3).mean().reset_index(level=0, drop=True)
         df["volume_ma20"] = g["volume"].rolling(20, min_periods=10).mean().reset_index(level=0, drop=True)
         df["volume_ratio_5_20"] = df["volume_ma5"] / df["volume_ma20"].replace(0, np.nan)
+        df["amount_ratio1_20"] = df["amount"] / df["amount_ma20"].replace(0, np.nan)
         df["high_60"] = g["high"].rolling(60, min_periods=30).max().reset_index(level=0, drop=True)
         df["close_to_high_60"] = df["close"] / df["high_60"].replace(0, np.nan)
         df["_roll_high_60"] = g["close"].rolling(60, min_periods=30).max().reset_index(level=0, drop=True)
         df["drawdown_60"] = df["close"] / df["_roll_high_60"].replace(0, np.nan) - 1.0
         df["listed_days"] = g.cumcount() + 1
+        candle_range = (df["high"] - df["low"]).replace(0, np.nan)
+        df["close_pos"] = ((df["close"] - df["low"]) / candle_range).clip(0, 1).fillna(0.5)
+        df["upper_shadow_ratio"] = ((df["high"] - np.maximum(df["open"], df["close"])) / candle_range).clip(0, 1)
+        df["lower_shadow_ratio"] = ((np.minimum(df["open"], df["close"]) - df["low"]) / candle_range).clip(0, 1)
+        df["body_ratio"] = ((df["close"] - df["open"]).abs() / candle_range).clip(0, 1)
+        money_flow_multiplier = ((df["close"] - df["low"]) - (df["high"] - df["close"])) / candle_range
+        df["money_flow_amount"] = money_flow_multiplier.fillna(0.0).clip(-1.0, 1.0) * df["amount"]
+        df["cmf5"] = (
+            g["money_flow_amount"].rolling(5, min_periods=3).sum().reset_index(level=0, drop=True)
+            / g["amount"].rolling(5, min_periods=3).sum().reset_index(level=0, drop=True).replace(0, np.nan)
+        )
+        df["cmf20"] = (
+            g["money_flow_amount"].rolling(20, min_periods=10).sum().reset_index(level=0, drop=True)
+            / g["amount"].rolling(20, min_periods=10).sum().reset_index(level=0, drop=True).replace(0, np.nan)
+        )
+        signed_amount = np.sign(df["close"] - df.get("pre_close", g["close"].shift(1))) * df["amount"]
+        df["signed_amount"] = signed_amount.fillna(0.0)
+        df["net_amt3"] = g["signed_amount"].rolling(3, min_periods=2).sum().reset_index(level=0, drop=True)
+        df["net_amt5"] = g["signed_amount"].rolling(5, min_periods=3).sum().reset_index(level=0, drop=True)
 
         if include_dividend:
             df = self._attach_dividend_yield(df)

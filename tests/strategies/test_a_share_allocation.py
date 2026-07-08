@@ -97,6 +97,58 @@ class AShareAllocationStrategyTest(unittest.TestCase):
         self.assertEqual(review.iloc[0]["建议动作"], "暂不评分")
         self.assertEqual(review.iloc[0]["趋势"], "港股/非A股")
 
+    def test_portfolio_review_downgrades_technically_weak_holdings(self):
+        positions = [{"code": "600522", "name": "中天科技", "weight": 1.0, "market": "A"}]
+        day_scores = pd.DataFrame(
+            [
+                {
+                    "stock_code": "600522",
+                    "final_score": 45.86,
+                    "close": 18.0,
+                    "ma20": 20.0,
+                    "ma60": 17.0,
+                    "high_60": 24.0,
+                    "ret_20": -0.16,
+                }
+            ]
+        )
+
+        review = _portfolio_review(day_scores, positions)
+
+        self.assertEqual(review.iloc[0]["趋势"], "趋势转弱")
+        self.assertEqual(review.iloc[0]["建议动作"], "减仓观察")
+
+    def test_portfolio_review_uses_candle_volume_and_capital_flow_proxy(self):
+        positions = [{"code": "600522", "name": "中天科技", "weight": 1.0, "market": "A"}]
+        day_scores = pd.DataFrame(
+            [
+                {
+                    "stock_code": "600522",
+                    "final_score": 62.0,
+                    "close": 18.0,
+                    "ma20": 17.5,
+                    "ma60": 16.0,
+                    "high_60": 19.0,
+                    "ret_20": 0.02,
+                    "ret_1d": -0.03,
+                    "close_pos": 0.20,
+                    "upper_shadow_ratio": 0.42,
+                    "amount_ratio1_20": 1.80,
+                    "volume_ratio_5_20": 1.30,
+                    "cmf5": -0.12,
+                    "cmf20": -0.03,
+                    "net_amt3": -120_000_000,
+                    "net_amt5": -260_000_000,
+                }
+            ]
+        )
+
+        review = _portfolio_review(day_scores, positions)
+
+        self.assertEqual(review.iloc[0]["趋势"], "趋势转弱")
+        self.assertEqual(review.iloc[0]["建议动作"], "反弹减仓")
+        self.assertIn("CMF5-0.120", review.iloc[0]["理由"])
+
 
 if __name__ == "__main__":
     unittest.main()

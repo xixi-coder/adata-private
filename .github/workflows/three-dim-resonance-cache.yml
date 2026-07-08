@@ -1,8 +1,6 @@
 name: 更新A股共享行情缓存
 
 on:
-  schedule:
-    - cron: "20 23 * * 0-4" # 北京时间工作日 06:30（UTC 周日到周四 22:30）
   workflow_dispatch:
     inputs:
       checkpoint_every:

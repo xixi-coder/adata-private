@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import datetime as dt
 import json
 import os
@@ -18,6 +20,7 @@ if CURRENT_DIR not in sys.path:
 
 import adata
 from jobs.common.cloud_cache_sync import SHARED_MARKET_CACHE_ARCHIVE, sync_cache_from_drive, sync_cache_to_drive
+from jobs.common.market_data_context import MarketDataContext, resolve_market_data_context
 from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
 
 SIGNAL_COLUMNS_ZH = {
@@ -104,6 +107,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         max_opening_gap_pct=0.055,
         min_intraday_market_change_pct=-0.8,
         intraday_market_index_codes=None,
+        minute_cache_ttl_seconds=None,
         *args,
         **kwargs,
     ):
@@ -129,9 +133,13 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         self.max_opening_gap_pct = float(max_opening_gap_pct)
         self.min_intraday_market_change_pct = float(min_intraday_market_change_pct)
         self.intraday_market_index_codes = list(intraday_market_index_codes or ["000300", "399006"])
+        if minute_cache_ttl_seconds is None:
+            minute_cache_ttl_seconds = int(os.getenv("INTRADAY_CACHE_TTL_SECONDS", "120"))
+        self.minute_cache_ttl_seconds = max(0, int(minute_cache_ttl_seconds))
         self.minute_cache_dir = os.path.join(self.cache_dir, "minute_live")
         self.last_minute_trade_dates: List[str] = []
         self.last_intraday_market_snapshot: Dict[str, float] = {}
+        self.last_market_data_context: MarketDataContext | None = None
 
     @staticmethod
     def _now_shanghai() -> dt.datetime:
@@ -218,12 +226,24 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             df["stock_code"] = code
         return self._normalize_minute_df(code, df)
 
-    def _should_refresh_minute_cache(self, trade_date: str) -> bool:
+    def _should_refresh_minute_cache(self, trade_date: str, cached_df: pd.DataFrame | None = None) -> bool:
         """
-        下午盘任务需要看到更长的分时区间, 因此在交易日后半段自动刷新同日分钟缓存。
+        同日分钟缓存只在 TTL 内复用，避免上午多次运行时拿到旧分时。
         """
         now = self._now_shanghai()
-        return trade_date == now.strftime("%Y-%m-%d") and now.time() >= dt.time(13, 0)
+        if trade_date != now.strftime("%Y-%m-%d"):
+            return False
+        if cached_df is None or cached_df.empty or "trade_time" not in cached_df.columns:
+            return True
+        last_trade_time = pd.to_datetime(cached_df["trade_time"], errors="coerce").max()
+        if pd.isna(last_trade_time):
+            return True
+        if getattr(last_trade_time, "tzinfo", None) is not None and now.tzinfo is None:
+            last_trade_time = last_trade_time.tz_localize(None)
+        elif getattr(last_trade_time, "tzinfo", None) is None and now.tzinfo is not None:
+            now = now.replace(tzinfo=None)
+        age_seconds = (now - last_trade_time.to_pydatetime()).total_seconds()
+        return age_seconds > self.minute_cache_ttl_seconds
 
     def _previous_trade_date(self, target_date: str) -> str:
         bench_dates = [d for d in self.benchmark_df.index if d < target_date]
@@ -233,12 +253,13 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         if not self.stock_data:
             self.load_data()
 
-        # 实盘扫描仅针对“今天”，非交易日直接跳过并写入备注
-        target_date = self._now_shanghai().strftime("%Y-%m-%d")
-        is_trade_day = self.is_trade_day(target_date)
-        if is_trade_day:
-            return target_date, True, ""
-        return target_date, False, f"{target_date} 不是交易日，已跳过分时扫描。"
+        context = resolve_market_data_context(now=self._now_shanghai())
+        self.last_market_data_context = context
+        if context.should_fetch_intraday:
+            return context.run_date, True, context.note
+        if context.is_trade_day:
+            return context.run_date, True, context.note
+        return context.run_date, False, f"{context.run_date} 不是交易日，已跳过分时扫描。"
 
     def _runtime_window_status(self, trade_date: str) -> dict:
         now = self._now_shanghai()
@@ -403,7 +424,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         cached_df = pd.DataFrame()
         if prefer_cache and trade_date:
             cached_df = self._load_cached_minute_data(trade_date, code)
-            if not cached_df.empty and not self._should_refresh_minute_cache(trade_date):
+            if not cached_df.empty and not self._should_refresh_minute_cache(trade_date, cached_df):
                 return cached_df
 
         fresh_df = self._normalize_minute_df(code, adata.stock.market.get_market_min(stock_code=code))

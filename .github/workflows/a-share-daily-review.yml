@@ -1,8 +1,6 @@
 name: A股每日投资复盘
 
 on:
-  schedule:
-    - cron: "40 9 * * 1-5" # 北京时间周一到周五 17:40，脚本内会再次按A股交易日历过滤节假日
   workflow_dispatch:
     inputs:
       trade_date:

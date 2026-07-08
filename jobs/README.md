@@ -11,6 +11,7 @@
 
 当前三维共振相关入口：
 
+- `jobs/a_share_runner.py`：A 股统一调度入口，通过 `--profile intraday/eod/maintenance` 编排盘中、盘后和缓存维护任务。
 - `jobs/three_dim_resonance/init_cloud_cache.py`：初始化 5 年 A 股非 ST 日线缓存、财务缓存和沪深 300 基准，并同步到 Google Drive。
 - `jobs/three_dim_resonance/run_daily.py`：每日下载云端缓存，运行三维共振日策略，生成买卖建议，更新持仓状态并回传云端。
 - `jobs/short_term/init_cache.py`：初始化短线策略日线缓存。
@@ -25,10 +26,19 @@
 
 对应 GitHub Actions：
 
+- `.github/workflows/a-share-runner.yml`：A股统一任务调度（定时入口）
 - `.github/workflows/three-dim-resonance-cache.yml`：初始化三维共振云端缓存
 - `.github/workflows/three-dim-resonance-daily.yml`：运行三维共振日策略
 - `.github/workflows/daily-run.yml`：运行短线分时策略
 - `.github/workflows/daily-run-afternoon.yml`：运行短线分时策略下午版
+
+其中 `a-share-runner.yml` 承接新的定时调度：
+
+- `intraday`：盘中分时扫描，分钟缓存默认 120 秒 TTL。
+- `eod`：盘后波动、BOLL、A股复盘、三维共振。
+- `maintenance`：共享行情缓存和分红缓存维护。
+
+旧的单策略 workflow 保留为手动回退入口。
 
 策略核心实现统一放到 `strategies/` 目录：
 

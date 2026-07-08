@@ -4,6 +4,7 @@
 
 ## 任务列表
 
+- `jobs/a_share_runner.py`：A 股任务统一调度入口，按 `intraday` / `eod` / `maintenance` profile 编排多个任务。
 - [短线分时策略](short_term.md)：前一交易日日线选票，交易日盘中拉取 1 分钟分时并生成信号。
 - [三维共振策略](three_dim_resonance.md)：初始化共享市场缓存，并按日生成三维共振买卖建议。
 - [A 股每日投资复盘](a_share_allocation.md)：组合持仓复盘、候选池排名、市场状态和调仓建议。
@@ -17,11 +18,33 @@
 
 | Workflow | 入口脚本 | 说明 |
 | --- | --- | --- |
+| `A股统一任务调度` | `jobs/a_share_runner.py` | 统一定时入口：盘中、盘后、缓存维护通过 profile 调度 |
 | `运行短线分时策略` | `jobs/short_term/intraday_strategy_live.py` | 上午版短线盘中扫描 |
 | `运行短线分时策略-下午版` | `jobs/short_term/intraday_strategy_live.py` | 下午二次确认，当前默认手动触发 |
-| `初始化三维共振云端缓存` | `jobs/three_dim_resonance/init_cloud_cache.py` | 构建/增量更新共享市场缓存 |
+| `初始化三维共振云端缓存` | `jobs/three_dim_resonance/init_cloud_cache.py` | 构建/增量更新共享市场缓存，保留手动回退 |
 | `运行三维共振日策略` | `jobs/three_dim_resonance/run_daily.py` | 生成三维共振日线建议 |
-| `A股每日投资复盘` | `jobs/a_share_allocation/run_daily.py` | 盘后组合复盘和候选池输出 |
+| `A股每日投资复盘` | `jobs/a_share_allocation/run_daily.py` | 盘后组合复盘和候选池输出，保留手动回退 |
 | `雪球关注用户自选股监听` | `jobs/xueqiu_monitor/run.py` | 定时监听雪球用户自选股变化 |
 
 未配置 GitHub Actions 的 job 仍可本地或手动运行，例如 `cost_anchor`、`dividend_sync`、`factor_lab`。
+
+## A股统一调度 Profile
+
+```bash
+python jobs/a_share_runner.py --profile intraday
+python jobs/a_share_runner.py --profile eod
+python jobs/a_share_runner.py --profile maintenance
+```
+
+- `intraday`：短线分时扫描。日线基座使用上一完整交易日，分时使用当日分钟数据。
+- `intraday_pm`：短线分时下午观察窗口。
+- `eod`：波动结构、BOLL、A股每日投资复盘、三维共振。
+- `maintenance`：共享行情缓存和分红缓存维护。
+
+如需临时只跑部分任务：
+
+```bash
+python jobs/a_share_runner.py --profile eod --tasks volatility,boll
+```
+
+公共交易上下文由 `jobs/common/market_data_context.py` 提供。交易时间内不把当日未收盘 K 线写入日线基座；分时任务通过 `INTRADAY_CACHE_TTL_SECONDS` 控制分钟缓存新鲜度，默认 120 秒。

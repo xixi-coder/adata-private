@@ -1,8 +1,6 @@
 name: 运行波动结构策略
 
 on:
-  schedule:
-    - cron: '30 7 * * 1-5'   # 北京时间周一到周五 15:30，盘后扫描日线波动结构
   workflow_dispatch:
     inputs:
       trade_date:

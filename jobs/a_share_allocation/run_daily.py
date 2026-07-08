@@ -281,11 +281,70 @@ def _portfolio_review(day_scores: pd.DataFrame, positions: list[dict[str, Any]])
         ma20 = float(row["ma20"]) if pd.notna(row["ma20"]) else np.nan
         ma60 = float(row["ma60"]) if pd.notna(row["ma60"]) else np.nan
         high60 = float(row["high_60"]) if pd.notna(row["high_60"]) else np.nan
-        trend = "上升趋势" if pd.notna(ma60) and close > ma60 else "走弱"
+        ret_20 = float(row["ret_20"]) if "ret_20" in row.index and pd.notna(row["ret_20"]) else np.nan
+        close_to_high_60 = close / high60 if pd.notna(high60) and high60 else np.nan
+        below_ma20 = pd.notna(ma20) and close < ma20
+        below_ma60 = pd.notna(ma60) and close < ma60
+        deep_pullback = pd.notna(close_to_high_60) and close_to_high_60 < 0.80
+        weak_20d = pd.notna(ret_20) and ret_20 < -0.12
+        ret_1d = float(row["ret_1d"]) if "ret_1d" in row.index and pd.notna(row["ret_1d"]) else np.nan
+        close_pos = float(row["close_pos"]) if "close_pos" in row.index and pd.notna(row["close_pos"]) else np.nan
+        upper_shadow = (
+            float(row["upper_shadow_ratio"])
+            if "upper_shadow_ratio" in row.index and pd.notna(row["upper_shadow_ratio"])
+            else np.nan
+        )
+        amount_ratio1_20 = (
+            float(row["amount_ratio1_20"])
+            if "amount_ratio1_20" in row.index and pd.notna(row["amount_ratio1_20"])
+            else np.nan
+        )
+        volume_ratio = (
+            float(row["volume_ratio_5_20"])
+            if "volume_ratio_5_20" in row.index and pd.notna(row["volume_ratio_5_20"])
+            else np.nan
+        )
+        cmf5 = float(row["cmf5"]) if "cmf5" in row.index and pd.notna(row["cmf5"]) else np.nan
+        cmf20 = float(row["cmf20"]) if "cmf20" in row.index and pd.notna(row["cmf20"]) else np.nan
+        net_amt3 = float(row["net_amt3"]) if "net_amt3" in row.index and pd.notna(row["net_amt3"]) else np.nan
+        net_amt5 = float(row["net_amt5"]) if "net_amt5" in row.index and pd.notna(row["net_amt5"]) else np.nan
+        weak_candle = (
+            (pd.notna(upper_shadow) and upper_shadow >= 0.35 and pd.notna(close_pos) and close_pos <= 0.55)
+            or (pd.notna(close_pos) and close_pos <= 0.25)
+        )
+        volume_distribution = pd.notna(amount_ratio1_20) and amount_ratio1_20 >= 1.4 and (
+            (pd.notna(ret_1d) and ret_1d < 0) or (pd.notna(close_pos) and close_pos <= 0.45)
+        )
+        capital_outflow = (
+            (pd.notna(cmf5) and cmf5 < -0.05 and (pd.isna(cmf20) or cmf20 < 0))
+            or (pd.notna(net_amt3) and net_amt3 < 0 and pd.notna(net_amt5) and net_amt5 < 0)
+        )
+        technical_risk_count = sum([below_ma20, deep_pullback, weak_20d, weak_candle, volume_distribution, capital_outflow])
 
-        if pd.notna(ma60) and close < ma60:
+        if below_ma60:
+            trend = "走弱"
+        elif below_ma20 or deep_pullback or weak_20d or technical_risk_count >= 2:
+            trend = "趋势转弱"
+        elif pd.notna(ma20) and pd.notna(ma60) and close >= ma20 and ma20 >= ma60:
+            trend = "上升趋势"
+        else:
+            trend = "趋势未确认"
+
+        if below_ma60:
             action = "反弹减仓"
             reason = f"收盘价跌破60日线，反弹到20日线或前平台附近优先降风险。"
+        elif below_ma20 and (deep_pullback or score < 55):
+            action = "减仓观察"
+            reason = "技术面已跌破20日线且回撤/评分不支持强势持有，先降低趋势走坏风险。"
+        elif deep_pullback and score < 60:
+            action = "减仓观察"
+            reason = "距60日高点回撤较深，即使尚未跌破60日线，也不按强趋势处理。"
+        elif technical_risk_count >= 3 and score < 65:
+            action = "反弹减仓"
+            reason = "K线形态、量能和资金代理多项转弱，反弹优先降低风险。"
+        elif technical_risk_count >= 2 and score < 70:
+            action = "减仓观察"
+            reason = "K线形态/成交量/资金代理已有两项以上走弱，不再按强势持有处理。"
         elif weight > 25 and score < 75:
             action = "逢高减仓"
             reason = "单票仓位超过25%，且组合评分未达到强势持有阈值，接近前高或放量冲高时降到25%以内。"
@@ -306,6 +365,18 @@ def _portfolio_review(day_scores: pd.DataFrame, positions: list[dict[str, Any]])
             position_note.append(f"20日线{ma20:.2f}")
         if pd.notna(ma60):
             position_note.append(f"60日线{ma60:.2f}")
+        if pd.notna(upper_shadow):
+            position_note.append(f"上影线占比{upper_shadow * 100:.1f}%")
+        if pd.notna(close_pos):
+            position_note.append(f"收盘位置{close_pos * 100:.1f}%")
+        if pd.notna(amount_ratio1_20):
+            position_note.append(f"当日成交额/20日{amount_ratio1_20:.2f}")
+        if pd.notna(volume_ratio):
+            position_note.append(f"5日量能/20日{volume_ratio:.2f}")
+        if pd.notna(cmf5):
+            position_note.append(f"CMF5{cmf5:.3f}")
+        if pd.notna(cmf20):
+            position_note.append(f"CMF20{cmf20:.3f}")
 
         rows.append(
             {
@@ -581,6 +652,14 @@ def main() -> None:
             "ma60",
             "close_to_high_60",
             "volume_ratio_5_20",
+            "amount_ratio1_20",
+            "close_pos",
+            "upper_shadow_ratio",
+            "lower_shadow_ratio",
+            "cmf5",
+            "cmf20",
+            "net_amt3",
+            "net_amt5",
         ]
     ].head(50)
     top_df = _candidate_review(day_scores, stock_meta, limit=50)
