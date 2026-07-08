@@ -113,6 +113,18 @@ jobs:
           fi
           python jobs/a_share_runner.py "${args[@]}"
 
+      - name: Send email notification
+        if: always()
+        env:
+          SMTP_HOST: smtp.163.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.MAIL_163_USER }}
+          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          A_SHARE_RUNNER_PROFILE: ${{ steps.profile.outputs.profile }}
+        run: |
+          python jobs/common/send_a_share_runner_email.py
+
       - name: Upload outputs
         if: always()
         uses: actions/upload-artifact@v4
