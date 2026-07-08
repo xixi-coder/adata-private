@@ -8,6 +8,7 @@
 import logging
 from abc import ABC, abstractmethod
 
+from jobs.common.email_format import set_rich_email_content
 from adata.xueqiu.differ import (
     ChangeEvent,
     CHANGE_TYPE_NEW_WATCHLIST_STOCK,
@@ -143,7 +144,7 @@ class EmailChannel(NotificationChannel):
         msg["Subject"] = subject
         msg["From"] = self.smtp_user
         msg["To"] = ", ".join(self.recipients)
-        msg.set_content(summary)
+        set_rich_email_content(msg, summary, title=self.subject_prefix)
 
         # 使用 SSL 连接发送（与项目现有 163 邮件方式一致）
         with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) as server:

@@ -20,6 +20,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import adata
+from jobs.common.email_format import set_rich_email_content
 from jobs.common.local_env import load_local_env
 from jobs.theme_monitor.market_context import MarketContextCollector
 from strategies.theme_monitor import ThemeMonitorStrategy
@@ -163,7 +164,7 @@ def _send_email_if_configured(body: str) -> None:
     msg["Subject"] = "A股盘面舆论板块雷达"
     msg["From"] = smtp_user
     msg["To"] = mail_to
-    msg.set_content(body)
+    set_rich_email_content(msg, body, title="A股盘面舆论板块雷达")
     recipients = [item.strip() for item in mail_to.split(",") if item.strip()]
     host = os.getenv("SMTP_HOST", "smtp.163.com")
     port = int(os.getenv("SMTP_PORT", "465"))

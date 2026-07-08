@@ -21,6 +21,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from jobs.common.a_share_metadata import load_stock_metadata
+from jobs.common.email_format import set_rich_email_content
 from strategies.volatility import QualityGateConfig, VolatilityStrategy, VolatilityStrategyConfig
 
 
@@ -455,7 +456,7 @@ def _send_email_if_configured() -> None:
     msg["Subject"] = "波动结构策略扫描"
     msg["From"] = smtp_user
     msg["To"] = mail_to
-    msg.set_content(body)
+    set_rich_email_content(msg, body, title="波动结构策略扫描")
 
     recipients = [item.strip() for item in mail_to.split(",") if item.strip()]
     host = os.getenv("SMTP_HOST", "smtp.163.com")
