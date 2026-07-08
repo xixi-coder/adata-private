@@ -2,7 +2,7 @@
 
 ## 作用
 
-盘面舆论板块雷达用于交易时间内快速观察市场正在发酵的主题。它不读取共享 K 线缓存，也不写入 `full_data_v3_5year.pkl`，只调用热榜、人气榜、概念/行业热度接口，输出主题热度、代表股和升温/降温状态。
+盘面舆论板块雷达用于交易时间内快速观察市场正在发酵的主题。它不读取共享 K 线缓存，也不写入 `full_data_v3_5year.pkl`，只调用热榜、人气榜、概念/行业热度、大盘指数、北向资金和海外指数接口，输出主题热度、代表股、升温/降温状态与外部市场风向。
 
 ## 入口文件
 
@@ -22,6 +22,9 @@
 - 同花顺热门概念：`adata.sentiment.hot.hot_concept_20_ths(plate_type=1)`
 - 同花顺热门行业：`adata.sentiment.hot.hot_concept_20_ths(plate_type=2)`
 - 东方财富人气榜：`adata.sentiment.hot.pop_rank_100_east()`
+- A股指数当前行情：`adata.stock.market.get_market_index_current()`
+- 北向资金：`adata.sentiment.north.north_flow_current()`
+- 海外指数：Yahoo chart API，包含纳指、标普500、费半、日经225、KOSPI、KOSDAQ、恒生、恒生科技
 
 ## 输出
 
@@ -34,6 +37,8 @@
 - `latest_hot_industries.csv`
 - `latest_popularity_stocks.csv`
 - `latest_theme_radar.csv`
+- `latest_market_context.csv`
+- `latest_market_context.json`
 
 状态文件：
 
@@ -48,6 +53,13 @@
 - 主题内热股平均涨跌幅：15%
 - 东方财富人气榜共振：10%
 - 资金流确认：预留 5%
+
+市场环境目前不直接改变主题排序，只作为邮件和摘要里的解释层：
+
+- `risk_appetite`：A股指数与北向资金综合得到强/中性/弱。
+- `external_ai_tailwind`：纳指、费半、恒生科技等对 AI 方向的外部风向。
+- `external_semi_tailwind`：费半、日韩科技指数等对半导体方向的外部风向。
+- `hk_china_tailwind`：恒生、恒生科技对中国资产风险偏好的提示。
 
 状态包括：
 

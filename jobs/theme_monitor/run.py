@@ -21,6 +21,7 @@ if PROJECT_ROOT not in sys.path:
 
 import adata
 from jobs.common.local_env import load_local_env
+from jobs.theme_monitor.market_context import MarketContextCollector
 from strategies.theme_monitor import ThemeMonitorStrategy
 
 
@@ -72,13 +73,52 @@ def _write_csv(path: str, df: pd.DataFrame) -> None:
     df.to_csv(path, index=False, encoding="utf-8-sig")
 
 
-def _build_email_body(summary: dict[str, Any], radar: pd.DataFrame, hot_stocks: pd.DataFrame) -> str:
+def _format_market_context(market_context: dict[str, Any]) -> list[str]:
+    if not market_context:
+        return ["市场环境暂无可用数据。"]
+    a_share_items = []
+    for item in market_context.get("a_share_indexes", [])[:4]:
+        if item.get("note"):
+            continue
+        a_share_items.append(f"{item.get('name', '')}{item.get('change_pct', 0):+.2f}%")
+    global_items = []
+    for item in market_context.get("global_indexes", [])[:8]:
+        if item.get("note"):
+            continue
+        global_items.append(f"{item.get('name', '')}{item.get('change_pct', 0):+.2f}%")
+    lines = [
+        (
+            f"A股风险偏好: {market_context.get('risk_appetite', '未知')} | "
+            f"北向净流入: {market_context.get('northbound_net_inflow_yi', 0)}亿 | "
+            f"A股均涨跌: {market_context.get('a_share_avg_change_pct', 0):+.2f}%"
+        ),
+        (
+            f"外部风向: AI={market_context.get('external_ai_tailwind', '未知')} / "
+            f"半导体={market_context.get('external_semi_tailwind', '未知')} / "
+            f"港股中国资产={market_context.get('hk_china_tailwind', '未知')}"
+        ),
+    ]
+    if a_share_items:
+        lines.append("A股指数: " + "，".join(a_share_items))
+    if global_items:
+        lines.append("海外指数: " + "，".join(global_items))
+    return lines
+
+
+def _build_email_body(
+    summary: dict[str, Any],
+    radar: pd.DataFrame,
+    hot_stocks: pd.DataFrame,
+    market_context: dict[str, Any],
+) -> str:
     lines = [
         "A股盘面舆论板块雷达",
         f"{summary['run_time']} | 主题 {summary['theme_count']} 个 | 热股 {summary['hot_stock_count']} 只",
         "",
-        "一、升温/发酵主题",
+        "一、市场环境",
     ]
+    lines.extend(_format_market_context(market_context))
+    lines.extend(["", "二、升温/发酵主题"])
     if radar.empty:
         lines.append("无可用主题数据。")
     else:
@@ -91,7 +131,7 @@ def _build_email_body(summary: dict[str, Any], radar: pd.DataFrame, hot_stocks: 
                 f"热股{row['hot_stock_count']} | {row['representatives']}"
             )
 
-    lines.extend(["", "二、降温/分歧"])
+    lines.extend(["", "三、降温/分歧"])
     cooling = radar[radar["status"].isin(["降温", "震荡观察"])].head(5) if not radar.empty else pd.DataFrame()
     if cooling.empty:
         lines.append("暂无明显降温主题。")
@@ -99,7 +139,7 @@ def _build_email_body(summary: dict[str, Any], radar: pd.DataFrame, hot_stocks: 
         for _, row in cooling.iterrows():
             lines.append(f"{row['theme']} | 分{row['score']} | {row['status']} | {row['note']}")
 
-    lines.extend(["", "三、热股榜 Top10"])
+    lines.extend(["", "四、热股榜 Top10"])
     if hot_stocks.empty:
         lines.append("无可用热股数据。")
     else:
@@ -142,6 +182,7 @@ def main() -> int:
     hot_concepts = _safe_fetch("同花顺热门概念", hot.hot_concept_20_ths, plate_type=1)
     hot_industries = _safe_fetch("同花顺热门行业", hot.hot_concept_20_ths, plate_type=2)
     popularity_stocks = _safe_fetch("东方财富人气榜", hot.pop_rank_100_east)
+    market_context, market_context_df = MarketContextCollector(adata).collect()
 
     previous_snapshot = _read_snapshot()
     strategy = ThemeMonitorStrategy(
@@ -164,6 +205,7 @@ def main() -> int:
         "hot_concept_count": int(len(hot_concepts)),
         "hot_industry_count": int(len(hot_industries)),
         "popularity_stock_count": int(len(popularity_stocks)),
+        "market_context": market_context,
         "top_themes": radar.head(10).to_dict("records"),
     }
     snapshot.update({"updated_at": summary["run_time"]})
@@ -173,10 +215,12 @@ def main() -> int:
     _write_csv(os.path.join(OUTPUT_DIR, "latest_hot_industries.csv"), hot_industries)
     _write_csv(os.path.join(OUTPUT_DIR, "latest_popularity_stocks.csv"), popularity_stocks)
     _write_csv(os.path.join(OUTPUT_DIR, "latest_theme_radar.csv"), radar)
+    _write_csv(os.path.join(OUTPUT_DIR, "latest_market_context.csv"), market_context_df)
+    _write_json(os.path.join(OUTPUT_DIR, "latest_market_context.json"), market_context)
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)
     _write_json(SNAPSHOT_FILE, snapshot)
 
-    body = _build_email_body(summary, radar, hot_stocks)
+    body = _build_email_body(summary, radar, hot_stocks, market_context)
     with open(os.path.join(OUTPUT_DIR, "latest_email_body.txt"), "w", encoding="utf-8") as f:
         f.write(body + "\n")
     print(body)

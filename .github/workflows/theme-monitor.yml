@@ -60,6 +60,8 @@ jobs:
             jobs/theme_monitor/outputs/latest_hot_industries.csv
             jobs/theme_monitor/outputs/latest_popularity_stocks.csv
             jobs/theme_monitor/outputs/latest_theme_radar.csv
+            jobs/theme_monitor/outputs/latest_market_context.csv
+            jobs/theme_monitor/outputs/latest_market_context.json
             jobs/theme_monitor/state/latest_snapshot.json
           if-no-files-found: warn
           retention-days: 14
