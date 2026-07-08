@@ -117,6 +117,23 @@ def _format_table(df: pd.DataFrame, columns: list[str], limit: int = 15) -> list
     return lines
 
 
+def _format_signal_lines(df: pd.DataFrame, limit: int) -> list[str]:
+    if df.empty:
+        return ["无"]
+    lines = []
+    for idx, (_, row) in enumerate(df.head(limit).iterrows(), start=1):
+        code = _format_cell(row.get("股票代码", ""))
+        name = _format_cell(row.get("股票名称", ""))
+        tag = _format_cell(row.get("板块/主题", ""))
+        score = _format_cell(row.get("评分", ""))
+        risk = _format_cell(row.get("风险等级", ""))
+        close = _format_cell(row.get("收盘价", ""))
+        watch = _format_cell(row.get("观察价", ""))
+        invalid = _format_cell(row.get("失效价", ""))
+        lines.append(f"{idx}. {code} {name} [{tag}] 分{score} 风险{risk} 收{close} 观察{watch} 失效{invalid}")
+    return lines
+
+
 def _fallback_board(code: str) -> str:
     text = str(code).zfill(6)
     if text.startswith(("300", "301")):
@@ -372,57 +389,37 @@ def _to_output_df(signals: pd.DataFrame) -> pd.DataFrame:
 
 def _build_email_body(summary: dict[str, Any], candidates: pd.DataFrame) -> str:
     report = summary.get("quality_report", {})
-    reject_counts = report.get("reject_counts", {})
     clusters = summary.get("cluster_summary", [])
+    squeeze_count = int(candidates["信号类型"].eq("波动收敛").sum()) if not candidates.empty else 0
+    expansion_count = int(candidates["信号类型"].eq("波动扩张").sum()) if not candidates.empty else 0
+    anomaly_count = int(candidates["信号类型"].eq("异常波动").sum()) if not candidates.empty else 0
     lines = [
         "A股波动结构扫描",
+        f"{summary.get('signal_date', '')} | 候选 {summary.get('candidate_count', 0)} 只 | 收敛 {squeeze_count} / 扩张 {expansion_count} / 异常 {anomaly_count}",
+        f"股票池: {report.get('accepted_stock_count', 0)}/{report.get('initial_stock_count', 0)} 只通过票质过滤",
         "",
-        f"- 运行时间: {summary['run_time']}",
-        f"- 请求日期: {summary['trade_date']}",
-        f"- 信号日期: {summary.get('signal_date', '')}",
-        f"- 候选数量: {summary.get('candidate_count', 0)}",
-        f"- 股票池: 初始 {report.get('initial_stock_count', 0)}，通过票质过滤 {report.get('accepted_stock_count', 0)}，剔除 {report.get('rejected_stock_count', 0)}",
-        "",
-        "资金聚焦方向",
+        "一、资金聚焦",
     ]
     if clusters:
-        for idx, item in enumerate(clusters[:5], start=1):
-            tops = "，".join(item.get("top_names", [])[:3])
+        for idx, item in enumerate(clusters[:3], start=1):
+            tops = "，".join(item.get("top_names", [])[:2])
             lines.append(
-                f"{idx}. {item['tag']}: {item['count']}只，平均分{item['avg_score']}，最高分{item['max_score']}"
+                f"{idx}. {item['tag']} | {item['count']}只 | 均分{item['avg_score']}"
                 + (f"，代表: {tops}" if tops else "")
             )
     else:
-        lines.append("- 暂无明显聚焦方向。")
+        lines.append("暂无明显聚焦方向")
 
-    lines.extend(
-        [
-        "",
-        "票质过滤剔除原因",
-        ]
-    )
-    if reject_counts:
-        for reason, count in sorted(reject_counts.items(), key=lambda item: (-item[1], item[0])):
-            lines.append(f"- {reason}: {count}")
-    else:
-        lines.append("- 无")
-
-    lines.extend(["", "波动收敛 Top"])
-    lines.extend(_format_table(candidates[candidates["信号类型"].eq("波动收敛")], ["股票代码", "股票名称", "板块/主题", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=12))
-    lines.extend(["", "波动扩张 Top"])
-    lines.extend(_format_table(candidates[candidates["信号类型"].eq("波动扩张")], ["股票代码", "股票名称", "板块/主题", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=12))
-    lines.extend(["", "异常波动 Top"])
-    lines.extend(_format_table(candidates[candidates["信号类型"].eq("异常波动")], ["股票代码", "股票名称", "板块/主题", "评分", "风险等级", "收盘价", "观察价", "失效价", "入选依据"], limit=8))
+    lines.extend(["", "二、波动扩张  重点看持续性"])
+    lines.extend(_format_signal_lines(candidates[candidates["信号类型"].eq("波动扩张")], limit=5))
+    lines.extend(["", "三、波动收敛  重点看突破观察价"])
+    lines.extend(_format_signal_lines(candidates[candidates["信号类型"].eq("波动收敛")], limit=5))
+    lines.extend(["", "四、异常波动  优先当风险提醒"])
+    lines.extend(_format_signal_lines(candidates[candidates["信号类型"].eq("异常波动")], limit=3))
     lines.extend(
         [
             "",
-            "使用提示",
-            "- 波动收敛偏观察，重点看是否放量突破观察价。",
-            "- 波动扩张偏确认，避免在当日大涨后追高。",
-            "- 异常波动优先作为风险提醒，不默认视为机会。",
-            "",
-            "风险提示",
-            "以上为研究复盘和风险管理建议，不构成个性化投资顾问服务或收益承诺。",
+            "提示: 扩张不追高，收敛等突破，异常先看风险。完整明细见 latest_candidates.csv。",
         ]
     )
     return "\n".join(lines)

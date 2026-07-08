@@ -18,14 +18,12 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(CURRENT_DIR))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-import adata
-from jobs.common.cloud_cache_sync import SHARED_MARKET_CACHE_ARCHIVE, sync_cache_from_drive, sync_cache_to_drive
 from jobs.common.a_share_metadata import load_stock_metadata
 from strategies.a_share_allocation import AShareAllocationStrategy, StrategyConfig
-from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
 
 
 OUTPUT_DIR = os.path.join(CURRENT_DIR, "outputs")
+SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
 
 
 def _now_shanghai() -> dt.datetime:
@@ -56,6 +54,8 @@ def _write_json(path: str, payload: dict[str, Any]) -> None:
 
 
 def _load_trade_calendar(year: int) -> pd.DataFrame:
+    import adata
+
     calendar = adata.stock.info.trade_calendar(year=year)
     if calendar is None or calendar.empty:
         return pd.DataFrame()
@@ -107,18 +107,121 @@ def _parse_portfolio() -> list[dict[str, Any]]:
         code = str(item.get("code") or item.get("stock_code") or "").strip()
         if code.endswith(".0"):
             code = code[:-2]
-        code = code.zfill(6) if code.isdigit() else code
+        market = str(item.get("market") or item.get("exchange") or "").strip().upper()
+        if not market and code.isdigit() and len(code) <= 5:
+            market = "HK"
+        if market in {"HK", "HKG", "港股"}:
+            code = code.zfill(5) if code.isdigit() else code
+            market = "HK"
+        else:
+            code = code.zfill(6) if code.isdigit() else code
+            market = "A"
         if not code:
             continue
         positions.append(
             {
                 "code": code,
                 "name": str(item.get("name") or item.get("short_name") or ""),
+                "market": market,
                 "weight": float(item.get("weight", item.get("position_pct", 0)) or 0),
                 "cost": float(item.get("cost", 0) or 0),
             }
         )
     return positions
+
+
+def _position_theme(pos: dict[str, Any]) -> str:
+    raw_theme = str(pos.get("theme") or pos.get("sector") or "").strip()
+    if raw_theme:
+        return raw_theme
+    code = str(pos.get("code") or "")
+    name = str(pos.get("name") or "")
+    text = f"{code} {name}"
+    if any(key in text for key in ["中际旭创", "天孚通信", "中天科技"]):
+        return "AI算力-光通信"
+    if any(key in text for key in ["沪电股份", "胜宏科技"]):
+        return "AI算力-PCB"
+    if any(key in text for key in ["中微公司", "中芯国际", "通富微电"]):
+        return "半导体制造/设备/封测"
+    if any(key in text for key in ["澜起科技"]):
+        return "AI算力-芯片设计"
+    return "其他"
+
+
+def _theme_parent(theme: str) -> str:
+    if theme.startswith("AI算力") or theme.startswith("半导体"):
+        return "AI算力/半导体链"
+    return theme
+
+
+def _portfolio_risk_summary(positions: list[dict[str, Any]], market_regime: str) -> dict[str, Any]:
+    if not positions:
+        return {
+            "total_weight": 0.0,
+            "top1_weight": 0.0,
+            "top3_weight": 0.0,
+            "top5_weight": 0.0,
+            "theme_exposure": [],
+            "parent_theme_exposure": [],
+            "risk_flags": ["未配置持仓。"],
+            "target_equity_range": _target_equity_range(market_regime),
+        }
+
+    weights = sorted([float(pos.get("weight") or 0) for pos in positions], reverse=True)
+    total_weight = sum(weights)
+    theme_map: dict[str, float] = {}
+    parent_map: dict[str, float] = {}
+    for pos in positions:
+        weight = float(pos.get("weight") or 0)
+        theme = _position_theme(pos)
+        theme_map[theme] = theme_map.get(theme, 0.0) + weight
+        parent = _theme_parent(theme)
+        parent_map[parent] = parent_map.get(parent, 0.0) + weight
+
+    theme_exposure = sorted(
+        [{"theme": theme, "weight": round(weight, 2)} for theme, weight in theme_map.items()],
+        key=lambda item: item["weight"],
+        reverse=True,
+    )
+    parent_theme_exposure = sorted(
+        [{"theme": theme, "weight": round(weight, 2)} for theme, weight in parent_map.items()],
+        key=lambda item: item["weight"],
+        reverse=True,
+    )
+    flags = []
+    if weights and weights[0] >= 25:
+        flags.append(f"单票仓位 {weights[0]:.1f}% 已接近/超过25%，不建议继续加仓。")
+    if sum(weights[:3]) >= 60:
+        flags.append(f"前三大仓位合计 {sum(weights[:3]):.1f}%，组合对头部个股较敏感。")
+    if sum(weights[:5]) >= 75:
+        flags.append(f"前五大仓位合计 {sum(weights[:5]):.1f}%，回撤主要由核心持仓决定。")
+    top_parent = parent_theme_exposure[0] if parent_theme_exposure else {"theme": "", "weight": 0}
+    if float(top_parent["weight"]) >= 60:
+        flags.append(f"{top_parent['theme']} 暴露 {top_parent['weight']:.1f}%，分散持仓无法显著降低主线退潮风险。")
+    if total_weight >= 90 and market_regime == "防守":
+        flags.append("市场状态防守但组合接近满仓，优先降低高弹性高相关持仓。")
+    if not flags:
+        flags.append("组合集中度暂未触发强风险阈值。")
+    return {
+        "total_weight": round(total_weight, 2),
+        "top1_weight": round(weights[0] if weights else 0, 2),
+        "top3_weight": round(sum(weights[:3]), 2),
+        "top5_weight": round(sum(weights[:5]), 2),
+        "theme_exposure": theme_exposure,
+        "parent_theme_exposure": parent_theme_exposure,
+        "risk_flags": flags,
+        "target_equity_range": _target_equity_range(market_regime),
+    }
+
+
+def _target_equity_range(market_regime: str) -> str:
+    if market_regime == "防守":
+        return "40%-60%"
+    if market_regime == "中性修复":
+        return "60%-75%"
+    if market_regime == "偏进攻":
+        return "75%-90%"
+    return "50%-70%"
 
 
 def _market_regime(strategy: AShareAllocationStrategy, latest_date: pd.Timestamp) -> tuple[str, str]:
@@ -145,20 +248,30 @@ def _portfolio_review(day_scores: pd.DataFrame, positions: list[dict[str, Any]])
     lookup = day_scores.set_index("stock_code")
     for pos in positions:
         code = pos["code"]
-        row = lookup.loc[code] if code in lookup.index else None
+        market = str(pos.get("market") or "A").upper()
+        row = lookup.loc[code] if market == "A" and code in lookup.index else None
         weight = float(pos.get("weight") or 0)
         name = pos.get("name") or code
         if row is None:
+            action = "暂不评分" if market != "A" else "单独检查"
+            trend = "港股/非A股" if market != "A" else "无数据"
+            reason = (
+                "当前复盘只覆盖A股行情，该持仓仅计入组合集中度，暂不做技术评分。"
+                if market != "A"
+                else "本次策略池未覆盖该标的，请单独检查数据、停牌或代码类型。"
+            )
             rows.append(
                 {
                     "股票代码": code,
                     "股票名称": name,
+                    "市场": market,
+                    "主题": _position_theme(pos),
                     "仓位": weight,
                     "收盘价": "",
                     "评分": "",
-                    "趋势": "无数据",
-                    "建议动作": "继续持有",
-                    "理由": "本次策略池未覆盖该标的，请单独检查数据、停牌或代码类型。",
+                    "趋势": trend,
+                    "建议动作": action,
+                    "理由": reason,
                 }
             )
             continue
@@ -198,6 +311,8 @@ def _portfolio_review(day_scores: pd.DataFrame, positions: list[dict[str, Any]])
             {
                 "股票代码": code,
                 "股票名称": name,
+                "市场": market,
+                "主题": _position_theme(pos),
                 "仓位": weight,
                 "收盘价": round(close, 3),
                 "评分": round(score, 2),
@@ -294,65 +409,66 @@ def _build_email_body(
     portfolio_df: pd.DataFrame,
     metrics: dict[str, Any],
 ) -> str:
+    risk = summary.get("portfolio_risk", {})
     lines = [
-        "A股每日投资复盘",
-        "",
-        "A. 今日组合结论",
-        f"- 信号日期: {summary['signal_date']}",
-        f"- 市场状态: {summary['market_regime']}。{summary['market_note']}",
-        f"- 策略建议: {summary['operation_advice']}",
-        f"- 候选数量: {summary['candidate_count']}，回测区间收益: {metrics.get('total_return', '')}，最大回撤: {metrics.get('max_drawdown', '')}",
-        "",
-        "B. 持仓逐一判断",
+        "A股持仓复盘",
+        f"{summary['signal_date']} | 市场: {summary['market_regime']} | 建议: {summary['operation_advice']}",
+        f"目标权益仓位: {risk.get('target_equity_range', '')} | 当前配置仓位: {risk.get('total_weight', 0)}%",
+        f"集中度: Top1 {risk.get('top1_weight', 0)}% / Top3 {risk.get('top3_weight', 0)}% / Top5 {risk.get('top5_weight', 0)}%",
     ]
     if portfolio_df.empty:
-        lines.append("- 未配置 A_SHARE_PORTFOLIO_JSON，仅输出策略候选和市场风险。")
+        lines.extend(["", "未配置 A_SHARE_PORTFOLIO_JSON。本任务将只生成候选文件，不输出持仓战报。"])
     else:
-        for line in _format_table(portfolio_df, ["股票代码", "股票名称", "仓位", "评分", "趋势", "建议动作", "理由"], limit=20):
-            lines.append(line)
+        lines.extend(["", "一、组合风险"])
+        for flag in risk.get("risk_flags", [])[:4]:
+            lines.append(f"- {flag}")
+        theme_lines = []
+        for item in risk.get("parent_theme_exposure", [])[:4]:
+            theme_lines.append(f"{item['theme']} {item['weight']}%")
+        if theme_lines:
+            lines.append("- 主题暴露: " + "；".join(theme_lines))
 
-    lines.extend(["", "C. 调仓优先顺序"])
-    if portfolio_df.empty:
-        lines.append("- 无持仓配置；优先只把候选池作为观察清单，不直接追买。")
-    else:
+        lines.extend(["", "二、需要处理"])
         reduce_df = portfolio_df[portfolio_df["建议动作"].isin(["逢高减仓", "反弹减仓"])]
-        add_df = portfolio_df[portfolio_df["建议动作"].eq("分批加仓")]
-        if reduce_df.empty and add_df.empty:
-            lines.append("- 暂无强制调仓信号，按持仓触发位跟踪。")
+        if reduce_df.empty:
+            lines.append("无强制减仓项。")
         else:
-            for line in _format_table(reduce_df, ["股票代码", "股票名称", "建议动作", "理由"], limit=10):
+            for line in _format_table(reduce_df, ["股票代码", "股票名称", "主题", "仓位", "评分", "建议动作", "理由"], limit=8):
                 lines.append(line)
-            if not add_df.empty:
-                lines.append("可加仓观察：")
-                for line in _format_table(add_df, ["股票代码", "股票名称", "建议动作", "理由"], limit=5):
-                    lines.append(line)
 
-    lines.extend(["", "D. 明日重点观察清单"])
-    lines.append("1. 沪深300是否继续站稳/修复关键均线，决定组合仓位上限。")
-    lines.append("2. 高分候选是否放量突破后仍能收在20日线和60日线上方。")
-    lines.append("3. 已高仓位或高度相关持仓是否出现冲高回落，优先控制集中度。")
-    lines.append("4. 关注财报、政策、商品价格和外围市场对主线风险偏好的影响。")
+        lines.extend(["", "三、继续观察"])
+        watch_df = portfolio_df[portfolio_df["建议动作"].isin(["继续持有", "单独检查", "暂不评分"])]
+        if watch_df.empty:
+            lines.append("无。")
+        else:
+            for line in _format_table(watch_df, ["股票代码", "股票名称", "主题", "仓位", "评分", "趋势", "建议动作"], limit=12):
+                lines.append(line)
+
+        lines.extend(["", "四、可加仓观察"])
+        add_df = portfolio_df[portfolio_df["建议动作"].eq("分批加仓")]
+        if add_df.empty or summary["operation_advice"] in {"只减不加", "需要调仓"}:
+            lines.append("无。当前优先控制仓位和相关性。")
+        else:
+            for line in _format_table(add_df, ["股票代码", "股票名称", "主题", "仓位", "评分", "建议动作", "理由"], limit=5):
+                lines.append(line)
 
     lines.extend(
         [
             "",
-            "E. 今日策略候选 Top",
-            "字段顺序：股票代码 | 股票名称 | 收盘价 | 日涨跌% | 总分 | 趋势分 | 短线分 | 入选依据 | 操作提示",
-            "字段说明：股票名称=交易所股票简称；收盘价=最近交易日收盘价；日涨跌%=当日涨跌幅；总分=策略综合评分，越高越符合候选条件；趋势分=中短期趋势强度评分，主要参考均线、涨幅、接近阶段高点等；短线分=短线活跃度评分，主要参考近期涨跌、量能和强势程度；入选依据=触发候选的核心原因；操作提示=观察或交易节奏建议。",
+            "五、补位候选 Top5",
         ]
     )
     for line in _format_table(
         top_df,
-        ["股票代码", "股票名称", "收盘价", "日涨跌%", "总分", "趋势分", "短线分", "入选依据", "操作提示"],
-        limit=15,
+        ["股票代码", "股票名称", "收盘价", "日涨跌%", "总分", "入选依据", "操作提示"],
+        limit=5,
     ):
         lines.append(line)
 
     lines.extend(
         [
             "",
-            "风险提示",
-            "以上为研究复盘和风险管理建议，不构成个性化投资顾问服务或收益承诺。",
+            "提示: 本邮件用于持仓风控和复盘，不构成收益承诺。完整候选、交易和权益曲线见 Actions artifact。",
         ]
     )
     return "\n".join(lines)
@@ -399,8 +515,20 @@ def main() -> None:
     min_amount_ma20 = _read_float_env("A_SHARE_REVIEW_MIN_AMOUNT_MA20", 80_000_000)
     include_dividend = _read_bool_env("A_SHARE_REVIEW_INCLUDE_DIVIDEND", True)
 
-    sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
+    sync_cache_from_drive = None
+    sync_cache_to_drive = None
+    try:
+        from jobs.common.cloud_cache_sync import sync_cache_from_drive as _sync_cache_from_drive
+        from jobs.common.cloud_cache_sync import sync_cache_to_drive as _sync_cache_to_drive
+
+        sync_cache_from_drive = _sync_cache_from_drive
+        sync_cache_to_drive = _sync_cache_to_drive
+        sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
+    except Exception as exc:
+        print(f"缓存同步不可用，继续使用本地缓存: {exc}")
     if allow_online_update:
+        from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
+
         updater = ShortTermDisagreementStrategy()
         max_update_codes = _read_int_env("A_SHARE_REVIEW_MAX_UPDATE_CODES", 0)
         updater.load_data(
@@ -408,7 +536,8 @@ def main() -> None:
             max_update_codes=max_update_codes if max_update_codes > 0 else None,
         )
         updater.sync_active_cache_to_shared()
-        sync_cache_to_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
+        if sync_cache_to_drive:
+            sync_cache_to_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
 
     config = StrategyConfig(
         max_positions=max_positions,
@@ -462,13 +591,19 @@ def main() -> None:
     pd.DataFrame(strategy.equity_curve).to_csv(os.path.join(OUTPUT_DIR, "latest_equity.csv"), index=False, encoding="utf-8-sig")
     pd.DataFrame([metrics]).to_csv(os.path.join(OUTPUT_DIR, "latest_metrics.csv"), index=False, encoding="utf-8-sig")
 
-    portfolio_df = _portfolio_review(day_scores, _parse_portfolio())
+    positions = _parse_portfolio()
+    portfolio_df = _portfolio_review(day_scores, positions)
     portfolio_df.to_csv(os.path.join(OUTPUT_DIR, "latest_portfolio_review.csv"), index=False, encoding="utf-8-sig")
 
     market_regime, market_note = _market_regime(strategy, signal_date)
+    portfolio_risk = _portfolio_risk_summary(positions, market_regime)
     candidate_count = int(day_scores["final_score"].notna().sum())
+    parent_exposure = portfolio_risk.get("parent_theme_exposure", [])
+    top_parent_weight = float(parent_exposure[0].get("weight", 0)) if parent_exposure else 0.0
     if market_regime == "防守":
         operation_advice = "只减不加"
+    elif portfolio_risk.get("top3_weight", 0) >= 60 or top_parent_weight >= 60:
+        operation_advice = "控制集中度"
     elif portfolio_df.empty:
         operation_advice = "不需要调仓"
     elif portfolio_df["建议动作"].isin(["逢高减仓", "反弹减仓"]).any():
@@ -488,6 +623,7 @@ def main() -> None:
         "market_note": market_note,
         "operation_advice": operation_advice,
         "candidate_count": candidate_count,
+        "portfolio_risk": portfolio_risk,
         "metrics": metrics,
     }
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)

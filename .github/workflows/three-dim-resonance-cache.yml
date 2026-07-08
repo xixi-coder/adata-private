@@ -1,4 +1,4 @@
-name: 初始化三维共振云端缓存
+name: 更新A股共享行情缓存
 
 on:
   schedule:

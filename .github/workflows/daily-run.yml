@@ -1,9 +1,8 @@
 name: 运行短线分时策略
 
 on:
-  schedule:
-    - cron: '20 2 * * 1-5'   # 北京时间周一到周五 10:20（覆盖 09:45-10:30 分时信号窗口）
-  workflow_dispatch:      # 允许手动运行
+  # 短线分时策略需要盯盘执行，默认保留手动触发。
+  workflow_dispatch:
 
 concurrency:
   group: short-term-intraday-daily-run

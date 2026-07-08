@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from strategies.volatility import QualityGateConfig, VolatilityStrategy, VolatilityStrategyConfig
-from jobs.volatility.run_daily import _attach_cluster_tags, _cluster_summary, _fetch_stock_tag_from_adata
+from jobs.volatility.run_daily import _attach_cluster_tags, _build_email_body, _cluster_summary, _fetch_stock_tag_from_adata
 
 
 def _stock_frame(
@@ -155,6 +155,40 @@ class VolatilityStrategyTest(unittest.TestCase):
 
         self.assertEqual(tags["industry"], "半导体")
         self.assertIn("先进封装", tags["concept"])
+
+    def test_email_body_is_compact_and_hides_reject_reasons(self):
+        candidates = pd.DataFrame(
+            [
+                {
+                    "股票代码": "600010",
+                    "股票名称": "芯片一",
+                    "板块/主题": "半导体",
+                    "信号类型": "波动扩张",
+                    "评分": 88.0,
+                    "风险等级": "低",
+                    "收盘价": 10.5,
+                    "观察价": 10.3,
+                    "失效价": 9.8,
+                }
+            ]
+        )
+        summary = {
+            "signal_date": "2026-07-08",
+            "candidate_count": 1,
+            "quality_report": {
+                "initial_stock_count": 5000,
+                "accepted_stock_count": 2000,
+                "reject_counts": {"流动性不足": 1200},
+            },
+            "cluster_summary": [{"tag": "半导体", "count": 1, "avg_score": 88.0, "top_names": ["600010 芯片一"]}],
+        }
+
+        body = _build_email_body(summary, candidates)
+
+        self.assertIn("一、资金聚焦", body)
+        self.assertIn("二、波动扩张", body)
+        self.assertNotIn("票质过滤剔除原因", body)
+        self.assertNotIn("流动性不足", body)
 
 
 if __name__ == "__main__":

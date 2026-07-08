@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from strategies.a_share_allocation import AShareAllocationStrategy, StrategyConfig
+from jobs.a_share_allocation.run_daily import _portfolio_review, _portfolio_risk_summary
 
 
 def _build_panel(n_stocks: int = 28, n_days: int = 170) -> pd.DataFrame:
@@ -71,6 +72,30 @@ class AShareAllocationStrategyTest(unittest.TestCase):
         self.assertIn("max_drawdown", metrics)
         self.assertGreater(metrics["final_asset"], 0)
         self.assertGreater(len(strategy.equity_curve), 0)
+
+    def test_portfolio_risk_summary_detects_ai_chain_concentration(self):
+        positions = [
+            {"code": "300308", "name": "中际旭创", "weight": 24.54, "market": "A"},
+            {"code": "002463", "name": "沪电股份", "weight": 22.11, "market": "A"},
+            {"code": "688012", "name": "中微公司", "weight": 17.78, "market": "A"},
+            {"code": "688008", "name": "澜起科技", "weight": 12.90, "market": "A"},
+            {"code": "00981", "name": "中芯国际", "weight": 7.10, "market": "HK"},
+        ]
+
+        risk = _portfolio_risk_summary(positions, "防守")
+
+        self.assertGreater(risk["top3_weight"], 60)
+        self.assertEqual(risk["target_equity_range"], "40%-60%")
+        self.assertEqual(risk["parent_theme_exposure"][0]["theme"], "AI算力/半导体链")
+        self.assertGreater(risk["parent_theme_exposure"][0]["weight"], 80)
+
+    def test_portfolio_review_marks_hk_position_as_unscored(self):
+        positions = [{"code": "00981", "name": "中芯国际", "weight": 7.10, "market": "HK"}]
+
+        review = _portfolio_review(pd.DataFrame(columns=["stock_code"]), positions)
+
+        self.assertEqual(review.iloc[0]["建议动作"], "暂不评分")
+        self.assertEqual(review.iloc[0]["趋势"], "港股/非A股")
 
 
 if __name__ == "__main__":
