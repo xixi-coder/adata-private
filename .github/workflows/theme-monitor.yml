@@ -1,0 +1,78 @@
+name: A股盘面舆论板块雷达
+
+on:
+  schedule:
+    - cron: "35 1 * * 1-5" # 北京时间 09:35
+    - cron: "30 2 * * 1-5" # 北京时间 10:30
+    - cron: "30 5 * * 1-5" # 北京时间 13:30
+    - cron: "30 6 * * 1-5" # 北京时间 14:30
+  workflow_dispatch:
+
+concurrency:
+  group: theme-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  monitor-theme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Shanghai
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run theme monitor
+        env:
+          SMTP_HOST: smtp.163.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.MAIL_163_USER }}
+          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          python jobs/theme_monitor/run.py
+
+      - name: Upload outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-monitor-${{ github.run_number }}
+          path: |
+            jobs/theme_monitor/outputs/latest_summary.json
+            jobs/theme_monitor/outputs/latest_email_body.txt
+            jobs/theme_monitor/outputs/latest_hot_stocks.csv
+            jobs/theme_monitor/outputs/latest_hot_concepts.csv
+            jobs/theme_monitor/outputs/latest_hot_industries.csv
+            jobs/theme_monitor/outputs/latest_popularity_stocks.csv
+            jobs/theme_monitor/outputs/latest_theme_radar.csv
+            jobs/theme_monitor/state/latest_snapshot.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Commit theme snapshot
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f jobs/theme_monitor/state/latest_snapshot.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "主题快照无变化，跳过提交"
+          else
+            git commit -m "chore(theme): 更新盘面主题快照 [skip ci]"
+            git push
+          fi

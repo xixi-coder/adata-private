@@ -23,15 +23,10 @@
 
 ## Workflow
 
-- `.github/workflows/three-dim-resonance-cache.yml`
-  - 名称：`初始化三维共振云端缓存`
-  - 当前 cron：UTC `23:20` 周日到周四，北京时间工作日早上
-  - 用途：构建和同步共享缓存包
-
-- `.github/workflows/three-dim-resonance-daily.yml`
-  - 名称：`运行三维共振日策略`
-  - 当前仅保留手动触发
-  - 用途：生成三维共振买卖建议
+- `.github/workflows/a-share-runner.yml`
+  - 缓存维护 profile：`maintenance`
+  - 日常建议 profile：`eod`
+  - 单独运行任务：`shared_cache` 或 `three_dim`
 
 ## 输入
 

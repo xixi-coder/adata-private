@@ -76,4 +76,6 @@
 
 对应 workflow：
 
-- `.github/workflows/volatility-daily.yml`
+- `.github/workflows/a-share-runner.yml`
+  - profile：`eod`
+  - 单独运行任务：`volatility`

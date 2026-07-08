@@ -26,5 +26,6 @@
 
 对应 workflow：
 
-- `.github/workflows/daily-run.yml`
-- `.github/workflows/daily-run-afternoon.yml`
+- `.github/workflows/a-share-runner.yml`
+  - profile：`intraday`
+  - 下午版 profile：`intraday_pm`

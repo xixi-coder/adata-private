@@ -15,9 +15,9 @@ A 股每日投资复盘用于盘后生成组合层面的投资复盘。它会更
 
 ## Workflow
 
-- `.github/workflows/a-share-daily-review.yml`
-  - 名称：`A股每日投资复盘`
-  - 当前 cron：UTC `09:40`，北京时间 `17:40`
+- `.github/workflows/a-share-runner.yml`
+  - profile：`eod`
+  - 单独运行任务：`a_share_review`
   - 脚本内部会再次按 A 股交易日历过滤节假日
 
 ## 输入

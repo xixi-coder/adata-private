@@ -30,15 +30,11 @@ python jobs/short_term/intraday_strategy_live.py
 
 ## Workflow
 
-- `.github/workflows/daily-run.yml`
-  - 名称：`运行短线分时策略`
-  - 当前 cron：UTC `02:20`，北京时间 `10:20`
-  - 用途：上午版扫描，默认窗口 `09:45 ~ 10:30`
-
-- `.github/workflows/daily-run-afternoon.yml`
-  - 名称：`运行短线分时策略-下午版`
-  - 当前默认不定时运行，只保留手动触发
-  - 环境变量会把信号窗口放宽到 `09:30 ~ 14:30`
+- `.github/workflows/a-share-runner.yml`
+  - profile：`intraday`
+  - 下午版 profile：`intraday_pm`
+  - 单独运行任务：`short_term_intraday` 或 `short_term_intraday_pm`
+  - 上午版默认窗口 `09:45 ~ 10:30`，下午版窗口 `09:30 ~ 14:30`
 
 注意：GitHub Actions schedule 不保证准点触发。运行时间治理建议见 `docs/short_term_strategy_optimization.md`。
 

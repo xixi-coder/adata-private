@@ -7,6 +7,7 @@
 - `jobs/common/`：云端同步、Google Drive、打包解包、A 股元数据过滤等公共能力。
 - `jobs/three_dim_resonance/`：三维共振策略的云端缓存初始化与每日执行入口。
 - `jobs/short_term/`：短线策略分时扫描入口。
+- `jobs/theme_monitor/`：盘面舆论和板块主题雷达入口。
 - `jobs/dividend_sync/`：分红缓存一次性增量同步到 Google Drive 的入口。
 
 当前三维共振相关入口：
@@ -16,6 +17,7 @@
 - `jobs/three_dim_resonance/run_daily.py`：每日下载云端缓存，运行三维共振日策略，生成买卖建议，更新持仓状态并回传云端。
 - `jobs/short_term/init_cache.py`：初始化短线策略日线缓存。
 - `jobs/short_term/intraday_strategy_live.py`：基于前一交易日日线候选池做当日分时扫描。
+- `jobs/theme_monitor/run.py`：盘中热榜、人气榜、概念/行业雷达，不依赖共享 K 线缓存。
 - `jobs/dividend_sync/sync_dividend_cache_once.py`：一次性抓取/更新分红缓存并上传到 Google Drive（可选附带更新共享缓存包）。
 
 共享缓存说明：
@@ -27,10 +29,7 @@
 对应 GitHub Actions：
 
 - `.github/workflows/a-share-runner.yml`：A股统一任务调度（定时入口）
-- `.github/workflows/three-dim-resonance-cache.yml`：初始化三维共振云端缓存
-- `.github/workflows/three-dim-resonance-daily.yml`：运行三维共振日策略
-- `.github/workflows/daily-run.yml`：运行短线分时策略
-- `.github/workflows/daily-run-afternoon.yml`：运行短线分时策略下午版
+- `.github/workflows/theme-monitor.yml`：A股盘面舆论板块雷达
 
 其中 `a-share-runner.yml` 承接新的定时调度：
 
@@ -38,7 +37,7 @@
 - `eod`：盘后波动、BOLL、A股复盘、三维共振。
 - `maintenance`：共享行情缓存和分红缓存维护。
 
-旧的单策略 workflow 保留为手动回退入口。
+手动只跑单个策略时，在 `A股统一任务调度` 的 `tasks` 输入里填写任务名，例如 `volatility,boll`。
 
 策略核心实现统一放到 `strategies/` 目录：
 

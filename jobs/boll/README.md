@@ -72,4 +72,6 @@ BOLL 战法只适合震荡行情，所以策略先找“布林线轨道平行缩
 
 对应 workflow：
 
-- `.github/workflows/boll-daily.yml`
+- `.github/workflows/a-share-runner.yml`
+  - profile：`eod`
+  - 单独运行任务：`boll`
