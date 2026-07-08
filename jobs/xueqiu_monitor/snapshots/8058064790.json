@@ -10,6 +10,10 @@
       "short_name": "美光科技"
     },
     {
+      "stock_code": "QCOM",
+      "short_name": "高通"
+    },
+    {
       "stock_code": "513310.SH",
       "short_name": "中韩半导体ETF华泰柏瑞"
     },
@@ -20,10 +24,6 @@
     {
       "stock_code": "300308.SZ",
       "short_name": "中际旭创"
-    },
-    {
-      "stock_code": "QCOM",
-      "short_name": "高通"
     },
     {
       "stock_code": "QCML",
@@ -44,6 +44,10 @@
     {
       "stock_code": "TSM",
       "short_name": "台积电"
+    },
+    {
+      "stock_code": "SPCX",
+      "short_name": "SpaceX"
     },
     {
       "stock_code": "AVGO",
@@ -931,5 +935,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-08 00:28:42"
+  "collected_at": "2026-07-08 19:02:34"
 }

@@ -2,6 +2,14 @@
   "uid": "7535489890",
   "watchlist": [
     {
+      "stock_code": "688635.SH",
+      "short_name": "长进光子"
+    },
+    {
+      "stock_code": "588200.SH",
+      "short_name": "科创芯片ETF嘉实"
+    },
+    {
       "stock_code": "300502.SZ",
       "short_name": "新易盛"
     },
@@ -143,5 +151,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-08 00:28:41"
+  "collected_at": "2026-07-08 19:02:32"
 }
