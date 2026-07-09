@@ -60,7 +60,7 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/three_dim_resonance/outputs/latest_email_body.txt",),
     },
     "shared_cache": {
-        "title": "A股共享缓存维护",
+        "title": "共享缓存维护",
         "paths": ("data/cache/three_dim_cache_manifest.json",),
     },
     "dividend_cache": {
