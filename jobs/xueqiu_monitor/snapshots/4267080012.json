@@ -26,10 +26,6 @@
       "short_name": "雅克科技"
     },
     {
-      "stock_code": "300390.SZ",
-      "short_name": "天华新能"
-    },
-    {
       "stock_code": "600392.SH",
       "short_name": "盛和资源"
     },
@@ -495,5 +491,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-09 14:41:40"
+  "collected_at": "2026-07-09 19:55:33"
 }
