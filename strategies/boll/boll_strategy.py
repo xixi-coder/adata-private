@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -64,6 +65,23 @@ class BollStrategy(VolatilityStrategy):
             (out["boll_bandwidth_ratio"] <= self.boll_config.max_bandwidth_ratio)
             & (out["boll_mid_slope20"].abs() <= self.boll_config.max_mid_slope20)
         )
+        downtrend = (
+            (out["close"] < out["ma20"])
+            & (out["ma20"] < out["ma60"])
+            & (out["ma60"] < out["ma120"])
+            & out["ma60_slope20"].lt(-0.03)
+        )
+        uptrend = (
+            (out["close"] >= out["ma20"])
+            & (out["ma20"] >= out["ma60"])
+            & out["ma60_slope20"].ge(-0.01)
+        )
+        range_bound = out["close_to_ma60"].abs().le(0.12) & out["ma60_slope20"].abs().le(0.05)
+        out["trend_environment"] = np.select(
+            [downtrend.fillna(False), uptrend.fillna(False), range_bound.fillna(False)],
+            ["下跌通道", "上升震荡", "横盘震荡"],
+            default="趋势未确认",
+        )
         return out
 
     def _score_features(self, features: pd.DataFrame) -> pd.DataFrame:
@@ -100,17 +118,7 @@ class BollStrategy(VolatilityStrategy):
     def latest_signals(self, trade_date: str | pd.Timestamp | None = None) -> pd.DataFrame:
         if self.feature_df.empty:
             raise RuntimeError("请先调用 compute_features。")
-        features = self.feature_df.copy()
-        if trade_date is None:
-            signal_date = features["trade_date"].max()
-        else:
-            requested = pd.to_datetime(trade_date)
-            dates = sorted(d for d in features["trade_date"].drop_duplicates().tolist() if d <= requested)
-            if not dates:
-                raise RuntimeError(f"BOLL策略没有覆盖日期: {trade_date}")
-            signal_date = dates[-1]
-
-        day = features[features["trade_date"].eq(signal_date)].copy()
+        signal_date, day = self._resolve_boll_signal_day(trade_date)
         if day.empty:
             return pd.DataFrame()
 
@@ -121,28 +129,71 @@ class BollStrategy(VolatilityStrategy):
             return result
         return result.sort_values(["signal_type", "score"], ascending=[True, False]).reset_index(drop=True)
 
+    def _resolve_boll_signal_day(self, trade_date: str | pd.Timestamp | None = None) -> tuple[pd.Timestamp, pd.DataFrame]:
+        features = self.feature_df.copy()
+        if trade_date is None:
+            signal_date = features["trade_date"].max()
+        else:
+            requested = pd.to_datetime(trade_date)
+            dates = sorted(d for d in features["trade_date"].drop_duplicates().tolist() if d <= requested)
+            if not dates:
+                raise RuntimeError(f"BOLL策略没有覆盖日期: {trade_date}")
+            signal_date = dates[-1]
+        return signal_date, features[features["trade_date"].eq(signal_date)].copy()
+
+    def _boll_signal_conditions(self, day: pd.DataFrame, signal_type: str) -> tuple[dict[str, pd.Series], pd.Series, str, int]:
+        if signal_type == "下轨止跌观察":
+            conditions = {
+                "缩口平行": day["is_squeeze_parallel"],
+                "触及下轨": day["lower_touch"],
+                "下影线止跌": day["lower_shadow_ratio"] >= 0.35,
+                "收盘位置修复": day["close_pos"] >= 0.40,
+                "20日涨跌适中": day["ret_20d"].between(-0.25, 0.18),
+                "未有效跌破下轨": day["close"] >= day["boll_lower"] * 0.98,
+                "非下跌通道": day["trend_environment"].ne("下跌通道"),
+            }
+            return conditions, self._and_conditions(conditions), "boll_buy_score", self.boll_config.buy_limit
+
+        stagnation = (day["upper_shadow_ratio"] >= 0.28) | (day["close_pos"] <= 0.55) | (day["ret_1d"] <= 0.02)
+        conditions = {
+            "触及上轨": day["upper_touch"],
+            "5日成交额放大": day["amount_ratio5_20"] >= 1.15,
+            "放量滞涨形态": stagnation,
+            "20日已有涨幅": day["ret_20d"] >= 0.03,
+        }
+        return conditions, self._and_conditions(conditions), "boll_sell_score", self.boll_config.sell_limit
+
+    def signal_funnel_summary(self, trade_date: str | pd.Timestamp | None = None) -> dict[str, Any]:
+        if self.feature_df.empty:
+            raise RuntimeError("请先调用 compute_features。")
+        signal_date, day = self._resolve_boll_signal_day(trade_date)
+        summary: dict[str, Any] = {
+            "signal_date": pd.to_datetime(signal_date).strftime("%Y-%m-%d"),
+            "scanned_count": int(len(day)),
+            "signals": {},
+        }
+        for signal_type in ("下轨止跌观察", "上轨放量滞涨"):
+            conditions, mask, score_col, limit = self._boll_signal_conditions(day, signal_type)
+            score_mask = day[score_col].notna()
+            selected = day[mask & score_mask].sort_values(score_col, ascending=False).head(limit)
+            summary["signals"][signal_type] = {
+                "condition_counts": {name: int(series.fillna(False).sum()) for name, series in conditions.items()},
+                "passed_count": int(mask.sum()),
+                "score_available_count": int((mask & score_mask).sum()),
+                "selected_limit": int(limit),
+                "selected_count": int(len(selected)),
+            }
+        return summary
+
     def _select_buy_signals(self, day: pd.DataFrame) -> pd.DataFrame:
-        mask = (
-            day["is_squeeze_parallel"]
-            & day["lower_touch"]
-            & (day["lower_shadow_ratio"] >= 0.35)
-            & (day["close_pos"] >= 0.40)
-            & (day["ret_20d"].between(-0.25, 0.18))
-            & (day["close"] >= day["boll_lower"] * 0.98)
-        )
+        _conditions, mask, _score_col, _limit = self._boll_signal_conditions(day, "下轨止跌观察")
         selected = day[mask & day["boll_buy_score"].notna()].sort_values("boll_buy_score", ascending=False).head(
             self.boll_config.buy_limit
         )
         return self._format_signals(selected, "下轨止跌观察", "boll_buy_score")
 
     def _select_sell_signals(self, day: pd.DataFrame) -> pd.DataFrame:
-        stagnation = (day["upper_shadow_ratio"] >= 0.28) | (day["close_pos"] <= 0.55) | (day["ret_1d"] <= 0.02)
-        mask = (
-            day["upper_touch"]
-            & (day["amount_ratio5_20"] >= 1.15)
-            & stagnation
-            & (day["ret_20d"] >= 0.03)
-        )
+        _conditions, mask, _score_col, _limit = self._boll_signal_conditions(day, "上轨放量滞涨")
         selected = day[mask & day["boll_sell_score"].notna()].sort_values("boll_sell_score", ascending=False).head(
             self.boll_config.sell_limit
         )
@@ -191,6 +242,7 @@ class BollStrategy(VolatilityStrategy):
             "boll_bandwidth",
             "boll_bandwidth_ratio",
             "boll_mid_slope20",
+            "trend_environment",
             "lower_shadow_ratio",
             "upper_shadow_ratio",
             "close_pos",
@@ -207,6 +259,8 @@ class BollStrategy(VolatilityStrategy):
             parts.append(f"布林带宽/60日均值={row['boll_bandwidth_ratio']:.2f}")
         if pd.notna(row.get("boll_mid_slope20")):
             parts.append(f"中轨20日斜率={row['boll_mid_slope20'] * 100:.1f}%")
+        if row.get("trend_environment"):
+            parts.append(f"趋势环境={row.get('trend_environment')}")
         if row.get("signal_type") == "下轨止跌观察":
             parts.append(f"下影线占比={row.get('lower_shadow_ratio', 0) * 100:.1f}%")
         else:

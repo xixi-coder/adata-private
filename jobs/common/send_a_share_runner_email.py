@@ -30,7 +30,7 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/short_term/outputs/latest_summary.txt",),
     },
     "volatility": {
-        "title": "波动结构扫描",
+        "title": "A股波动结构扫描",
         "paths": ("jobs/volatility/outputs/latest_email_body.txt",),
         "headers": {
             "一、资金聚焦": "序号 | 方向 | 数量 | 均分/代表",
@@ -41,8 +41,8 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/boll/outputs/latest_email_body.txt",),
         "drop_prefixes": ("- 运行时间:", "- 请求日期:"),
         "headers": {
-            "下轨止跌观察": "序号 | 股票代码 | 股票名称 | 评分 | 风险等级 | 收盘价 | BOLL下轨 | 观察价 | 失效价 | 入选依据",
-            "上轨放量滞涨": "序号 | 股票代码 | 股票名称 | 评分 | 风险等级 | 收盘价 | BOLL上轨 | 观察价 | 失效价 | 入选依据",
+            "下轨止跌观察": "序号 | 股票代码 | 股票名称 | 评分 | 风险等级 | 趋势环境 | 收盘价 | BOLL下轨 | 观察价 | 失效价 | 入选依据",
+            "上轨放量滞涨": "序号 | 股票代码 | 股票名称 | 评分 | 风险等级 | 趋势环境 | 收盘价 | BOLL上轨 | 观察价 | 失效价 | 入选依据",
         },
     },
     "a_share_review": {
@@ -50,9 +50,9 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/a_share_allocation/outputs/latest_email_body.txt",),
         "headers": {
             "二、需要处理": "序号 | 股票代码 | 股票名称 | 主题 | 仓位 | 评分 | 建议动作 | 理由",
-            "三、继续观察": "序号 | 股票代码 | 股票名称 | 主题 | 仓位 | 评分 | 趋势 | 建议动作",
+            "三、继续观察": "序号 | 股票代码 | 股票名称 | 主题 | 仓位 | 评分 | 趋势 | 建议动作 | 策略联动",
             "四、可加仓观察": "序号 | 股票代码 | 股票名称 | 主题 | 仓位 | 评分 | 建议动作 | 理由",
-            "五、补位候选 Top5": "序号 | 股票代码 | 股票名称 | 收盘价 | 日涨跌% | 总分 | 入选依据 | 操作提示",
+            "五、补位候选 Top5": "序号 | 股票代码 | 股票名称 | 收盘价 | 日涨跌% | 总分 | 策略联动 | 入选依据 | 操作提示",
         },
     },
     "three_dim": {
@@ -60,7 +60,7 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/three_dim_resonance/outputs/latest_email_body.txt",),
     },
     "shared_cache": {
-        "title": "日线/财务共享缓存维护",
+        "title": "A股共享缓存维护",
         "paths": ("data/cache/three_dim_cache_manifest.json",),
     },
     "dividend_cache": {

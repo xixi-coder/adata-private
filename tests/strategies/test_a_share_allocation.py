@@ -1,10 +1,19 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from strategies.a_share_allocation import AShareAllocationStrategy, StrategyConfig
-from jobs.a_share_allocation.run_daily import _portfolio_review, _portfolio_risk_summary
+from jobs.a_share_allocation.run_daily import (
+    _apply_cross_strategy_to_candidates,
+    _apply_cross_strategy_to_portfolio,
+    _load_cross_strategy_signals,
+    _portfolio_review,
+    _portfolio_risk_summary,
+)
 
 
 def _build_panel(n_stocks: int = 28, n_days: int = 170) -> pd.DataFrame:
@@ -148,6 +157,93 @@ class AShareAllocationStrategyTest(unittest.TestCase):
         self.assertEqual(review.iloc[0]["趋势"], "趋势转弱")
         self.assertEqual(review.iloc[0]["建议动作"], "反弹减仓")
         self.assertIn("CMF5-0.120", review.iloc[0]["理由"])
+
+    def test_load_cross_strategy_signals_collects_latest_outputs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            volatility_dir = base / "jobs" / "volatility" / "outputs"
+            volatility_dir.mkdir(parents=True)
+            pd.DataFrame(
+                [
+                    {"股票代码": "600001", "信号类型": "波动扩张"},
+                    {"股票代码": "600002", "信号类型": "异常波动", "异常分类": "异常放量下跌"},
+                ]
+            ).to_csv(volatility_dir / "latest_candidates.csv", index=False, encoding="utf-8-sig")
+
+            boll_dir = base / "jobs" / "boll" / "outputs"
+            boll_dir.mkdir(parents=True)
+            pd.DataFrame(
+                [
+                    {"股票代码": "600003", "信号类型": "下轨止跌观察"},
+                    {"股票代码": "600004", "信号类型": "上轨放量滞涨"},
+                ]
+            ).to_csv(boll_dir / "latest_candidates.csv", index=False, encoding="utf-8-sig")
+
+            three_dim_dir = base / "jobs" / "three_dim_resonance" / "outputs"
+            three_dim_dir.mkdir(parents=True)
+            (three_dim_dir / "latest_summary.json").write_text(
+                json.dumps(
+                    {
+                        "buy_suggestions": [{"code": "600005"}],
+                        "sell_suggestions": [{"code": "600006", "reason": "趋势走弱"}],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            context = _load_cross_strategy_signals(str(base))
+
+        self.assertIn("波动扩张", context["by_code"]["600001"]["opportunity"])
+        self.assertIn("异常放量下跌", context["by_code"]["600002"]["risk"])
+        self.assertIn("BOLL下轨止跌", context["by_code"]["600003"]["watch"])
+        self.assertIn("BOLL上轨滞涨", context["by_code"]["600004"]["risk"])
+        self.assertIn("三维买入建议", context["by_code"]["600005"]["opportunity"])
+        self.assertIn("三维卖出建议(趋势走弱)", context["by_code"]["600006"]["risk"])
+
+    def test_cross_strategy_context_updates_portfolio_and_candidates(self):
+        context = {
+            "by_code": {
+                "600001": {"risk": ["BOLL上轨滞涨"], "opportunity": [], "watch": []},
+                "600002": {"risk": [], "opportunity": ["波动扩张", "三维买入建议"], "watch": []},
+            },
+            "source_counts": {},
+        }
+        portfolio = pd.DataFrame(
+            [
+                {
+                    "股票代码": "600001",
+                    "股票名称": "风险票",
+                    "主题": "测试",
+                    "仓位": 10.0,
+                    "评分": 80.0,
+                    "趋势": "上升趋势",
+                    "建议动作": "继续持有",
+                    "理由": "原始理由",
+                }
+            ]
+        )
+        candidates = pd.DataFrame(
+            [
+                {
+                    "股票代码": "600002",
+                    "股票名称": "机会票",
+                    "收盘价": 10.0,
+                    "日涨跌%": 1.0,
+                    "总分": 88.0,
+                    "入选依据": "综合评分靠前",
+                    "操作提示": "可观察",
+                }
+            ]
+        )
+
+        portfolio_out = _apply_cross_strategy_to_portfolio(portfolio, context)
+        candidates_out = _apply_cross_strategy_to_candidates(candidates, context)
+
+        self.assertEqual(portfolio_out.iloc[0]["建议动作"], "减仓观察")
+        self.assertIn("BOLL上轨滞涨", portfolio_out.iloc[0]["策略联动"])
+        self.assertIn("波动扩张", candidates_out.iloc[0]["策略联动"])
+        self.assertIn("多策略机会", candidates_out.iloc[0]["入选依据"])
 
 
 if __name__ == "__main__":

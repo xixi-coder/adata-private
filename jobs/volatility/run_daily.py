@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import datetime as dt
-import json
 import os
 import smtplib
 import sys
 from email.message import EmailMessage
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -21,6 +18,14 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from jobs.common.a_share_metadata import load_stock_metadata
+from jobs.common.daily_job import (
+    now_shanghai as _now_shanghai,
+    read_bool_env as _read_bool_env,
+    read_float_env as _read_float_env,
+    read_int_env as _read_int_env,
+    resolve_trade_date as _resolve_trade_date,
+    write_json as _write_json,
+)
 from jobs.common.email_format import set_rich_email_content
 from strategies.volatility import QualityGateConfig, VolatilityStrategy, VolatilityStrategyConfig
 
@@ -30,68 +35,8 @@ SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
 RISK_KEYWORDS = ("退市", "立案", "调查", "诉讼", "资金占用", "违规担保", "债务", "处罚", "冻结")
 
 
-def _now_shanghai() -> dt.datetime:
-    return dt.datetime.now(ZoneInfo("Asia/Shanghai"))
-
-
-def _read_bool_env(name: str, default: bool) -> bool:
-    value = os.getenv(name, "").strip().lower()
-    if value == "":
-        return default
-    return value in {"1", "true", "yes", "y", "on"}
-
-
-def _read_int_env(name: str, default: int) -> int:
-    value = os.getenv(name, "").strip()
-    return default if value == "" else int(value)
-
-
-def _read_float_env(name: str, default: float) -> float:
-    value = os.getenv(name, "").strip()
-    return default if value == "" else float(value)
-
-
-def _write_json(path: str, payload: dict[str, Any]) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-
-def _load_trade_calendar(year: int) -> pd.DataFrame:
-    import adata
-
-    calendar = adata.stock.info.trade_calendar(year=year)
-    if calendar is None or calendar.empty:
-        return pd.DataFrame()
-    calendar = calendar.copy()
-    calendar["trade_date"] = pd.to_datetime(calendar["trade_date"], errors="coerce").dt.strftime("%Y-%m-%d")
-    calendar["trade_status"] = pd.to_numeric(calendar["trade_status"], errors="coerce").fillna(0).astype(int)
-    return calendar.dropna(subset=["trade_date"])
-
-
 def resolve_trade_date(requested: str | None = None) -> tuple[str, bool, str]:
-    today = requested or _now_shanghai().strftime("%Y-%m-%d")
-    try:
-        year = pd.to_datetime(today).year
-    except Exception:
-        return today, False, f"日期格式无效: {today}"
-
-    try:
-        calendar = _load_trade_calendar(year)
-    except Exception as exc:
-        calendar = pd.DataFrame()
-        print(f"交易日历获取失败，退化为工作日判断: {exc}")
-    if calendar.empty:
-        weekday = pd.to_datetime(today).weekday()
-        is_weekday = weekday < 5
-        note = "交易日历不可用，已退化为工作日判断。" if is_weekday else "非工作日，跳过。"
-        return today, is_weekday, note
-
-    row = calendar[calendar["trade_date"] == today]
-    if row.empty:
-        return today, False, "交易日历未包含该日期，跳过。"
-    is_trade_day = int(row.iloc[0]["trade_status"]) == 1
-    return today, is_trade_day, "交易日，执行波动结构扫描。" if is_trade_day else "非A股交易日，跳过扫描。"
+    return _resolve_trade_date(requested, action="执行波动结构扫描", skip_action="跳过扫描")
 
 
 def _format_cell(value: Any) -> str:
@@ -131,7 +76,9 @@ def _format_signal_lines(df: pd.DataFrame, limit: int) -> list[str]:
         close = _format_cell(row.get("收盘价", ""))
         watch = _format_cell(row.get("观察价", ""))
         invalid = _format_cell(row.get("失效价", ""))
-        lines.append(f"{idx}. {code} {name} [{tag}] 分{score} 风险{risk} 收{close} 观察{watch} 失效{invalid}")
+        anomaly = _format_cell(row.get("异常分类", ""))
+        anomaly_text = f" {anomaly}" if anomaly else ""
+        lines.append(f"{idx}. {code} {name} [{tag}]{anomaly_text} 分{score} 风险{risk} 收{close} 观察{watch} 失效{invalid}")
     return lines
 
 
@@ -354,6 +301,7 @@ def _to_output_df(signals: pd.DataFrame) -> pd.DataFrame:
                 "距120日线%",
                 "60日线20日斜率%",
                 "60日回撤%",
+                "异常分类",
                 "观察价",
                 "失效价",
                 "入选依据",
@@ -380,6 +328,7 @@ def _to_output_df(signals: pd.DataFrame) -> pd.DataFrame:
             "距120日线%": (signals["close_to_ma120"] * 100).round(2),
             "60日线20日斜率%": (signals["ma60_slope20"] * 100).round(2),
             "60日回撤%": (signals["drawdown60"] * 100).round(2),
+            "异常分类": signals.get("anomaly_category", pd.Series("", index=signals.index)),
             "观察价": signals["watch_price"].round(3),
             "失效价": signals["invalid_price"].round(3),
             "入选依据": signals["reason"],
@@ -541,6 +490,7 @@ def main() -> None:
         "note": trade_note,
         "candidate_count": int(len(candidates)),
         "quality_report": strategy.quality_report,
+        "signal_funnel": strategy.signal_funnel_summary(trade_date),
         "cluster_summary": cluster_summary,
     }
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)

@@ -34,6 +34,7 @@ class ThreeDimResonanceLiveStrategy(
         self.metadata = load_stock_metadata(PROJECT_ROOT)
         self.stock_names = {}
         self.last_entry_skip_reason = ""
+        self.last_entry_diagnostics = {}
         try:
             self.today_k_coverage_min = float(os.getenv("THREE_DIM_TODAY_K_COVERAGE_MIN", "0.85"))
         except ValueError:
@@ -75,6 +76,7 @@ class ThreeDimResonanceLiveStrategy(
             "status": "ok",
             "note": rerun_note,
             "entry_skip_reason": self.last_entry_skip_reason,
+            "entry_diagnostics": self.last_entry_diagnostics,
         }
         print(
             f"[daily] {trade_date} 建议汇总: "

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from strategies.volatility import QualityGateConfig, VolatilityStrategy, VolatilityStrategyConfig
-from jobs.volatility.run_daily import _attach_cluster_tags, _build_email_body, _cluster_summary, _fetch_stock_tag_from_adata
+from jobs.volatility.run_daily import _attach_cluster_tags, _build_email_body, _cluster_summary, _fetch_stock_tag_from_adata, _to_output_df
 
 
 def _stock_frame(
@@ -107,6 +107,80 @@ class VolatilityStrategyTest(unittest.TestCase):
         self.assertIn("risk_level", signals.columns)
         self.assertIn("amount_ratio1_20", signals.columns)
         self.assertTrue(set(signals["stock_code"]).issubset({"600010", "600011", "600012"}))
+
+    def test_signal_funnel_summary_exposes_condition_counts(self):
+        panel = pd.concat(
+            [
+                _stock_frame("600020", amount=220_000_000, squeeze=True),
+                _stock_frame("600021", amount=260_000_000),
+            ],
+            ignore_index=True,
+        )
+        meta = {
+            "600020": {"short_name": "漏斗一", "list_date": pd.Timestamp("2020-01-01")},
+            "600021": {"short_name": "漏斗二", "list_date": pd.Timestamp("2020-01-01")},
+        }
+        strategy = VolatilityStrategy(
+            VolatilityStrategyConfig(
+                quality=QualityGateConfig(min_amount_ma20=50_000_000, min_price=2.0),
+                universe_size=None,
+            )
+        )
+        strategy.set_panel(panel)
+        strategy.compute_features(stock_meta=meta)
+
+        funnel = strategy.signal_funnel_summary()
+
+        self.assertEqual(funnel["scanned_count"], 2)
+        self.assertIn("波动收敛", funnel["signals"])
+        self.assertIn("condition_counts", funnel["signals"]["波动扩张"])
+        self.assertIn("当日成交额放大", funnel["signals"]["波动扩张"]["condition_counts"])
+        self.assertGreaterEqual(funnel["signals"]["异常波动"]["selected_count"], 0)
+
+    def test_anomaly_category_is_exposed_in_output(self):
+        row = pd.Series(
+            {
+                "ret_1d": -0.045,
+                "amount_ratio5_20": 2.1,
+                "close_to_high20": 0.90,
+                "drawdown60": 0.18,
+            }
+        )
+        self.assertEqual(VolatilityStrategy._anomaly_category(row), "异常放量下跌")
+
+        signals = pd.DataFrame(
+            [
+                {
+                    "trade_date": pd.Timestamp("2026-07-08"),
+                    "stock_code": "600010",
+                    "short_name": "异动票",
+                    "signal_type": "异常波动",
+                    "score": 88.0,
+                    "risk_level": "高",
+                    "close": 10.5,
+                    "ret_1d": -0.045,
+                    "ret_20d": 0.02,
+                    "range_pct": 0.12,
+                    "squeeze_ratio": 1.2,
+                    "amount_ma20": 200_000_000,
+                    "amount_ratio1_20": 2.0,
+                    "amount_ratio5_20": 2.1,
+                    "close_to_ma20": 0.01,
+                    "close_to_ma60": 0.03,
+                    "close_to_ma120": 0.05,
+                    "ma60_slope20": 0.01,
+                    "drawdown60": 0.18,
+                    "watch_price": 10.3,
+                    "invalid_price": 9.8,
+                    "anomaly_category": "异常放量下跌",
+                    "reason": "异常分类=异常放量下跌",
+                }
+            ]
+        )
+
+        output = _to_output_df(signals)
+
+        self.assertEqual(output.iloc[0]["异常分类"], "异常放量下跌")
 
     def test_cluster_summary_groups_expansion_candidates(self):
         candidates = pd.DataFrame(

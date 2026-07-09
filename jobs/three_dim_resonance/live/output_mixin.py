@@ -46,9 +46,12 @@ class OutputMixin:
                 reason = item.get("reason", "三维共振通过")
                 detail = item.get("reason_detail", "")
                 detail_text = f" 明细={detail}" if detail else ""
+                trigger = item.get("trigger_price", "")
+                invalid = item.get("invalid_price", "")
                 lines.append(
                     f"{idx}. {item['code']} {item['short_name']} "
                     f"收盘价={item['close_price']} 分数={item['score']} 形态={item['entry_shape']} "
+                    f"触发价={trigger} 失效价={invalid} "
                     f"原因={reason}{detail_text}"
                 )
         else:

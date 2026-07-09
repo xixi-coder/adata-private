@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import pickle
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from jobs.common.a_share_metadata import is_excluded_short_name, is_supported_a_share_code, normalize_code
+from jobs.common.a_share_panel import load_a_share_panel, standardize_daily_df
 
 
 @dataclass
@@ -57,34 +57,7 @@ class VolatilityStrategy:
 
     @staticmethod
     def _standardize_daily_df(code: str, df: pd.DataFrame) -> pd.DataFrame:
-        if df is None or df.empty:
-            return pd.DataFrame()
-        out = df.copy()
-        if "trade_date" in out.columns:
-            out["trade_date"] = pd.to_datetime(out["trade_date"], errors="coerce")
-        elif "trade_time" in out.columns:
-            out["trade_date"] = pd.to_datetime(out["trade_time"], errors="coerce")
-        else:
-            return pd.DataFrame()
-
-        out["stock_code"] = out.get("stock_code", code)
-        out["stock_code"] = out["stock_code"].map(normalize_code)
-        if "pre_close" not in out.columns:
-            out["pre_close"] = out.groupby("stock_code")["close"].shift(1) if "close" in out.columns else np.nan
-
-        required = ["stock_code", "trade_date", "open", "high", "low", "close", "volume", "amount"]
-        if any(col not in out.columns for col in required):
-            return pd.DataFrame()
-        for col in ["open", "high", "low", "close", "volume", "amount", "turnover_ratio", "pre_close"]:
-            if col in out.columns:
-                out[col] = pd.to_numeric(out[col], errors="coerce")
-        keep_cols = [col for col in required + ["turnover_ratio", "pre_close"] if col in out.columns]
-        return (
-            out[keep_cols]
-            .dropna(subset=["stock_code", "trade_date", "open", "high", "low", "close", "amount"])
-            .sort_values("trade_date")
-            .drop_duplicates(["stock_code", "trade_date"])
-        )
+        return standardize_daily_df(code, df)
 
     @staticmethod
     def _pct_rank(series: pd.Series, ascending: bool = True) -> pd.Series:
@@ -95,30 +68,7 @@ class VolatilityStrategy:
 
     def load_market_cache(self, path: str | None = None) -> pd.DataFrame:
         cache_path = path or self.market_cache_file
-        if not os.path.exists(cache_path):
-            raise FileNotFoundError(f"找不到市场缓存文件: {cache_path}")
-        with open(cache_path, "rb") as f:
-            cache = pickle.load(f)
-        stock_data = cache.get("stock") if isinstance(cache, dict) and "stock" in cache else cache
-        if not isinstance(stock_data, dict):
-            raise ValueError("市场缓存结构异常，预期为股票代码到 DataFrame 的映射。")
-
-        frames = []
-        for raw_code, df in stock_data.items():
-            code = normalize_code(raw_code)
-            if not is_supported_a_share_code(code):
-                continue
-            standardized = self._standardize_daily_df(code, df)
-            if not standardized.empty:
-                frames.append(standardized)
-        if not frames:
-            raise RuntimeError("未从缓存中解析出可用日线数据。")
-        panel = pd.concat(frames, ignore_index=True).sort_values(["stock_code", "trade_date"])
-        if self.config.universe_size:
-            liquid = panel.groupby("stock_code").tail(20).groupby("stock_code")["amount"].mean()
-            keep = set(liquid.sort_values(ascending=False).head(self.config.universe_size).index)
-            panel = panel[panel["stock_code"].isin(keep)].copy()
-        self.panel_df = panel.reset_index(drop=True)
+        self.panel_df = load_a_share_panel(cache_path, universe_size=self.config.universe_size)
         return self.panel_df
 
     def set_panel(self, panel_df: pd.DataFrame) -> pd.DataFrame:
@@ -322,16 +272,7 @@ class VolatilityStrategy:
     def latest_signals(self, trade_date: str | pd.Timestamp | None = None) -> pd.DataFrame:
         if self.feature_df.empty:
             raise RuntimeError("请先调用 compute_features。")
-        features = self.feature_df.copy()
-        if trade_date is None:
-            signal_date = features["trade_date"].max()
-        else:
-            requested = pd.to_datetime(trade_date)
-            dates = sorted(d for d in features["trade_date"].drop_duplicates().tolist() if d <= requested)
-            if not dates:
-                raise RuntimeError(f"波动策略没有覆盖日期: {trade_date}")
-            signal_date = dates[-1]
-        day = features[features["trade_date"].eq(signal_date)].copy()
+        signal_date, day = self._resolve_signal_day(trade_date)
         if day.empty:
             return pd.DataFrame()
 
@@ -345,7 +286,19 @@ class VolatilityStrategy:
         result = result.sort_values(["signal_type", "score"], ascending=[True, False])
         return result.drop_duplicates(["stock_code", "signal_type"]).reset_index(drop=True)
 
-    def _select_signal(self, day: pd.DataFrame, signal_type: str, score_col: str, limit: int) -> pd.DataFrame:
+    def _resolve_signal_day(self, trade_date: str | pd.Timestamp | None = None) -> tuple[pd.Timestamp, pd.DataFrame]:
+        features = self.feature_df.copy()
+        if trade_date is None:
+            signal_date = features["trade_date"].max()
+        else:
+            requested = pd.to_datetime(trade_date)
+            dates = sorted(d for d in features["trade_date"].drop_duplicates().tolist() if d <= requested)
+            if not dates:
+                raise RuntimeError(f"波动策略没有覆盖日期: {trade_date}")
+            signal_date = dates[-1]
+        return signal_date, features[features["trade_date"].eq(signal_date)].copy()
+
+    def _signal_conditions(self, day: pd.DataFrame, signal_type: str) -> tuple[dict[str, pd.Series], pd.Series, str, int]:
         source = day.copy()
         if signal_type == "波动收敛":
             trend_ok = (
@@ -353,32 +306,82 @@ class VolatilityStrategy:
                 | source["close_to_ma120"].ge(self.config.min_squeeze_close_to_ma120)
                 | source["ma120"].isna()
             )
-            mask = (
-                source["squeeze_ratio"].between(0.35, 0.85)
-                & source["close_to_ma60"].between(-0.08, 0.12)
-                & source["ret_20d"].between(-0.18, 0.30)
-                & trend_ok
-            )
-        elif signal_type == "波动扩张":
+            conditions = {
+                "波动收敛": source["squeeze_ratio"].between(0.35, 0.85),
+                "贴近60日线": source["close_to_ma60"].between(-0.08, 0.12),
+                "20日涨跌适中": source["ret_20d"].between(-0.18, 0.30),
+                "趋势未破坏": trend_ok,
+            }
+            return conditions, self._and_conditions(conditions), "squeeze_score", self.config.squeeze_limit
+        if signal_type == "波动扩张":
             perfect_bear = (
                 (source["close"] < source["ma20"])
                 & (source["ma20"] < source["ma60"])
                 & (source["ma60"] < source["ma120"])
             )
-            mask = (
-                (source["range_pct"] >= source["range_ma20"] * 1.35)
-                & (source["amount_ratio1_20"] >= self.config.min_expansion_amount_ratio1_20)
-                & (source["amount_ratio5_20"] >= 1.05)
-                & (source["close"] >= source["ma20"])
-                & (source["ret_1d"] > 0)
-                & ~perfect_bear.fillna(False)
-            )
-        else:
-            mask = (
-                (source["range_pct"] >= source["range_ma20"] * 1.8)
-                | (source["amount_ratio5_20"] >= 2.2)
-                | (source["ret_1d"].abs() >= 0.085)
-            )
+            conditions = {
+                "当日振幅放大": source["range_pct"] >= source["range_ma20"] * 1.35,
+                "当日成交额放大": source["amount_ratio1_20"] >= self.config.min_expansion_amount_ratio1_20,
+                "5日成交额活跃": source["amount_ratio5_20"] >= 1.05,
+                "收盘站上20日线": source["close"] >= source["ma20"],
+                "当日上涨": source["ret_1d"] > 0,
+                "非空头排列": ~perfect_bear.fillna(False),
+            }
+            return conditions, self._and_conditions(conditions), "expansion_score", self.config.expansion_limit
+
+        anomaly_conditions = {
+            "当日振幅异常": source["range_pct"] >= source["range_ma20"] * 1.8,
+            "5日成交额异常": source["amount_ratio5_20"] >= 2.2,
+            "当日涨跌异常": source["ret_1d"].abs() >= 0.085,
+        }
+        mask = self._or_conditions(anomaly_conditions)
+        return anomaly_conditions, mask, "anomaly_score", self.config.anomaly_limit
+
+    @staticmethod
+    def _and_conditions(conditions: dict[str, pd.Series]) -> pd.Series:
+        if not conditions:
+            return pd.Series(dtype=bool)
+        values = list(conditions.values())
+        mask = values[0].fillna(False)
+        for item in values[1:]:
+            mask = mask & item.fillna(False)
+        return mask
+
+    @staticmethod
+    def _or_conditions(conditions: dict[str, pd.Series]) -> pd.Series:
+        if not conditions:
+            return pd.Series(dtype=bool)
+        values = list(conditions.values())
+        mask = values[0].fillna(False)
+        for item in values[1:]:
+            mask = mask | item.fillna(False)
+        return mask
+
+    def signal_funnel_summary(self, trade_date: str | pd.Timestamp | None = None) -> dict[str, Any]:
+        if self.feature_df.empty:
+            raise RuntimeError("请先调用 compute_features。")
+        signal_date, day = self._resolve_signal_day(trade_date)
+        summary: dict[str, Any] = {
+            "signal_date": pd.to_datetime(signal_date).strftime("%Y-%m-%d"),
+            "scanned_count": int(len(day)),
+            "signals": {},
+        }
+        for signal_type in ("波动收敛", "波动扩张", "异常波动"):
+            conditions, mask, score_col, limit = self._signal_conditions(day, signal_type)
+            score_mask = day[score_col].notna()
+            selected = day[mask & score_mask].sort_values(score_col, ascending=False).head(limit)
+            summary["signals"][signal_type] = {
+                "condition_counts": {name: int(series.fillna(False).sum()) for name, series in conditions.items()},
+                "passed_count": int(mask.sum()),
+                "score_available_count": int((mask & score_mask).sum()),
+                "selected_limit": int(limit),
+                "selected_count": int(len(selected)),
+            }
+        return summary
+
+    def _select_signal(self, day: pd.DataFrame, signal_type: str, score_col: str, limit: int) -> pd.DataFrame:
+        source = day.copy()
+        _conditions, mask, _score_col, _limit = self._signal_conditions(source, signal_type)
         selected = source[mask & source[score_col].notna()].sort_values(score_col, ascending=False).head(limit)
         if selected.empty:
             return pd.DataFrame()
@@ -399,6 +402,11 @@ class VolatilityStrategy:
             np.maximum(out["ma20"], out["close"] * 0.985),
         )
         out["invalid_price"] = np.minimum(out["ma20"], out["low20"] * 0.98)
+        out["anomaly_category"] = np.where(
+            signal_type == "异常波动",
+            out.apply(self._anomaly_category, axis=1),
+            "",
+        )
         out["reason"] = out.apply(self._reason_text, axis=1)
         keep_cols = [
             "trade_date",
@@ -420,6 +428,7 @@ class VolatilityStrategy:
             "close_to_ma120",
             "ma60_slope20",
             "drawdown60",
+            "anomaly_category",
             "watch_price",
             "invalid_price",
             "reason",
@@ -427,8 +436,30 @@ class VolatilityStrategy:
         return out[keep_cols]
 
     @staticmethod
+    def _anomaly_category(row: pd.Series) -> str:
+        ret_1d = float(row.get("ret_1d", 0.0)) if pd.notna(row.get("ret_1d")) else 0.0
+        amount_ratio = float(row.get("amount_ratio5_20", 0.0)) if pd.notna(row.get("amount_ratio5_20")) else 0.0
+        close_to_high20 = float(row.get("close_to_high20", 0.0)) if pd.notna(row.get("close_to_high20")) else 0.0
+        drawdown60 = float(row.get("drawdown60", 0.0)) if pd.notna(row.get("drawdown60")) else 0.0
+
+        high_position = close_to_high20 >= 0.94 or drawdown60 <= 0.08
+        low_position = drawdown60 >= 0.25
+        volume_spike = amount_ratio >= 1.6
+        if ret_1d >= 0.03 and volume_spike:
+            return "异常放量上涨"
+        if ret_1d <= -0.03 and volume_spike:
+            return "异常放量下跌"
+        if high_position:
+            return "高位巨震"
+        if low_position:
+            return "低位异动"
+        return "异常震荡"
+
+    @staticmethod
     def _reason_text(row: pd.Series) -> str:
         parts = []
+        if row.get("signal_type") == "异常波动" and row.get("anomaly_category"):
+            parts.append(f"异常分类={row['anomaly_category']}")
         if pd.notna(row.get("squeeze_ratio")):
             parts.append(f"20日振幅/60日振幅={row['squeeze_ratio']:.2f}")
         if pd.notna(row.get("amount_ratio5_20")):

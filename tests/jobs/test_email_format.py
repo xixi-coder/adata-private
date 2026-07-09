@@ -24,8 +24,8 @@ class EmailFormatTest(unittest.TestCase):
         self.assertIn("Market Radar", html)
         self.assertIn("💧", html)
         self.assertIn("<table", html)
-        self.assertIn("color:#0f8a44", html)
-        self.assertIn("color:#c73535", html)
+        self.assertIn('<span style="color:#c73535;font-weight:700;">+12.5%</span>', html)
+        self.assertIn('<span style="color:#0f8a44;font-weight:700;">-3.2%</span>', html)
 
     def test_set_rich_email_content_keeps_plain_text_fallback(self):
         msg = EmailMessage()

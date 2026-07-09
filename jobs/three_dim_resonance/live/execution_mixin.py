@@ -170,6 +170,17 @@ class ExecutionMixin:
         # - 最后按 score 排序，保留 max_positions * 3 个待执行候选
         market_status = self._market_gate_status(trade_date)
         self.last_entry_skip_reason = ""
+        self.last_entry_diagnostics = {
+            "trade_date": trade_date,
+            "market_gate": market_status,
+            "scanned_count": 0,
+            "blocked_position_count": len(state["positions"]),
+            "missing_day_k_count": 0,
+            "stage_counts": {},
+            "near_miss_samples": [],
+            "candidate_count": 0,
+            "suggestion_count": 0,
+        }
         if not market_status["ok"]:
             print(f"[entry] {trade_date} 市场开关关闭，跳过买入候选扫描。")
             if market_status.get("checks"):
@@ -237,6 +248,7 @@ class ExecutionMixin:
                     near_miss_samples.append(f"{code}(仅缺{miss_dim})")
                 continue
             row = df.loc[trade_date]
+            execution_prices = self._entry_execution_prices(row)
             candidates.append(
                 {
                     "code": code,
@@ -249,10 +261,23 @@ class ExecutionMixin:
                         "double_bottom" if meta.get("double_bottom") else "platform_breakout"
                     ),
                     "close_price": round(float(row["close"]), 3),
+                    "trigger_price": execution_prices["trigger_price"],
+                    "invalid_price": execution_prices["invalid_price"],
                 }
             )
         candidates.sort(key=lambda item: item["score"], reverse=True)
         final_candidates = candidates[: self.max_positions * 3]
+        self.last_entry_diagnostics.update(
+            {
+                "scanned_count": int(scanned),
+                "blocked_position_count": int(len(blocked)),
+                "missing_day_k_count": int(skipped_missing_day_k),
+                "stage_counts": {key: int(value) for key, value in stage_counts.items()},
+                "near_miss_samples": near_miss_samples,
+                "candidate_count": int(len(candidates)),
+                "suggestion_count": int(min(len(final_candidates), self.max_positions)),
+            }
+        )
 
         print(
             f"[entry] {trade_date} 候选扫描: 股票池={len(self.stock_data)} "
@@ -281,6 +306,27 @@ class ExecutionMixin:
             self.last_entry_skip_reason = "无股票同时满足三维共振条件。"
             print(f"[entry] {trade_date} 建议买入为空：无股票同时满足三维共振条件。")
         return final_candidates
+
+    def _entry_execution_prices(self, row) -> dict:
+        close = float(row.get("close", 0.0))
+        anchors = []
+        for key in ("prior_high_break", "platform_high"):
+            value = row.get(key)
+            if value is not None and np.isfinite(value) and float(value) > 0:
+                anchors.append(float(value))
+        anchor = max(anchors) if anchors else close
+        trigger_price = max(close, anchor * 1.003)
+
+        stops = []
+        for key in ("ma20", "low"):
+            value = row.get(key)
+            if value is not None and np.isfinite(value) and float(value) > 0:
+                stops.append(float(value) * (0.985 if key == "ma20" else 0.98))
+        invalid_price = min(stops) if stops else close * 0.94
+        return {
+            "trigger_price": round(float(trigger_price), 3),
+            "invalid_price": round(float(invalid_price), 3),
+        }
 
     def _positions_snapshot(self, state: dict, trade_date: str) -> list[dict]:
         snapshot = []

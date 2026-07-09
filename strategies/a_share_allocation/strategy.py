@@ -4,13 +4,15 @@ from __future__ import annotations
 import argparse
 import math
 import os
-import pickle
 import re
 from dataclasses import dataclass
 from typing import Iterable
 
 import numpy as np
 import pandas as pd
+
+from jobs.common.a_share_metadata import is_supported_a_share_code, normalize_code
+from jobs.common.a_share_panel import load_a_share_panel, standardize_daily_df
 
 
 @dataclass
@@ -64,46 +66,15 @@ class AShareAllocationStrategy:
 
     @staticmethod
     def _normalize_code(value) -> str:
-        if pd.isna(value):
-            return ""
-        text = str(value).strip()
-        if text.endswith(".0"):
-            text = text[:-2]
-        return text.zfill(6) if text.isdigit() else text
+        return normalize_code(value)
 
     @staticmethod
     def _is_supported_equity_code(code: str) -> bool:
-        if not (isinstance(code, str) and len(code) == 6 and code.isdigit()):
-            return False
-        # Exclude B shares and obvious non-common-equity prefixes. Keep STAR/GEM.
-        return not code.startswith(("2", "4", "8", "9"))
+        return is_supported_a_share_code(code)
 
     @staticmethod
     def _standardize_daily_df(code: str, df: pd.DataFrame) -> pd.DataFrame:
-        if df is None or df.empty:
-            return pd.DataFrame()
-        out = df.copy()
-        if "trade_date" not in out.columns:
-            date_col = "trade_time" if "trade_time" in out.columns else None
-            if date_col is None:
-                return pd.DataFrame()
-            out["trade_date"] = pd.to_datetime(out[date_col], errors="coerce")
-        else:
-            out["trade_date"] = pd.to_datetime(out["trade_date"], errors="coerce")
-
-        out["stock_code"] = out.get("stock_code", code)
-        out["stock_code"] = out["stock_code"].map(AShareAllocationStrategy._normalize_code)
-        required = ["stock_code", "trade_date", "open", "high", "low", "close", "volume", "amount"]
-        missing = [col for col in required if col not in out.columns]
-        if missing:
-            return pd.DataFrame()
-        for col in ["open", "high", "low", "close", "volume", "amount", "turnover_ratio", "pre_close"]:
-            if col in out.columns:
-                out[col] = pd.to_numeric(out[col], errors="coerce")
-        keep_cols = [col for col in required + ["turnover_ratio", "pre_close"] if col in out.columns]
-        out = out[keep_cols].dropna(subset=["stock_code", "trade_date", "open", "close", "amount"])
-        out = out.sort_values("trade_date").drop_duplicates(["stock_code", "trade_date"])
-        return out
+        return standardize_daily_df(code, df)
 
     @staticmethod
     def _safe_pct_rank(series: pd.Series, ascending: bool = True) -> pd.Series:
@@ -149,38 +120,11 @@ class AShareAllocationStrategy:
 
     def load_market_cache(self, path: str | None = None, universe_size: int | None = None) -> pd.DataFrame:
         cache_path = path or self.market_cache_file
-        if not os.path.exists(cache_path):
-            raise FileNotFoundError(f"找不到市场缓存文件: {cache_path}")
-        with open(cache_path, "rb") as f:
-            cache = pickle.load(f)
-        stock_data = cache.get("stock") if isinstance(cache, dict) and "stock" in cache else cache
-        if not isinstance(stock_data, dict):
-            raise ValueError("市场缓存结构异常，预期为股票代码到 DataFrame 的映射。")
-
-        frames = []
-        for code, df in stock_data.items():
-            code = self._normalize_code(code)
-            if not self._is_supported_equity_code(code):
-                continue
-            standardized = self._standardize_daily_df(code, df)
-            if standardized.empty or len(standardized) < self.config.min_history_days:
-                continue
-            frames.append(standardized)
-        if not frames:
-            raise RuntimeError("未从缓存中解析出可用日线数据。")
-
-        panel = pd.concat(frames, ignore_index=True)
-        panel = panel.sort_values(["stock_code", "trade_date"]).reset_index(drop=True)
-        if universe_size:
-            latest = (
-                panel.groupby("stock_code", sort=False)
-                .tail(20)
-                .groupby("stock_code")["amount"]
-                .mean()
-                .sort_values(ascending=False)
-            )
-            keep = set(latest.head(universe_size).index)
-            panel = panel[panel["stock_code"].isin(keep)].copy()
+        panel = load_a_share_panel(
+            cache_path,
+            min_history_days=self.config.min_history_days,
+            universe_size=universe_size,
+        )
         self.panel_df = panel
         return self.panel_df
 

@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import datetime as dt
 import json
 import os
 import sys
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -19,6 +17,14 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from jobs.common.a_share_metadata import load_stock_metadata
+from jobs.common.daily_job import (
+    now_shanghai as _now_shanghai,
+    read_bool_env as _read_bool_env,
+    read_float_env as _read_float_env,
+    read_int_env as _read_int_env,
+    resolve_trade_date as _resolve_trade_date,
+    write_json as _write_json,
+)
 from strategies.a_share_allocation import AShareAllocationStrategy, StrategyConfig
 
 
@@ -26,65 +32,8 @@ OUTPUT_DIR = os.path.join(CURRENT_DIR, "outputs")
 SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
 
 
-def _now_shanghai() -> dt.datetime:
-    return dt.datetime.now(ZoneInfo("Asia/Shanghai"))
-
-
-def _read_bool_env(name: str, default: bool) -> bool:
-    value = os.getenv(name, "").strip().lower()
-    if value == "":
-        return default
-    return value in {"1", "true", "yes", "y", "on"}
-
-
-def _read_int_env(name: str, default: int) -> int:
-    value = os.getenv(name, "").strip()
-    return default if value == "" else int(value)
-
-
-def _read_float_env(name: str, default: float) -> float:
-    value = os.getenv(name, "").strip()
-    return default if value == "" else float(value)
-
-
-def _write_json(path: str, payload: dict[str, Any]) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-
-def _load_trade_calendar(year: int) -> pd.DataFrame:
-    import adata
-
-    calendar = adata.stock.info.trade_calendar(year=year)
-    if calendar is None or calendar.empty:
-        return pd.DataFrame()
-    calendar = calendar.copy()
-    calendar["trade_date"] = pd.to_datetime(calendar["trade_date"], errors="coerce").dt.strftime("%Y-%m-%d")
-    calendar["trade_status"] = pd.to_numeric(calendar["trade_status"], errors="coerce").fillna(0).astype(int)
-    return calendar.dropna(subset=["trade_date"])
-
-
 def resolve_trade_date(requested: str | None = None) -> tuple[str, bool, str]:
-    today = requested or _now_shanghai().strftime("%Y-%m-%d")
-    try:
-        year = pd.to_datetime(today).year
-    except Exception:
-        return today, False, f"日期格式无效: {today}"
-
-    calendar = _load_trade_calendar(year)
-    if calendar.empty:
-        # 兜底：交易日历不可用时只按工作日判断，避免网络短暂失败导致任务完全不可用。
-        weekday = pd.to_datetime(today).weekday()
-        is_weekday = weekday < 5
-        note = "交易日历不可用，已退化为工作日判断。" if is_weekday else "非工作日，跳过。"
-        return today, is_weekday, note
-
-    row = calendar[calendar["trade_date"] == today]
-    if row.empty:
-        return today, False, "交易日历未包含该日期，跳过。"
-    is_trade_day = int(row.iloc[0]["trade_status"]) == 1
-    return today, is_trade_day, "交易日，执行复盘。" if is_trade_day else "非A股交易日，跳过复盘。"
+    return _resolve_trade_date(requested, action="执行复盘", skip_action="跳过复盘")
 
 
 def _parse_portfolio() -> list[dict[str, Any]]:
@@ -239,6 +188,135 @@ def _market_regime(strategy: AShareAllocationStrategy, latest_date: pd.Timestamp
     if pd.notna(slope) and slope >= 0:
         return "中性修复", f"沪深300仍未确认强势，但60日均线斜率为正。"
     return "防守", f"沪深300弱于120日均线，且60日均线斜率未改善。"
+
+
+def _normalize_signal_code(value: Any) -> str:
+    text = str(value or "").strip()
+    if text.endswith(".0"):
+        text = text[:-2]
+    return text.zfill(6) if text.isdigit() else text
+
+
+def _empty_cross_strategy_context() -> dict[str, Any]:
+    return {
+        "source_counts": {"volatility": 0, "boll": 0, "three_dim_buy": 0, "three_dim_sell": 0},
+        "by_code": {},
+    }
+
+
+def _add_cross_signal(context: dict[str, Any], code: Any, label: str, kind: str, source: str) -> None:
+    stock_code = _normalize_signal_code(code)
+    if not stock_code:
+        return
+    item = context["by_code"].setdefault(stock_code, {"opportunity": [], "risk": [], "watch": []})
+    bucket = item.setdefault(kind, [])
+    if label not in bucket:
+        bucket.append(label)
+    if source in context["source_counts"]:
+        context["source_counts"][source] += 1
+
+
+def _load_cross_strategy_signals(project_root: str = PROJECT_ROOT) -> dict[str, Any]:
+    context = _empty_cross_strategy_context()
+
+    volatility_path = os.path.join(project_root, "jobs", "volatility", "outputs", "latest_candidates.csv")
+    if os.path.exists(volatility_path):
+        try:
+            df = pd.read_csv(volatility_path, dtype={"股票代码": str})
+            for _, row in df.iterrows():
+                signal_type = str(row.get("信号类型") or "").strip()
+                if signal_type == "波动扩张":
+                    _add_cross_signal(context, row.get("股票代码"), "波动扩张", "opportunity", "volatility")
+                elif signal_type == "波动收敛":
+                    _add_cross_signal(context, row.get("股票代码"), "波动收敛", "watch", "volatility")
+                elif signal_type == "异常波动":
+                    category = str(row.get("异常分类") or "").strip()
+                    label = category or "异常波动"
+                    kind = "risk" if category in {"异常放量下跌", "高位巨震"} else "watch"
+                    _add_cross_signal(context, row.get("股票代码"), label, kind, "volatility")
+        except Exception as exc:
+            print(f"读取波动结构候选失败，跳过策略联动: {exc}")
+
+    boll_path = os.path.join(project_root, "jobs", "boll", "outputs", "latest_candidates.csv")
+    if os.path.exists(boll_path):
+        try:
+            df = pd.read_csv(boll_path, dtype={"股票代码": str})
+            for _, row in df.iterrows():
+                signal_type = str(row.get("信号类型") or "").strip()
+                if signal_type == "下轨止跌观察":
+                    _add_cross_signal(context, row.get("股票代码"), "BOLL下轨止跌", "watch", "boll")
+                elif signal_type == "上轨放量滞涨":
+                    _add_cross_signal(context, row.get("股票代码"), "BOLL上轨滞涨", "risk", "boll")
+        except Exception as exc:
+            print(f"读取BOLL候选失败，跳过策略联动: {exc}")
+
+    three_dim_path = os.path.join(project_root, "jobs", "three_dim_resonance", "outputs", "latest_summary.json")
+    if os.path.exists(three_dim_path):
+        try:
+            with open(three_dim_path, "r", encoding="utf-8") as f:
+                summary = json.load(f)
+            for item in summary.get("buy_suggestions") or []:
+                _add_cross_signal(context, item.get("code"), "三维买入建议", "opportunity", "three_dim_buy")
+            for item in summary.get("sell_suggestions") or []:
+                reason = str(item.get("reason") or "").strip()
+                label = "三维卖出建议" + (f"({reason})" if reason else "")
+                _add_cross_signal(context, item.get("code"), label, "risk", "three_dim_sell")
+        except Exception as exc:
+            print(f"读取三维共振建议失败，跳过策略联动: {exc}")
+
+    return context
+
+
+def _cross_signal_text(signals: dict[str, list[str]]) -> str:
+    parts = []
+    if signals.get("risk"):
+        parts.append("风险: " + "、".join(signals["risk"]))
+    if signals.get("opportunity"):
+        parts.append("机会: " + "、".join(signals["opportunity"]))
+    if signals.get("watch"):
+        parts.append("观察: " + "、".join(signals["watch"]))
+    return "；".join(parts)
+
+
+def _apply_cross_strategy_to_portfolio(portfolio_df: pd.DataFrame, context: dict[str, Any]) -> pd.DataFrame:
+    if portfolio_df.empty:
+        return portfolio_df
+    out = portfolio_df.copy()
+    hints = []
+    for idx, row in out.iterrows():
+        code = _normalize_signal_code(row.get("股票代码"))
+        signals = context.get("by_code", {}).get(code, {})
+        hint = _cross_signal_text(signals)
+        hints.append(hint)
+        risk_signals = signals.get("risk", [])
+        if risk_signals and row.get("建议动作") in {"继续持有", "分批加仓"}:
+            out.at[idx, "建议动作"] = "减仓观察"
+            out.at[idx, "理由"] = str(row.get("理由") or "") + f"；策略联动风险: {'、'.join(risk_signals)}"
+        elif hint:
+            out.at[idx, "理由"] = str(row.get("理由") or "") + f"；策略联动: {hint}"
+    out["策略联动"] = hints
+    return out
+
+
+def _apply_cross_strategy_to_candidates(top_df: pd.DataFrame, context: dict[str, Any]) -> pd.DataFrame:
+    if top_df.empty:
+        return top_df
+    out = top_df.copy()
+    hints = []
+    for idx, row in out.iterrows():
+        code = _normalize_signal_code(row.get("股票代码"))
+        signals = context.get("by_code", {}).get(code, {})
+        hint = _cross_signal_text(signals)
+        hints.append(hint)
+        if not hint:
+            continue
+        if signals.get("opportunity"):
+            out.at[idx, "入选依据"] = str(row.get("入选依据") or "") + f"；多策略机会: {'、'.join(signals['opportunity'])}"
+            out.at[idx, "操作提示"] = str(row.get("操作提示") or "") + "；多策略共振，仍等价格确认"
+        if signals.get("risk"):
+            out.at[idx, "操作提示"] = str(out.at[idx, "操作提示"] or "") + f"；存在风险信号: {'、'.join(signals['risk'])}"
+    out["策略联动"] = hints
+    return out
 
 
 def _portfolio_review(day_scores: pd.DataFrame, positions: list[dict[str, Any]]) -> pd.DataFrame:
@@ -512,7 +590,7 @@ def _build_email_body(
         if watch_df.empty:
             lines.append("无。")
         else:
-            for line in _format_table(watch_df, ["股票代码", "股票名称", "主题", "仓位", "评分", "趋势", "建议动作"], limit=12):
+            for line in _format_table(watch_df, ["股票代码", "股票名称", "主题", "仓位", "评分", "趋势", "建议动作", "策略联动"], limit=12):
                 lines.append(line)
 
         lines.extend(["", "四、可加仓观察"])
@@ -531,7 +609,7 @@ def _build_email_body(
     )
     for line in _format_table(
         top_df,
-        ["股票代码", "股票名称", "收盘价", "日涨跌%", "总分", "入选依据", "操作提示"],
+        ["股票代码", "股票名称", "收盘价", "日涨跌%", "总分", "策略联动", "入选依据", "操作提示"],
         limit=5,
     ):
         lines.append(line)
@@ -663,6 +741,8 @@ def main() -> None:
         ]
     ].head(50)
     top_df = _candidate_review(day_scores, stock_meta, limit=50)
+    cross_strategy = _load_cross_strategy_signals(PROJECT_ROOT)
+    top_df = _apply_cross_strategy_to_candidates(top_df, cross_strategy)
 
     top_raw_df.to_csv(os.path.join(OUTPUT_DIR, "latest_top_candidates_raw.csv"), index=False, encoding="utf-8-sig")
     top_df.to_csv(os.path.join(OUTPUT_DIR, "latest_top_candidates.csv"), index=False, encoding="utf-8-sig")
@@ -672,6 +752,7 @@ def main() -> None:
 
     positions = _parse_portfolio()
     portfolio_df = _portfolio_review(day_scores, positions)
+    portfolio_df = _apply_cross_strategy_to_portfolio(portfolio_df, cross_strategy)
     portfolio_df.to_csv(os.path.join(OUTPUT_DIR, "latest_portfolio_review.csv"), index=False, encoding="utf-8-sig")
 
     market_regime, market_note = _market_regime(strategy, signal_date)
@@ -685,7 +766,7 @@ def main() -> None:
         operation_advice = "控制集中度"
     elif portfolio_df.empty:
         operation_advice = "不需要调仓"
-    elif portfolio_df["建议动作"].isin(["逢高减仓", "反弹减仓"]).any():
+    elif portfolio_df["建议动作"].isin(["逢高减仓", "反弹减仓", "减仓观察"]).any():
         operation_advice = "需要调仓"
     elif portfolio_df["建议动作"].eq("分批加仓").any():
         operation_advice = "可小幅加仓"
@@ -703,6 +784,10 @@ def main() -> None:
         "operation_advice": operation_advice,
         "candidate_count": candidate_count,
         "portfolio_risk": portfolio_risk,
+        "cross_strategy": {
+            "source_counts": cross_strategy.get("source_counts", {}),
+            "matched_code_count": int(len(cross_strategy.get("by_code", {}))),
+        },
         "metrics": metrics,
     }
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)

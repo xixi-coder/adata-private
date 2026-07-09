@@ -40,9 +40,9 @@ def _format_inline(text: str) -> str:
     escaped = re.sub(
         r"([+-]\d+(?:\.\d+)?%)",
         lambda m: (
-            f'<span style="color:#0f8a44;font-weight:700;">{m.group(1)}</span>'
+            f'<span style="color:#c73535;font-weight:700;">{m.group(1)}</span>'
             if m.group(1).startswith("+")
-            else f'<span style="color:#c73535;font-weight:700;">{m.group(1)}</span>'
+            else f'<span style="color:#0f8a44;font-weight:700;">{m.group(1)}</span>'
         ),
         escaped,
     )

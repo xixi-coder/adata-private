@@ -52,6 +52,35 @@ def _boll_frame(code: str, mode: str, n_days: int = 220, amount: float = 180_000
     return pd.DataFrame(rows)
 
 
+def _downtrend_lower_touch_frame(code: str, n_days: int = 220, amount: float = 180_000_000) -> pd.DataFrame:
+    dates = pd.bdate_range("2025-01-01", periods=n_days)
+    close = np.linspace(18.0, 10.0, n_days)
+    close[-70:] = np.linspace(12.0, 9.4, 70)
+    open_ = close.copy()
+    high = close + 0.08
+    low = close - 0.08
+    open_[-1] = 9.35
+    close[-1] = 9.45
+    high[-1] = 9.55
+    low[-1] = 8.95
+    rows = []
+    for i, date in enumerate(dates):
+        rows.append(
+            {
+                "stock_code": code,
+                "trade_date": date,
+                "open": open_[i],
+                "high": high[i],
+                "low": low[i],
+                "close": close[i],
+                "volume": amount / close[i],
+                "amount": amount,
+                "pre_close": close[i - 1] if i > 0 else close[i],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 class BollStrategyTest(unittest.TestCase):
     def test_boll_signals_include_lower_band_buy_and_upper_band_stagnation(self):
         panel = pd.concat(
@@ -85,6 +114,18 @@ class BollStrategyTest(unittest.TestCase):
         self.assertIn("上轨放量滞涨", set(signals["signal_type"]))
         self.assertIn("600100", set(signals[signals["signal_type"].eq("下轨止跌观察")]["stock_code"]))
         self.assertIn("600101", set(signals[signals["signal_type"].eq("上轨放量滞涨")]["stock_code"]))
+        self.assertIn("trend_environment", signals.columns)
+        self.assertIn(
+            signals[signals["stock_code"].eq("600100")].iloc[0]["trend_environment"],
+            {"上升震荡", "横盘震荡", "趋势未确认"},
+        )
+
+        funnel = strategy.signal_funnel_summary()
+
+        self.assertEqual(funnel["scanned_count"], 3)
+        self.assertIn("下轨止跌观察", funnel["signals"])
+        self.assertIn("缩口平行", funnel["signals"]["下轨止跌观察"]["condition_counts"])
+        self.assertGreaterEqual(funnel["signals"]["上轨放量滞涨"]["selected_count"], 1)
 
     def test_quality_gate_still_filters_st_and_illiquid_names(self):
         panel = pd.concat(
@@ -112,6 +153,35 @@ class BollStrategyTest(unittest.TestCase):
         self.assertEqual(set(features["stock_code"].unique()), {"600110"})
         self.assertIn("流动性不足", strategy.quality_report["reject_counts"])
         self.assertIn("ST退市或非普通股", strategy.quality_report["reject_counts"])
+
+    def test_lower_band_buy_excludes_downtrend_channel(self):
+        panel = pd.concat(
+            [
+                _downtrend_lower_touch_frame("600120"),
+                _boll_frame("600121", "sell"),
+            ],
+            ignore_index=True,
+        )
+        meta = {
+            "600120": {"short_name": "下跌下轨", "list_date": pd.Timestamp("2020-01-01")},
+            "600121": {"short_name": "上轨风险", "list_date": pd.Timestamp("2020-01-01")},
+        }
+        strategy = BollStrategy(
+            BollStrategyConfig(
+                quality=QualityGateConfig(min_amount_ma20=50_000_000, min_price=2.0),
+                universe_size=None,
+                buy_limit=10,
+                sell_limit=10,
+                max_bandwidth_ratio=1.50,
+                max_mid_slope20=0.20,
+            )
+        )
+        strategy.set_panel(panel)
+        strategy.compute_features(stock_meta=meta)
+        signals = strategy.latest_signals()
+        buy_codes = set(signals[signals["signal_type"].eq("下轨止跌观察")]["stock_code"]) if not signals.empty else set()
+
+        self.assertNotIn("600120", buy_codes)
 
 
 if __name__ == "__main__":
