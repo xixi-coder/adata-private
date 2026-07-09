@@ -67,13 +67,26 @@ def _looks_like_heading(line: str) -> bool:
     )
 
 
-def _render_table_row(line: str) -> str:
+def _is_table_header(line: str) -> bool:
     cells = [cell.strip() for cell in line.split("|")]
-    body = "".join(
-        '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top;">'
-        f"{_format_inline(cell)}</td>"
-        for cell in cells
-    )
+    return bool(cells and cells[0] in {"序号", "排名"})
+
+
+def _render_table_row(line: str, is_header: bool = False) -> str:
+    cells = [cell.strip() for cell in line.split("|")]
+    if is_header:
+        body = "".join(
+            '<th style="padding:8px 10px;border-bottom:1px solid #d1d5db;vertical-align:top;'
+            'text-align:left;background:#f3f4f6;color:#111827;font-weight:700;">'
+            f"{_format_inline(cell)}</th>"
+            for cell in cells
+        )
+    else:
+        body = "".join(
+            '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top;">'
+            f"{_format_inline(cell)}</td>"
+            for cell in cells
+        )
     return f"<tr>{body}</tr>"
 
 
@@ -121,7 +134,7 @@ def render_email_html(body: str, title: Optional[str] = None, preheader: Optiona
                     "<tbody>"
                 )
                 in_table = True
-            blocks.append(_render_table_row(line))
+            blocks.append(_render_table_row(line, is_header=_is_table_header(line)))
             continue
 
         close_table()

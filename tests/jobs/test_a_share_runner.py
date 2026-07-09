@@ -41,6 +41,14 @@ class AShareRunnerTest(unittest.TestCase):
         self.assertEqual(env["INTRADAY_CACHE_TTL_SECONDS"], "30")
         self.assertEqual(env["TRADE_DATE"], "2026-04-17")
 
+    def test_maintenance_tasks_are_tuned_for_runtime(self):
+        shared_cache = a_share_runner.TASKS["shared_cache"]
+        dividend_cache = a_share_runner.TASKS["dividend_cache"]
+
+        self.assertEqual(shared_cache.env["CACHE_STOCK_MAX_WORKERS"], "8")
+        self.assertEqual(shared_cache.env["AUTO_COMMIT_MINUTES"], "0")
+        self.assertNotIn("--sync-shared-cache", dividend_cache.args)
+
 
 if __name__ == "__main__":
     unittest.main()

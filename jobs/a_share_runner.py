@@ -81,13 +81,16 @@ TASKS: dict[str, RunnerTask] = {
     "shared_cache": RunnerTask(
         name="shared_cache",
         script="jobs/three_dim_resonance/init_cloud_cache.py",
+        env={
+            "CACHE_STOCK_MAX_WORKERS": "8",
+            "AUTO_COMMIT_MINUTES": "0",
+        },
         description="共享日线/财务/基准缓存维护。",
     ),
     "dividend_cache": RunnerTask(
         name="dividend_cache",
         script="jobs/dividend_sync/sync_dividend_cache_once.py",
-        args=("--sync-shared-cache",),
-        description="分红缓存维护，并附带回传共享缓存包。",
+        description="分红缓存维护。",
     ),
 }
 

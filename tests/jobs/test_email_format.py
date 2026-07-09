@@ -39,6 +39,21 @@ class EmailFormatTest(unittest.TestCase):
         self.assertIn("新增自选股", plain.get_content())
         self.assertIn("新增自选股", html.get_content())
 
+    def test_render_email_html_marks_explicit_table_header(self):
+        html = render_email_html(
+            "\n".join(
+                [
+                    "A股BOLL战法扫描",
+                    "下轨止跌观察",
+                    "序号 | 股票代码 | 股票名称",
+                    "1. | 688663 | 新风光",
+                ]
+            )
+        )
+
+        self.assertIn("<th", html)
+        self.assertIn("股票代码", html)
+
 
 if __name__ == "__main__":
     unittest.main()

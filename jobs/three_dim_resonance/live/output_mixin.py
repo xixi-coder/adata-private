@@ -26,6 +26,8 @@ class OutputMixin:
         # 若同日重跑，则说明不会重复成交，仅刷新建议展示。
         if summary.get("note"):
             lines.append(f"备注: {summary['note']}")
+        if summary.get("entry_skip_reason"):
+            lines.append(f"买入为空原因: {summary['entry_skip_reason']}")
         lines.extend(["", "建议卖出:"])
         if summary["sell_suggestions"]:
             for idx, item in enumerate(summary["sell_suggestions"], start=1):

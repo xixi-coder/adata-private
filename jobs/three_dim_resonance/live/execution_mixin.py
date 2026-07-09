@@ -169,6 +169,7 @@ class ExecutionMixin:
         # - 再过三维共振 _is_entry_signal
         # - 最后按 score 排序，保留 max_positions * 3 个待执行候选
         market_status = self._market_gate_status(trade_date)
+        self.last_entry_skip_reason = ""
         if not market_status["ok"]:
             print(f"[entry] {trade_date} 市场开关关闭，跳过买入候选扫描。")
             if market_status.get("checks"):
@@ -177,8 +178,10 @@ class ExecutionMixin:
                     f"{item['label']}未通过({item['detail']})"
                     for item in failed
                 )
+                self.last_entry_skip_reason = f"市场开关关闭：{failed_text}"
                 print(f"[entry] 市场开关失败明细: {failed_text}")
             else:
+                self.last_entry_skip_reason = f"市场开关关闭：{market_status.get('error', '未知原因')}"
                 print(f"[entry] 市场开关失败明细: {market_status.get('error', '未知原因')}")
             return []
         blocked = set(state["positions"].keys())
@@ -275,6 +278,7 @@ class ExecutionMixin:
                 f"[entry] 建议买入(top {min(len(final_candidates), self.max_positions)}): {preview}"
             )
         else:
+            self.last_entry_skip_reason = "无股票同时满足三维共振条件。"
             print(f"[entry] {trade_date} 建议买入为空：无股票同时满足三维共振条件。")
         return final_candidates
 

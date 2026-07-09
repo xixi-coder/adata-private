@@ -33,6 +33,7 @@ class ThreeDimResonanceLiveStrategy(
         self.summary_dir = os.path.join(CURRENT_DIR, "outputs")
         self.metadata = load_stock_metadata(PROJECT_ROOT)
         self.stock_names = {}
+        self.last_entry_skip_reason = ""
         try:
             self.today_k_coverage_min = float(os.getenv("THREE_DIM_TODAY_K_COVERAGE_MIN", "0.85"))
         except ValueError:
@@ -73,6 +74,7 @@ class ThreeDimResonanceLiveStrategy(
             "cash": round(float(state["cash"]), 2),
             "status": "ok",
             "note": rerun_note,
+            "entry_skip_reason": self.last_entry_skip_reason,
         }
         print(
             f"[daily] {trade_date} 建议汇总: "

@@ -5,6 +5,7 @@ import os
 import pickle
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 import pandas as pd
@@ -163,6 +164,7 @@ class FiveYearCloudCacheBuilder:
         checkpoint_every: int,
         finance_refresh_days: int,
         auto_commit_minutes: int = 30,
+        stock_max_workers: int = 8,
     ) -> dict:
         stage_t0 = time.perf_counter()
         print("[stage] sync_cache_from_drive: start", flush=True)
@@ -246,25 +248,36 @@ class FiveYearCloudCacheBuilder:
 
         print(f"pending_stock_updates={len(pending_codes)}")
         if pending_codes:
-            print("[stage] fetch_stock_incremental: start", flush=True)
+            stock_max_workers = max(int(stock_max_workers), 1)
+            print(f"[stage] fetch_stock_incremental: start (workers={stock_max_workers})", flush=True)
             stage_t0 = time.perf_counter()
-            for completed_fetch, code in enumerate(pending_codes, start=1):
-                code, df, checked = self._fetch_stock(code, raw_stock.get(code), target_date)
-                if checked:
-                    checked_stock += 1
-                    progress += 1
-                if df is not raw_stock.get(code):
-                    raw_stock[code] = df
-                    updated_stock += 1
-                    cache_dirty_since_last_sync = True
-                if completed_fetch % 100 == 0 or completed_fetch == len(pending_codes):
-                    print(
-                        f"[fetch-progress] completed={completed_fetch}/{len(pending_codes)}, "
-                        f"updated={updated_stock}"
-                    )
-                if checkpoint_every > 0 and progress > 0 and progress % checkpoint_every == 0:
-                    self._save_cache(cache)
-                maybe_auto_commit("fetch_stock_incremental")
+            with ThreadPoolExecutor(max_workers=stock_max_workers) as executor:
+                futures = {
+                    executor.submit(self._fetch_stock, code, raw_stock.get(code), target_date): code
+                    for code in pending_codes
+                }
+                for completed_fetch, future in enumerate(as_completed(futures), start=1):
+                    original_code = futures[future]
+                    try:
+                        code, df, checked = future.result()
+                    except Exception as exc:
+                        print(f"[stock fetch failed] {original_code}: {exc}")
+                        continue
+                    if checked:
+                        checked_stock += 1
+                        progress += 1
+                    if df is not raw_stock.get(code):
+                        raw_stock[code] = df
+                        updated_stock += 1
+                        cache_dirty_since_last_sync = True
+                    if completed_fetch % 100 == 0 or completed_fetch == len(pending_codes):
+                        print(
+                            f"[fetch-progress] completed={completed_fetch}/{len(pending_codes)}, "
+                            f"updated={updated_stock}"
+                        )
+                    if checkpoint_every > 0 and progress > 0 and progress % checkpoint_every == 0:
+                        self._save_cache(cache)
+                    maybe_auto_commit("fetch_stock_incremental")
             print(f"[stage] fetch_stock_incremental: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
         refreshed_finance = 0
@@ -315,6 +328,7 @@ class FiveYearCloudCacheBuilder:
             "finance_dir": self.finance_dir,
             "auto_commit_minutes": auto_commit_minutes,
             "auto_commit_count": auto_commit_count,
+            "stock_max_workers": stock_max_workers,
         }
         write_json(self.manifest_file, manifest)
         if cache_changed:
@@ -342,5 +356,6 @@ if __name__ == "__main__":
         checkpoint_every=_read_int_env("CACHE_CHECKPOINT_EVERY", 100),
         finance_refresh_days=_read_int_env("FINANCE_REFRESH_DAYS", 30) or 30,
         auto_commit_minutes=_read_int_env("AUTO_COMMIT_MINUTES", 30) or 30,
+        stock_max_workers=_read_int_env("CACHE_STOCK_MAX_WORKERS", 8) or 8,
     )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
