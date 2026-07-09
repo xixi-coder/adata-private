@@ -2,6 +2,10 @@
   "uid": "8120706763",
   "watchlist": [
     {
+      "stock_code": "001389.SZ",
+      "short_name": "广合科技"
+    },
+    {
       "stock_code": "301308.SZ",
       "short_name": "江波龙"
     },
@@ -927,7 +931,7 @@
     },
     {
       "stock_code": "688268.SH",
-      "short_name": "华特气体"
+      "short_name": "XD华特气"
     },
     {
       "stock_code": "600900.SH",
@@ -1039,5 +1043,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-08 19:02:35"
+  "collected_at": "2026-07-09 14:41:44"
 }

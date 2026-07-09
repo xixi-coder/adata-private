@@ -2,6 +2,10 @@
   "uid": "5712453299",
   "watchlist": [
     {
+      "stock_code": "02475",
+      "short_name": "立讯精密"
+    },
+    {
       "stock_code": "MU",
       "short_name": "美光科技"
     },
@@ -198,10 +202,6 @@
       "short_name": "比亚迪股份"
     },
     {
-      "stock_code": "00670.SZ",
-      "short_name": "中国东方航空股份"
-    },
-    {
       "stock_code": "01880",
       "short_name": "中国中免"
     },
@@ -299,5 +299,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-08 19:02:36"
+  "collected_at": "2026-07-09 14:41:44"
 }

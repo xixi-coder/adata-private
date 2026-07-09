@@ -2,8 +2,12 @@
   "uid": "7535489890",
   "watchlist": [
     {
-      "stock_code": "688635.SH",
-      "short_name": "长进光子"
+      "stock_code": "002371.SZ",
+      "short_name": "北方华创"
+    },
+    {
+      "stock_code": "002414.SZ",
+      "short_name": "高德红外"
     },
     {
       "stock_code": "588200.SH",
@@ -151,5 +155,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-08 19:02:32"
+  "collected_at": "2026-07-09 14:41:41"
 }

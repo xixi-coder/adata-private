@@ -2,6 +2,10 @@
   "uid": "4267080012",
   "watchlist": [
     {
+      "stock_code": "688825.SH",
+      "short_name": "长鑫科技"
+    },
+    {
       "stock_code": "688432.SH",
       "short_name": "有研硅"
     },
@@ -63,7 +67,7 @@
     },
     {
       "stock_code": "688002.SH",
-      "short_name": "XD睿创微"
+      "short_name": "睿创微纳"
     },
     {
       "stock_code": "688072.SH",
@@ -207,7 +211,7 @@
     },
     {
       "stock_code": "600547.SH",
-      "short_name": "山东黄金"
+      "short_name": "XD山东黄"
     },
     {
       "stock_code": "300750.SZ",
@@ -491,5 +495,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-08 19:02:31"
+  "collected_at": "2026-07-09 14:41:40"
 }
