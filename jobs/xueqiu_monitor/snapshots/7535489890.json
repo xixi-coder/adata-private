@@ -2,6 +2,22 @@
   "uid": "7535489890",
   "watchlist": [
     {
+      "stock_code": "300666.SZ",
+      "short_name": "江丰电子"
+    },
+    {
+      "stock_code": "688825.SH",
+      "short_name": "长鑫科技"
+    },
+    {
+      "stock_code": "688126.SH",
+      "short_name": "沪硅产业"
+    },
+    {
+      "stock_code": "000100.SZ",
+      "short_name": "TCL科技"
+    },
+    {
       "stock_code": "002371.SZ",
       "short_name": "北方华创"
     },
@@ -155,5 +171,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-09 14:41:41"
+  "collected_at": "2026-07-09 19:55:34"
 }

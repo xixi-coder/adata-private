@@ -2,6 +2,10 @@
   "uid": "5712453299",
   "watchlist": [
     {
+      "stock_code": "600030.SH",
+      "short_name": "中信证券"
+    },
+    {
       "stock_code": "02475",
       "short_name": "立讯精密"
     },
@@ -299,5 +303,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-09 14:41:44"
+  "collected_at": "2026-07-09 19:55:38"
 }

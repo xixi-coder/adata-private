@@ -2,6 +2,10 @@
   "uid": "1596036202",
   "watchlist": [
     {
+      "stock_code": "601869.SH",
+      "short_name": "长飞光纤"
+    },
+    {
       "stock_code": "603986.SH",
       "short_name": "兆易创新"
     },
@@ -435,5 +439,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-09 14:41:41"
+  "collected_at": "2026-07-09 19:55:35"
 }
