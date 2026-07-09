@@ -28,16 +28,16 @@
 
 对应 GitHub Actions：
 
-- `.github/workflows/a-share-runner.yml`：A股统一任务调度（定时入口）
-- `.github/workflows/theme-monitor.yml`：A股盘面舆论板块雷达
+- `.github/workflows/a-share-runner.yml`：统一任务调度（定时入口）
+- `.github/workflows/theme-monitor.yml`：盘面舆论板块雷达
 
 其中 `a-share-runner.yml` 承接新的定时调度：
 
 - `intraday`：盘中分时扫描，分钟缓存默认 120 秒 TTL。
-- `eod`：盘后波动、BOLL、A股复盘、三维共振。
+- `eod`：盘后波动、BOLL、复盘、三维共振。
 - `maintenance`：共享行情缓存和分红缓存维护。
 
-手动只跑单个策略时，在 `A股统一任务调度` 的 `tasks` 输入里填写任务名，例如 `volatility,boll`。
+手动只跑单个策略时，在 `统一任务调度` 的 `tasks` 输入里填写任务名，例如 `volatility,boll`。
 
 策略核心实现统一放到 `strategies/` 目录：
 

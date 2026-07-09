@@ -395,7 +395,7 @@ def _build_email_body(summary: dict[str, Any], candidates: pd.DataFrame) -> str:
     expansion_count = int(candidates["信号类型"].eq("波动扩张").sum()) if not candidates.empty else 0
     anomaly_count = int(candidates["信号类型"].eq("异常波动").sum()) if not candidates.empty else 0
     lines = [
-        "A股波动结构扫描",
+        "波动结构扫描",
         f"{summary.get('signal_date', '')} | 候选 {summary.get('candidate_count', 0)} 只 | 收敛 {squeeze_count} / 扩张 {expansion_count} / 异常 {anomaly_count}",
         f"股票池: {report.get('accepted_stock_count', 0)}/{report.get('initial_stock_count', 0)} 只通过票质过滤",
         "",
@@ -435,7 +435,7 @@ def _write_skip_outputs(trade_date: str, note: str) -> None:
         "note": note,
     }
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)
-    body = "\n".join(["A股波动结构扫描", "", f"日期: {trade_date}", f"状态: {note}", "", "非交易日不生成候选。"])
+    body = "\n".join(["波动结构扫描", "", f"日期: {trade_date}", f"状态: {note}", "", "非交易日不生成候选。"])
     with open(os.path.join(OUTPUT_DIR, "latest_email_body.txt"), "w", encoding="utf-8") as f:
         f.write(body + "\n")
 

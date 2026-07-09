@@ -19,13 +19,13 @@
 
 | Workflow | 入口脚本 | 说明 |
 | --- | --- | --- |
-| `A股统一任务调度` | `jobs/a_share_runner.py` | 统一定时入口：盘中、盘后、缓存维护通过 profile 调度 |
-| `A股盘面舆论板块雷达` | `jobs/theme_monitor/run.py` | 独立盘中热榜/主题雷达，不依赖 K 线缓存 |
+| `统一任务调度` | `jobs/a_share_runner.py` | 统一定时入口：盘中、盘后、缓存维护通过 profile 调度 |
+| `盘面舆论板块雷达` | `jobs/theme_monitor/run.py` | 独立盘中热榜/主题雷达，不依赖 K 线缓存 |
 | `雪球关注用户自选股监听` | `jobs/xueqiu_monitor/run.py` | 定时监听雪球用户自选股变化 |
 
 未配置 GitHub Actions 的 job 仍可本地或手动运行，例如 `cost_anchor`、`dividend_sync`、`factor_lab`。
 
-## A股统一调度 Profile
+## 统一调度 Profile
 
 ```bash
 python jobs/a_share_runner.py --profile intraday
@@ -35,7 +35,7 @@ python jobs/a_share_runner.py --profile maintenance
 
 - `intraday`：短线分时扫描。日线基座使用上一完整交易日，分时使用当日分钟数据。
 - `intraday_pm`：短线分时下午观察窗口。
-- `eod`：波动结构、BOLL、A股每日投资复盘、三维共振。
+- `eod`：波动结构、BOLL、每日投资复盘、三维共振。
 - `maintenance`：共享行情缓存和分红缓存维护。
 
 如需临时只跑部分任务：
@@ -44,6 +44,6 @@ python jobs/a_share_runner.py --profile maintenance
 python jobs/a_share_runner.py --profile eod --tasks volatility,boll
 ```
 
-GitHub Actions 手动运行也统一使用 `A股统一任务调度`，通过 `profile` 或 `tasks` 选择单个策略，不再保留单策略 workflow 文件。
+GitHub Actions 手动运行也统一使用 `统一任务调度`，通过 `profile` 或 `tasks` 选择单个策略，不再保留单策略 workflow 文件。
 
 公共交易上下文由 `jobs/common/market_data_context.py` 提供。交易时间内不把当日未收盘 K 线写入日线基座；分时任务通过 `INTRADAY_CACHE_TTL_SECONDS` 控制分钟缓存新鲜度，默认 120 秒。

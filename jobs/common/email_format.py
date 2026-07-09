@@ -93,7 +93,7 @@ def _render_table_row(line: str, is_header: bool = False) -> str:
 def render_email_html(body: str, title: Optional[str] = None, preheader: Optional[str] = None) -> str:
     """Render the project's compact text/Markdown-ish reports as styled email HTML."""
     lines = body.strip().splitlines()
-    first_text = next((line.strip() for line in lines if line.strip()), title or "A股监控邮件")
+    first_text = next((line.strip() for line in lines if line.strip()), title or "监控邮件")
     display_title = title or first_text
     preheader_text = preheader or next((line.strip() for line in lines[1:] if line.strip()), "")
 

@@ -113,7 +113,7 @@ def _build_email_body(
     market_context: dict[str, Any],
 ) -> str:
     lines = [
-        "A股盘面舆论板块雷达",
+        "盘面舆论板块雷达",
         f"{summary['run_time']} | 主题 {summary['theme_count']} 个 | 热股 {summary['hot_stock_count']} 只",
         "",
         "一、市场环境",
@@ -161,10 +161,10 @@ def _send_email_if_configured(body: str) -> None:
         print("未配置邮件参数，跳过邮件通知。")
         return
     msg = EmailMessage()
-    msg["Subject"] = "A股盘面舆论板块雷达"
+    msg["Subject"] = "盘面舆论板块雷达"
     msg["From"] = smtp_user
     msg["To"] = mail_to
-    set_rich_email_content(msg, body, title="A股盘面舆论板块雷达")
+    set_rich_email_content(msg, body, title="盘面舆论板块雷达")
     recipients = [item.strip() for item in mail_to.split(",") if item.strip()]
     host = os.getenv("SMTP_HOST", "smtp.163.com")
     port = int(os.getenv("SMTP_PORT", "465"))

@@ -482,7 +482,7 @@ def _build_email_body(
 ) -> str:
     risk = summary.get("portfolio_risk", {})
     lines = [
-        "A股持仓复盘",
+        "持仓复盘",
         f"{summary['signal_date']} | 市场: {summary['market_regime']} | 建议: {summary['operation_advice']}",
         f"目标权益仓位: {risk.get('target_equity_range', '')} | 当前配置仓位: {risk.get('total_weight', 0)}%",
         f"集中度: Top1 {risk.get('top1_weight', 0)}% / Top3 {risk.get('top3_weight', 0)}% / Top5 {risk.get('top5_weight', 0)}%",
@@ -557,7 +557,7 @@ def _write_skip_outputs(trade_date: str, note: str) -> None:
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)
     body = "\n".join(
         [
-            "A股每日投资复盘",
+            "每日投资复盘",
             "",
             f"运行时间: {now}",
             f"日期: {trade_date}",

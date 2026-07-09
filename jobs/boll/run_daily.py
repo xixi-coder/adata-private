@@ -205,7 +205,7 @@ def _build_email_body(summary: dict[str, Any], candidates: pd.DataFrame) -> str:
     report = summary.get("quality_report", {})
     reject_counts = report.get("reject_counts", {})
     lines = [
-        "A股BOLL战法扫描",
+        "BOLL战法扫描",
         "",
         f"- 运行时间: {summary['run_time']}",
         f"- 请求日期: {summary['trade_date']}",
@@ -261,7 +261,7 @@ def _write_skip_outputs(trade_date: str, note: str) -> None:
         "note": note,
     }
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)
-    body = "\n".join(["A股BOLL战法扫描", "", f"日期: {trade_date}", f"状态: {note}", "", "非交易日不生成候选。"])
+    body = "\n".join(["BOLL战法扫描", "", f"日期: {trade_date}", f"状态: {note}", "", "非交易日不生成候选。"])
     with open(os.path.join(OUTPUT_DIR, "latest_email_body.txt"), "w", encoding="utf-8") as f:
         f.write(body + "\n")
 

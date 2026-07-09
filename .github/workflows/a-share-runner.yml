@@ -1,4 +1,4 @@
-name: A股统一任务调度
+name: 统一任务调度
 
 on:
   schedule:

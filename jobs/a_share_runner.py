@@ -71,7 +71,7 @@ TASKS: dict[str, RunnerTask] = {
             "A_SHARE_REVIEW_REBALANCE_PERIOD": "20",
             "A_SHARE_REVIEW_INCLUDE_DIVIDEND": "true",
         },
-        description="A股每日投资复盘。",
+        description="每日投资复盘。",
     ),
     "three_dim": RunnerTask(
         name="three_dim",
@@ -186,7 +186,7 @@ def run_profile(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="A股任务统一调度入口")
+    parser = argparse.ArgumentParser(description="统一任务调度入口")
     parser.add_argument(
         "--profile",
         default=os.getenv("A_SHARE_RUNNER_PROFILE", "intraday"),

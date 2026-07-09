@@ -22,22 +22,22 @@ from jobs.common.email_format import set_rich_email_content
 
 TASK_EMAILS: dict[str, dict[str, Any]] = {
     "short_term_intraday": {
-        "title": "A股短线分时扫描",
+        "title": "短线分时扫描",
         "paths": ("jobs/short_term/outputs/latest_summary.txt",),
     },
     "short_term_intraday_pm": {
-        "title": "A股短线分时扫描-下午版",
+        "title": "短线分时扫描-下午版",
         "paths": ("jobs/short_term/outputs/latest_summary.txt",),
     },
     "volatility": {
-        "title": "A股波动结构扫描",
+        "title": "波动结构扫描",
         "paths": ("jobs/volatility/outputs/latest_email_body.txt",),
         "headers": {
             "一、资金聚焦": "序号 | 方向 | 数量 | 均分/代表",
         },
     },
     "boll": {
-        "title": "A股BOLL战法扫描",
+        "title": "BOLL战法扫描",
         "paths": ("jobs/boll/outputs/latest_email_body.txt",),
         "drop_prefixes": ("- 运行时间:", "- 请求日期:"),
         "headers": {
@@ -46,7 +46,7 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         },
     },
     "a_share_review": {
-        "title": "A股持仓复盘",
+        "title": "持仓复盘",
         "paths": ("jobs/a_share_allocation/outputs/latest_email_body.txt",),
         "headers": {
             "二、需要处理": "序号 | 股票代码 | 股票名称 | 主题 | 仓位 | 评分 | 建议动作 | 理由",
@@ -60,11 +60,11 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/three_dim_resonance/outputs/latest_email_body.txt",),
     },
     "shared_cache": {
-        "title": "A股共享缓存维护",
+        "title": "日线/财务共享缓存维护",
         "paths": ("data/cache/three_dim_cache_manifest.json",),
     },
     "dividend_cache": {
-        "title": "A股分红缓存维护",
+        "title": "分红缓存维护",
         "paths": ("data/cache/dividend/dividend_sync_manifest.json",),
     },
 }
@@ -120,7 +120,7 @@ def _format_shared_cache_manifest(data: dict[str, Any]) -> str:
     workers = data.get("stock_max_workers", "-")
 
     lines = [
-        "A股共享缓存维护",
+        "日线/财务共享缓存维护",
         f"- 更新时间: {data.get('updated_at', '-')}",
         f"- 股票池: {selected}只，本地缓存记录 {data.get('stock_count', '-')}只",
         f"- 日线补齐: 待检查 {pending}只，完成检查 {checked}只，写入更新 {updated}只",
@@ -158,7 +158,7 @@ def _format_dividend_cache_manifest(data: dict[str, Any]) -> str:
     failed = int(summary.get("failed") or 0)
 
     lines = [
-        "A股分红缓存维护",
+        "分红缓存维护",
         f"- 同步时间: {data.get('synced_at', '-')}",
         f"- 股票池: {total_codes}只，并发 {data.get('max_workers', '-')}，失败重试 {data.get('retry', '-') } 次",
         f"- 新鲜跳过: {skip_fresh}只",
@@ -254,7 +254,7 @@ def send_email(subject: str, title: str, body: str) -> bool:
     smtp_pass = os.getenv("SMTP_PASS", "").strip()
     mail_to = os.getenv("MAIL_TO", "").strip()
     if not smtp_user or not smtp_pass or not mail_to:
-        print("未配置邮件参数，跳过 A股统一任务调度邮件通知。")
+        print("未配置邮件参数，跳过统一任务调度邮件通知。")
         return False
 
     msg = EmailMessage()
@@ -282,7 +282,7 @@ def _has_email_config() -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="发送 A股统一任务调度汇总邮件")
+    parser = argparse.ArgumentParser(description="发送统一任务调度汇总邮件")
     parser.add_argument(
         "--summary",
         default=str(PROJECT_ROOT / "jobs/outputs/latest_runner_summary.json"),
@@ -307,10 +307,10 @@ def main() -> int:
 
     emails = iter_task_emails(summary, args.base_dir)
     if not emails:
-        print("未找到可发送的任务邮件正文，跳过 A股统一任务调度邮件通知。")
+        print("未找到可发送的任务邮件正文，跳过统一任务调度邮件通知。")
         return 0
     if not _has_email_config():
-        print("未配置邮件参数，跳过 A股统一任务调度邮件通知。")
+        print("未配置邮件参数，跳过统一任务调度邮件通知。")
         return 0
     for subject, title, body in emails:
         send_email(subject, title, body)

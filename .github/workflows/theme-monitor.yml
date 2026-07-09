@@ -1,4 +1,4 @@
-name: A股盘面舆论板块雷达
+name: 盘面舆论板块雷达
 
 on:
   schedule:
