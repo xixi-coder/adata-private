@@ -3,7 +3,7 @@
 雪球关注用户监听（xueqiu-user-monitor）手动测试脚本
 
 包含两部分：
-  1) 离线冒烟测试：用假采集器 + 临时快照目录，验证「首轮建快照 → 次轮检测变化 → 通知」
+  1) 离线冒烟测试：用假采集器 + 临时快照目录，验证「首轮建快照 -> 次轮检测变化 -> 通知」
      的完整链路，不依赖网络，随时可跑。
   2) 真实接口测试：连雪球真实接口采集自选股与动态，支持匿名或传入登录 Cookie。
 
@@ -15,13 +15,13 @@
 
 用法：
   # 默认直接跑真实接口测试（uid 与 cookie 取自 .env.local）
-  .venv/bin/python examples/xueqiu_monitor_test.py
+  .venv/bin/python tests/manual/xueqiu_monitor/smoke.py
 
   # 命令行覆盖配置文件里的值
-  .venv/bin/python examples/xueqiu_monitor_test.py --uid 1247347556 --cookie "xq_a_token=xxx; u=123"
+  .venv/bin/python tests/manual/xueqiu_monitor/smoke.py --uid 1247347556 --cookie "xq_a_token=xxx; u=123"
 
-  # 额外附带离线冒烟测试
-  .venv/bin/python examples/xueqiu_monitor_test.py --offline
+  # 只跑离线冒烟测试
+  .venv/bin/python tests/manual/xueqiu_monitor/smoke.py --offline
 
 说明：
   - 雪球用户 ID 即用户主页 URL `xueqiu.com/u/<ID>` 后面的数字。
@@ -41,7 +41,6 @@ import pandas as pd
 # 复用项目现成的 .env.local 加载工具（把配置读入 os.environ）
 from jobs.common.local_env import load_local_env
 
-import adata
 from adata.xueqiu import MonitorConfig, XueqiuMonitor
 from adata.xueqiu.collector import XueqiuCollector
 from adata.xueqiu.notifier import NotificationChannel
@@ -68,14 +67,18 @@ class _FakeCollector:
     def get_watchlist(self, uid):
         if self.round == 0:
             # 首轮：1 只自选股
-            return pd.DataFrame([
-                {"stock_code": "SH600297", "short_name": "广汇汽车"},
-            ])
+            return pd.DataFrame(
+                [
+                    {"stock_code": "SH600297", "short_name": "广汇汽车"},
+                ]
+            )
         # 次轮：新增 1 只自选股
-        return pd.DataFrame([
-            {"stock_code": "SH600297", "short_name": "广汇汽车"},
-            {"stock_code": "SZ000001", "short_name": "平安银行"},
-        ])
+        return pd.DataFrame(
+            [
+                {"stock_code": "SH600297", "short_name": "广汇汽车"},
+                {"stock_code": "SZ000001", "short_name": "平安银行"},
+            ]
+        )
 
     def get_posts(self, uid):
         posts_columns = ["post_id", "publish_time", "content", "source_url"]
@@ -83,14 +86,16 @@ class _FakeCollector:
             # 首轮：无动态
             return pd.DataFrame([], columns=posts_columns)
         # 次轮：新增 1 条动态
-        return pd.DataFrame([
-            {
-                "post_id": "p1",
-                "publish_time": "2024-01-02 10:00:00",
-                "content": "看好银行板块",
-                "source_url": "https://xueqiu.com/1/p1",
-            },
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "post_id": "p1",
+                    "publish_time": "2024-01-02 10:00:00",
+                    "content": "看好银行板块",
+                    "source_url": "https://xueqiu.com/1/p1",
+                },
+            ]
+        )
 
 
 def run_offline_smoke_test():
@@ -183,22 +188,22 @@ def run_real_test(uid, cookie=None, headless=False):
 
 def main():
     parser = argparse.ArgumentParser(description="雪球关注用户监听手动测试脚本")
-    parser.add_argument("--offline", action="store_true",
-                        help="额外跑离线冒烟测试（默认不跑）")
-    parser.add_argument("--uid", default=None,
-                        help="目标雪球用户 ID；缺省时取 .env.local 的 XUEQIU_UID")
-    parser.add_argument("--cookie", default=None,
-                        help="雪球登录 Cookie 串；缺省时取 .env.local 的 XUEQIU_COOKIE")
-    parser.add_argument("--headless", action="store_true",
-                        help="动态采集使用无头浏览器（注意：雪球 WAF 会拦截无头，默认有头）")
+    parser.add_argument("--offline", action="store_true", help="只跑离线冒烟测试，不访问真实接口")
+    parser.add_argument("--uid", default=None, help="目标雪球用户 ID；缺省时取 .env.local 的 XUEQIU_UID")
+    parser.add_argument("--cookie", default=None, help="雪球登录 Cookie 串；缺省时取 .env.local 的 XUEQIU_COOKIE")
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="动态采集使用无头浏览器（注意：雪球 WAF 会拦截无头，默认有头）",
+    )
     args = parser.parse_args()
 
     # 启动时加载 .env.local（若存在），把 XUEQIU_UID / XUEQIU_COOKIE 读入环境变量
     load_local_env()
 
-    # 仅在显式指定 --offline 时才跑离线冒烟测试
     if args.offline:
         run_offline_smoke_test()
+        return
 
     # 默认执行真实接口测试；uid / cookie 命令行优先，其次回退 .env.local
     uid = args.uid or os.environ.get("XUEQIU_UID")

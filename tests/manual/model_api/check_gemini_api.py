@@ -1,9 +1,9 @@
-import os
 from google import genai
 from google.genai import types
 
 
 def generate() -> None:
+    """Run a small Gemini streaming request to verify local credentials."""
     client = genai.Client()
 
     model = "gemini-3-flash-preview"

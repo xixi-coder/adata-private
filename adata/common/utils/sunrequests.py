@@ -15,6 +15,12 @@ import requests
 
 
 class SunProxy(object):
+    """进程内代理配置。
+
+    这个类用 class 变量保存代理状态，效果类似 Java 里的静态配置 holder。
+    adata.proxy(...) 写入这里，SunRequests 发请求时再读取。
+    """
+
     _data = {}
     _instance_lock = threading.Lock()
 
@@ -42,6 +48,12 @@ class SunProxy(object):
 
 
 class SunRequests(object):
+    """requests 的轻量封装。
+
+    项目里外部数据接口很多，这里统一处理代理、默认 timeout、重试等待和日志输出。
+    具体业务代码仍然按 requests 的风格传 method/url/params/json/data 等参数。
+    """
+
     def __init__(self, sun_proxy: SunProxy = None) -> None:
         super().__init__()
         self.sun_proxy = sun_proxy
@@ -58,7 +70,7 @@ class SunRequests(object):
         :param kwargs: 其它 requests 参数，用法相同
         :return: res
         """
-        # 1. 获取设置代理
+        # 1. 获取代理配置；调用方传 proxies=None 时，会读取 adata.proxy(...) 设置的全局代理。
         proxies = self.__get_proxies(proxies)
         # 避免单次网络请求无限阻塞：未显式传入 timeout 时，提供默认超时。
         # tuple 语义: (connect_timeout, read_timeout)
@@ -68,6 +80,7 @@ class SunRequests(object):
         res = None
         last_exc = None
         for i in range(times):
+            # wait_time 是主动限速，避免对数据源请求过快。
             if wait_time:
                 time.sleep(wait_time / 1000)
             try:
@@ -105,6 +118,7 @@ class SunRequests(object):
         """
         if proxies is None:
             proxies = {}
+        # 从 SunProxy 这个全局 holder 中读取代理开关和代理地址。
         is_proxy = SunProxy.get('is_proxy')
         ip = SunProxy.get('ip')
         proxy_url = SunProxy.get('proxy_url')

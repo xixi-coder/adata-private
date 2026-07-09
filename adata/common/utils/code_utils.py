@@ -20,7 +20,11 @@ exchange_suffix = {
 
 
 def compile_exchange_by_stock_code(stock_code):
-    """根据股票代码补全市场后缀"""
+    """根据股票代码补全市场后缀。
+
+    A 股代码前两位通常能判断交易所，例如 60/68 -> SH，00/30 -> SZ。
+    返回值形如 ``600000.SH``，便于不同数据源之间统一股票代码格式。
+    """
 
     prefix = stock_code[0:2]
     if prefix in exchange_suffix:

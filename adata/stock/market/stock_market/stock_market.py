@@ -17,7 +17,10 @@ from adata.stock.market.stock_market.stock_market_sina import StockMarketSina
 
 class StockMarket(object):
     """
-    股票行情
+    股票行情门面。
+
+    这个类不直接拼接所有远端接口，而是组合百度、东方财富、腾讯、新浪等具体数据源。
+    公开方法负责选择主数据源与兜底数据源，调用方只需要关心返回的 DataFrame。
     """
 
     def __init__(self) -> None:
@@ -26,9 +29,10 @@ class StockMarket(object):
         self.qq_market = StockMarketQQ()
         self.baidu_market = StockMarketBaiDu()
         self.east_market = StockMarketEast()
-        # K线日/周/月数据源开关：默认只用百度
+        # K线日/周/月数据源开关：默认只用百度。
+        # Python 字符串约定用小写，set_market_provider 会统一 lower。
         self._market_provider = 'baidu'
-        # 是否在主数据源为空时自动回退另一个数据源
+        # 是否在主数据源返回空 DataFrame 时自动回退另一个数据源。
         self._market_provider_fallback = False
 
     def set_market_provider(self, provider: str = 'baidu', fallback: bool = False):
@@ -37,6 +41,7 @@ class StockMarket(object):
         :param provider: 可选值：'baidu'、'east'
         :param fallback: 主数据源为空时是否自动回退另一个数据源
         """
+        # (provider or '') 可以兼容 None；strip/lower 做输入归一化。
         provider = (provider or '').strip().lower()
         if provider not in ('baidu', 'east'):
             raise ValueError("provider must be one of: 'baidu', 'east'")
@@ -61,12 +66,15 @@ class StockMarket(object):
         :return: k线行情数据
         """
         if self._market_provider == 'baidu':
+            # pandas.DataFrame.empty 表示没有任何数据行；这里用它判断主数据源是否可用。
             df = self.baidu_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                               k_type=k_type, adjust_type=adjust_type)
             if (not df.empty) or (not self._market_provider_fallback):
                 return df
+            # 开启 fallback 时，主数据源为空才尝试东方财富。
             return self.east_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                                k_type=k_type, adjust_type=adjust_type)
+        # provider='east' 时反过来：先东方财富，必要时回退百度。
         df = self.east_market.get_market(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                          k_type=k_type, adjust_type=adjust_type)
         if (not df.empty) or (not self._market_provider_fallback):
@@ -100,9 +108,9 @@ class StockMarket(object):
         """
         if code_list is None:
             return pd.DataFrame()
-        # 1. 先查询新浪
+        # 1. 先查询新浪。DataFrame 是 pandas 的表格对象，类似二维表/ResultSet。
         df = self.sina_market.list_market_current(code_list=code_list)
-        # 2. 然后腾讯
+        # 2. 新浪为空再查腾讯，避免因为单个数据源不可用导致调用方拿不到结果。
         if df.empty:
             df = self.qq_market.list_market_current(code_list=code_list)
         return df

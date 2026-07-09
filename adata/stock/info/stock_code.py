@@ -29,7 +29,10 @@ from adata.stock.cache import get_code_csv_path
 
 class StockCode(object):
     """
-    股票代码
+    股票代码查询。
+
+    all_code 是主要入口：优先从在线数据源获取全市场股票列表，失败时回退到
+    本地缓存 CSV，并把上市日期、交易所等字段整理成固定列。
     """
     __CODE_COLUMNS = ['stock_code', 'short_name', 'exchange', 'list_date']
 
@@ -41,27 +44,33 @@ class StockCode(object):
         获取所有股票的代码
         :return: 所有股票的代码信息：  ['stock_code', 'short_name', 'exchange', 'list_date']
         """
-        # 拼接股票上市日期
+        # 读取本地缓存中的上市日期列，后面会和在线抓取结果按 stock_code 合并。
+        # pandas 的 DataFrame 可以理解为带列名的表格；[['a', 'b']] 是按列取子表。
         code = pd.read_csv(get_code_csv_path())[['stock_code', 'list_date2']]
-        # 请求数据：优先百度，东方财富
+        # 请求数据：优先百度，其次东方财富，再其次新浪。每一步都返回同样列结构的 DataFrame。
         res_df = self.__market_rank_baidu(wait_time)
         if res_df.empty or len(res_df) < 5000:
             res_df = self.__market_rank_east(wait_time)
         if res_df.empty or len(res_df) < 5000:
             res_df = self.market_rank_sina(wait_time)
         if res_df.empty:
+            # 所有在线数据源失败时，使用本地缓存兜底。
             res_df = pd.read_csv(get_code_csv_path())
+        # 东方财富新股申购列表补充近期上市/待上市股票，避免排行榜接口漏掉新股。
         east = self.__new_sub_east(wait_time)
         if not east.empty:
             res_df = pd.concat([east, res_df], axis=0, ignore_index=True)
+            # 新股列表优先，所以 keep='first' 保留 east 放在前面的记录。
             res_df = res_df.drop_duplicates(subset=['stock_code'], keep='first')
         res_df['stock_code'] = res_df['stock_code'].astype(str)
         code['stock_code'] = code['stock_code'].astype(str).str.zfill(6)
+        # left merge 类似 SQL left join：以在线结果为主，拼上本地缓存中的 list_date2。
         df = pd.merge(res_df, code, on='stock_code', how='left')
         df['list_date'] = df['list_date'].fillna(df['list_date2'])
         df['list_date'] = pd.to_datetime(df['list_date'], errors='coerce').dt.date
         df['list_date'] = df['list_date'].where(df['list_date'].notnull(), np.nan)
         df['short_name'] = df['short_name'].str.replace(' ', '')
+        # reset_index(drop=True) 重建连续行号；最后只返回对外承诺的固定列。
         return df.sort_values('stock_code').reset_index(drop=True)[self.__CODE_COLUMNS]
 
     def __market_rank_baidu(self, wait_time):
@@ -78,7 +87,7 @@ class StockCode(object):
         max_page_size = 200
         data = []
 
-        # 2. 一直翻页请求数据，股票目前数据5000,50页一共1w只,后续增加了可以再加
+        # 2. 一直翻页请求数据。range(49) 表示最多取 49 页，避免接口异常时无限循环。
         for page_no in range(49):
             api_url = f"{api_url}&pn={page_no * max_page_size}&rn={max_page_size}"
             try:
@@ -86,7 +95,7 @@ class StockCode(object):
                 res_json = res.json()
                 if res.status_code != 200 or res_json['ResultCode'] != '0':
                     continue
-                # 3. 解析数据
+                # 3. 解析嵌套 JSON。这里字段层级来自百度接口返回结构。
                 result = res_json['Result']['Result']
                 # 结果为空跳出循环
                 if not result:
