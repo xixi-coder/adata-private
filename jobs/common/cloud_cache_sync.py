@@ -8,6 +8,7 @@ from jobs.common.google_drive_store import GoogleDriveStore
 from jobs.common.local_env import load_local_env
 
 SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
+CACHE_SYNCED_ENV = "A_SHARE_CACHE_ALREADY_SYNCED"
 
 
 def drive_enabled() -> bool:
@@ -23,6 +24,13 @@ def drive_enabled() -> bool:
 
 
 def sync_cache_from_drive(project_root: str, archive_name: str, cache_paths: list[str]) -> bool:
+    if (
+        os.getenv(CACHE_SYNCED_ENV, "").strip().lower() in {"1", "true", "yes", "y", "on"}
+        and archive_name == SHARED_MARKET_CACHE_ARCHIVE
+        and cache_paths == ["data/cache"]
+    ):
+        print(f"Shared cache already restored in this runner, skip cache download: {archive_name}")
+        return True
     if not drive_enabled():
         print("Google Drive not configured, skip cache download.")
         return False

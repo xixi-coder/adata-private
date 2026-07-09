@@ -657,36 +657,18 @@ def main() -> None:
         print(trade_note)
         return
 
-    allow_online_update = _read_bool_env("A_SHARE_REVIEW_ALLOW_ONLINE_UPDATE", True)
     universe_size = _read_int_env("A_SHARE_REVIEW_UNIVERSE_SIZE", 800)
     max_positions = _read_int_env("A_SHARE_REVIEW_MAX_POSITIONS", 18)
     rebalance_period = _read_int_env("A_SHARE_REVIEW_REBALANCE_PERIOD", 20)
     min_amount_ma20 = _read_float_env("A_SHARE_REVIEW_MIN_AMOUNT_MA20", 80_000_000)
     include_dividend = _read_bool_env("A_SHARE_REVIEW_INCLUDE_DIVIDEND", True)
 
-    sync_cache_from_drive = None
-    sync_cache_to_drive = None
     try:
         from jobs.common.cloud_cache_sync import sync_cache_from_drive as _sync_cache_from_drive
-        from jobs.common.cloud_cache_sync import sync_cache_to_drive as _sync_cache_to_drive
 
-        sync_cache_from_drive = _sync_cache_from_drive
-        sync_cache_to_drive = _sync_cache_to_drive
-        sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
+        _sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
     except Exception as exc:
         print(f"缓存同步不可用，继续使用本地缓存: {exc}")
-    if allow_online_update:
-        from strategies.short_term.short_term_strategy_code import ShortTermDisagreementStrategy
-
-        updater = ShortTermDisagreementStrategy()
-        max_update_codes = _read_int_env("A_SHARE_REVIEW_MAX_UPDATE_CODES", 0)
-        updater.load_data(
-            allow_online_update=True,
-            max_update_codes=max_update_codes if max_update_codes > 0 else None,
-        )
-        updater.sync_active_cache_to_shared()
-        if sync_cache_to_drive:
-            sync_cache_to_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
 
     config = StrategyConfig(
         max_positions=max_positions,

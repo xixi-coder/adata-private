@@ -14,6 +14,9 @@ from typing import Iterable
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
 OUTPUT_DIR = os.path.join(CURRENT_DIR, "outputs")
+SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
+CACHE_SYNCED_ENV = "A_SHARE_CACHE_ALREADY_SYNCED"
+CACHE_CONSUMER_TASKS = {"volatility", "boll", "a_share_review", "three_dim"}
 
 
 @dataclass(frozen=True)
@@ -55,7 +58,7 @@ TASKS: dict[str, RunnerTask] = {
         name="a_share_review",
         script="jobs/a_share_allocation/run_daily.py",
         env={
-            "A_SHARE_REVIEW_ALLOW_ONLINE_UPDATE": "true",
+            "A_SHARE_REVIEW_ALLOW_ONLINE_UPDATE": "false",
             "A_SHARE_REVIEW_UNIVERSE_SIZE": "800",
             "A_SHARE_REVIEW_MAX_POSITIONS": "18",
             "A_SHARE_REVIEW_REBALANCE_PERIOD": "20",
@@ -150,6 +153,27 @@ def _run_task(task: RunnerTask, trade_date: str, dry_run: bool) -> dict:
     return payload
 
 
+def _sync_shared_cache_once(task_names: Iterable[str], dry_run: bool) -> bool:
+    if dry_run or not CACHE_CONSUMER_TASKS.intersection(task_names):
+        return False
+    started = time.perf_counter()
+    print("[runner] sync shared cache from Google Drive: start", flush=True)
+    try:
+        from jobs.common.cloud_cache_sync import sync_cache_from_drive
+
+        synced = sync_cache_from_drive(PROJECT_ROOT, SHARED_MARKET_CACHE_ARCHIVE, ["data/cache"])
+    except Exception as exc:
+        print(f"[runner] sync shared cache from Google Drive: failed ({exc})", flush=True)
+        return False
+    elapsed = round(time.perf_counter() - started, 2)
+    if synced:
+        os.environ[CACHE_SYNCED_ENV] = "true"
+        print(f"[runner] sync shared cache from Google Drive: done ({elapsed}s)", flush=True)
+    else:
+        print(f"[runner] sync shared cache from Google Drive: skipped ({elapsed}s)", flush=True)
+    return synced
+
+
 def run_profile(
     profile: str,
     task_names: Iterable[str],
@@ -158,6 +182,8 @@ def run_profile(
     continue_on_error: bool = False,
 ) -> dict:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    task_names = list(task_names)
+    cache_synced = _sync_shared_cache_once(task_names, dry_run=dry_run)
     tasks = [TASKS[name] for name in task_names]
     results = []
     for task in tasks:
@@ -175,6 +201,7 @@ def run_profile(
         "completed_count": len(results),
         "failed_count": len(failed),
         "status": "failed" if failed else "success",
+        "shared_cache_synced": cache_synced,
         "tasks": results,
     }
     summary_path = os.path.join(OUTPUT_DIR, "latest_runner_summary.json")
