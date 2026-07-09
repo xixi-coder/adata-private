@@ -56,7 +56,7 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/three_dim_resonance/outputs/latest_email_body.txt",),
     },
     "shared_cache": {
-        "title": "共享缓存维护",
+        "title": "A股共享缓存维护",
         "paths": ("data/cache/three_dim_cache_manifest.json",),
     },
     "dividend_cache": {
@@ -113,7 +113,13 @@ def _format_shared_cache_manifest(data: dict[str, Any]) -> str:
     auto_commit_minutes = int(data.get("auto_commit_minutes") or 0)
     cache_changed = "是" if data.get("cache_changed") else "否"
     benchmark_updated = "是" if data.get("benchmark_updated") else "否"
+    benchmark_updates = data.get("benchmark_updates") or {}
     workers = data.get("stock_max_workers", "-")
+    benchmark_names = {
+        "000300": "沪深300",
+        "399006": "创业板指",
+        "000688": "科创50",
+    }
 
     lines = [
         "日线/财务共享缓存维护",
@@ -121,9 +127,15 @@ def _format_shared_cache_manifest(data: dict[str, Any]) -> str:
         f"- 股票池: {selected}只，本地缓存记录 {data.get('stock_count', '-')}只",
         f"- 日线补齐: 待检查 {pending}只，完成检查 {checked}只，写入更新 {updated}只",
         f"- 财务缓存: 本次刷新 {data.get('refreshed_finance_count', 0)}只",
-        f"- 沪深300基准: {'已更新' if data.get('benchmark_updated') else '无需更新'}",
         f"- 缓存变化: {cache_changed}",
     ]
+    if benchmark_updates:
+        lines.append("- 指数基准:")
+        for code, changed in benchmark_updates.items():
+            name = benchmark_names.get(code, code)
+            lines.append(f"  - {name}({code}): {'已更新' if changed else '无需更新'}")
+    else:
+        lines.append(f"- 沪深300基准: {'已更新' if data.get('benchmark_updated') else '无需更新'}")
     if workers != "-":
         lines.append(f"- 日线抓取并发: {workers}")
     if auto_commit_minutes > 0:

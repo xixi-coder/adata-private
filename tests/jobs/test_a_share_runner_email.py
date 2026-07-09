@@ -43,6 +43,11 @@ class AShareRunnerEmailTest(unittest.TestCase):
                         "checked_stock_count": 2424,
                         "refreshed_finance_count": 0,
                         "benchmark_updated": False,
+                        "benchmark_updates": {
+                            "000300": False,
+                            "399006": True,
+                            "000688": False,
+                        },
                         "cache_changed": True,
                         "auto_commit_minutes": 30,
                         "auto_commit_count": 4,
@@ -58,6 +63,7 @@ class AShareRunnerEmailTest(unittest.TestCase):
         self.assertIn("序号 | 方向 | 数量 | 均分/代表", emails[0][2])
         self.assertNotIn("Profile: eod", emails[0][2])
         self.assertIn("日线补齐: 待检查 2469只", emails[1][2])
+        self.assertIn("创业板指(399006): 已更新", emails[1][2])
         self.assertIn("运行中自动回传: 每 30 分钟检查一次，共回传 4 次", emails[1][2])
 
     def test_boll_email_removes_operational_lines_and_adds_headers(self):

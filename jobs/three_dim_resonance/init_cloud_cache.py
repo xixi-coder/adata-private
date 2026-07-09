@@ -26,6 +26,13 @@ from jobs.common.a_share_metadata import (
 from jobs.common.cloud_cache_sync import sync_cache_from_drive, sync_cache_to_drive, write_json
 
 
+BENCHMARK_INDEXES = {
+    "000300": {"name": "沪深300", "file": "benchmark_000300.csv"},
+    "399006": {"name": "创业板指", "file": "benchmark_399006.csv"},
+    "000688": {"name": "科创50", "file": "benchmark_000688.csv"},
+}
+
+
 def _read_int_env(name: str, default: Optional[int] = None) -> Optional[int]:
     value = os.getenv(name, "").strip()
     if value == "":
@@ -40,6 +47,10 @@ class FiveYearCloudCacheBuilder:
         self.finance_dir = os.path.join(self.cache_dir, "finance")
         self.full_cache_file = os.path.join(self.cache_dir, "full_data_v3_5year.pkl")
         self.benchmark_file = os.path.join(self.cache_dir, "benchmark_000300.csv")
+        self.benchmark_files = {
+            code: os.path.join(self.cache_dir, config["file"])
+            for code, config in BENCHMARK_INDEXES.items()
+        }
         self.manifest_file = os.path.join(self.cache_dir, "three_dim_cache_manifest.json")
         self.metadata = load_stock_metadata(PROJECT_ROOT)
 
@@ -129,10 +140,11 @@ class FiveYearCloudCacheBuilder:
             print(f"[finance fetch failed] {code}: {exc}")
         return False
 
-    def _update_benchmark(self, target_date: str):
+    def _update_single_benchmark(self, index_code: str, target_date: str) -> bool:
         os.makedirs(self.cache_dir, exist_ok=True)
-        if os.path.exists(self.benchmark_file):
-            bench = pd.read_csv(self.benchmark_file)
+        benchmark_file = self.benchmark_files[index_code]
+        if os.path.exists(benchmark_file):
+            bench = pd.read_csv(benchmark_file)
         else:
             bench = pd.DataFrame()
         updated = False
@@ -140,24 +152,40 @@ class FiveYearCloudCacheBuilder:
             last_date = str(bench["trade_date"].max())
             if last_date < target_date:
                 new_bench = adata.stock.market.get_market_index(
-                    index_code="000300",
+                    index_code=index_code,
                     start_date=last_date,
                     end_date=target_date,
                 )
                 if new_bench is not None and not new_bench.empty:
                     bench = pd.concat([bench, new_bench]).drop_duplicates("trade_date").sort_values("trade_date")
-                    bench.to_csv(self.benchmark_file, index=False)
+                    bench.to_csv(benchmark_file, index=False)
                     updated = True
         else:
             bench = adata.stock.market.get_market_index(
-                index_code="000300",
+                index_code=index_code,
                 start_date=self._five_year_start(),
                 end_date=target_date,
             )
             if bench is not None and not bench.empty:
-                bench.to_csv(self.benchmark_file, index=False)
+                bench.to_csv(benchmark_file, index=False)
                 updated = True
         return updated
+
+    def _update_benchmarks(self, target_date: str) -> dict[str, bool]:
+        results = {}
+        for index_code, config in BENCHMARK_INDEXES.items():
+            print(f"[stage] update_benchmark({index_code} {config['name']}): start", flush=True)
+            try:
+                results[index_code] = self._update_single_benchmark(index_code, target_date)
+            except Exception as exc:
+                results[index_code] = False
+                print(f"[benchmark fetch failed] {index_code} {config['name']}: {exc}", flush=True)
+            print(
+                f"[stage] update_benchmark({index_code} {config['name']}): "
+                f"{'updated' if results[index_code] else 'skipped'}",
+                flush=True,
+            )
+        return results
 
     def build(
         self,
@@ -302,10 +330,11 @@ class FiveYearCloudCacheBuilder:
             maybe_auto_commit("refresh_finance")
         print(f"[stage] refresh_finance: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
 
-        print("[stage] update_benchmark: start", flush=True)
+        print("[stage] update_benchmarks: start", flush=True)
         stage_t0 = time.perf_counter()
-        benchmark_updated = self._update_benchmark(target_date)
-        print(f"[stage] update_benchmark: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
+        benchmark_updates = self._update_benchmarks(target_date)
+        benchmark_updated = any(benchmark_updates.values())
+        print(f"[stage] update_benchmarks: done ({time.perf_counter() - stage_t0:.1f}s)", flush=True)
         cache_changed = bool(updated_stock > 0 or refreshed_finance > 0 or benchmark_updated)
         if cache_changed:
             print("[stage] save_cache: start", flush=True)
@@ -322,6 +351,8 @@ class FiveYearCloudCacheBuilder:
             "checked_stock_count": checked_stock,
             "refreshed_finance_count": refreshed_finance,
             "benchmark_updated": benchmark_updated,
+            "benchmark_updates": benchmark_updates,
+            "benchmark_files": self.benchmark_files,
             "cache_changed": cache_changed,
             "cache_file": self.full_cache_file,
             "benchmark_file": self.benchmark_file,

@@ -41,6 +41,8 @@
 
 - `data/cache/full_data_v3_5year.pkl`
 - `data/cache/benchmark_000300.csv`
+- `data/cache/benchmark_399006.csv`
+- `data/cache/benchmark_000688.csv`
 - `data/cache/finance/`
 - `data/cache/dividend/`
 - `data/cache/minute_live/`
@@ -67,4 +69,4 @@
 - 修改共享缓存结构前，需要同时检查所有依赖 job。
 - 大文件缓存不应提交进仓库，统一通过 Google Drive 同步。
 - 公共组件应保持向后兼容，避免旧 job 无法读取历史缓存。
-- 分时数据只作为盘中 overlay 使用，不应写入 `full_data_v3_5year.pkl`。
+- 分时数据只由短线盘中扫描按候选股写入 `data/cache/minute_live/<trade_date>/`，不由 `maintenance` 做全市场分钟线维护，也不应写入 `full_data_v3_5year.pkl`。

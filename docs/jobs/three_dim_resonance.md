@@ -51,6 +51,8 @@
 
 - `data/cache/full_data_v3_5year.pkl`
 - `data/cache/benchmark_000300.csv`
+- `data/cache/benchmark_399006.csv`
+- `data/cache/benchmark_000688.csv`
 - `data/cache/finance/*.csv`
 - `data/cache/three_dim_cache_manifest.json`
 - `data/cache/three_dim_live_state.json`
@@ -74,7 +76,7 @@ Google Drive：
 
 1. 从 Google Drive 下载已有缓存包。
 2. 计算日线补齐目标日期。
-3. 增量更新股票日 K、沪深 300 和财务缓存。
+3. 增量更新股票日 K、沪深 300/创业板指/科创50 和财务缓存。
 4. 分批 checkpoint 落盘。
 5. 写入 manifest。
 6. 有变化时重新打包上传。
