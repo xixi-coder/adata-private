@@ -25,10 +25,6 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "title": "短线分时扫描",
         "paths": ("jobs/short_term/outputs/latest_summary.txt",),
     },
-    "short_term_intraday_pm": {
-        "title": "短线分时扫描-下午版",
-        "paths": ("jobs/short_term/outputs/latest_summary.txt",),
-    },
     "volatility": {
         "title": "A股波动结构扫描",
         "paths": ("jobs/volatility/outputs/latest_email_body.txt",),

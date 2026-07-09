@@ -412,6 +412,41 @@ class IntradayStrategyMinuteCacheTest(unittest.TestCase):
         self.assertEqual(strategy.last_intraday_market_snapshot["000300"], -0.6)
         self.assertEqual(strategy.last_intraday_market_snapshot["399006"], -1.1)
 
+    def test_manual_run_can_bypass_minute_cache(self):
+        strategy = IntradaySignalStrategy(candidate_size=1)
+        strategy.stock_data = {"000001": pd.DataFrame({"close": [10.0]})}
+        candidate_df = pd.DataFrame(
+            [
+                {
+                    "code": "000001",
+                    "short_name": "测试股",
+                    "daily_score": 1.0,
+                }
+            ]
+        )
+
+        with patch.object(
+            strategy,
+            "resolve_scan_trade_date",
+            return_value=("2026-04-17", True, "manual"),
+        ), patch.object(
+            strategy,
+            "build_daily_candidates",
+            return_value=candidate_df,
+        ), patch.object(
+            strategy,
+            "_intraday_market_ok",
+            return_value=True,
+        ), patch.object(
+            strategy,
+            "fetch_minute_data",
+            return_value=pd.DataFrame(),
+        ) as mocked_fetch:
+            strategy.run_live_scan(enforce_runtime_window=False, prefer_minute_cache=False)
+
+        mocked_fetch.assert_called_once()
+        self.assertFalse(mocked_fetch.call_args.kwargs["prefer_cache"])
+
 
 if __name__ == "__main__":
     unittest.main()

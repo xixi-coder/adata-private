@@ -28,4 +28,5 @@
 
 - `.github/workflows/a-share-runner.yml`
   - profile：`intraday`
-  - 下午版 profile：`intraday_pm`
+  - 历史下午版 profile `intraday_pm` 已合并到 `intraday`
+  - 手动触发会跳过运行窗口判断，并强制刷新分钟数据

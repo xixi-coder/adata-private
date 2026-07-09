@@ -33,11 +33,11 @@
 
 其中 `a-share-runner.yml` 承接新的定时调度：
 
-- `intraday`：盘中分时扫描，分钟缓存默认 120 秒 TTL。
+- `intraday`：盘中分时扫描，分钟缓存默认 120 秒 TTL；手动触发时强制使用最新分时数据。
 - `eod`：盘后波动、BOLL、复盘、三维共振。
 - `maintenance`：共享行情缓存和分红缓存维护。
 
-手动只跑单个策略时，在 `统一任务调度` 的 `tasks` 输入里填写任务名，例如 `volatility,boll`。
+手动只跑单个策略时，在 `统一任务调度` 的 `tasks` 输入里填写任务名，例如 `volatility,boll`。手动触发 `intraday` 会跳过运行窗口判断，并强制刷新分钟数据。
 
 策略核心实现统一放到 `strategies/` 目录：
 

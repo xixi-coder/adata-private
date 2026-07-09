@@ -32,9 +32,9 @@ python jobs/short_term/intraday_strategy_live.py
 
 - `.github/workflows/a-share-runner.yml`
   - profile：`intraday`
-  - 下午版 profile：`intraday_pm`
-  - 单独运行任务：`short_term_intraday` 或 `short_term_intraday_pm`
-  - 上午版默认窗口 `09:45 ~ 10:30`，下午版窗口 `09:30 ~ 14:30`
+  - 历史下午版 profile `intraday_pm` 已合并到 `intraday`
+  - 单独运行任务：`short_term_intraday`
+  - 定时运行默认窗口 `09:45 ~ 10:30`；手动触发会跳过窗口判断，并强制拉取最新分时数据
 
 注意：GitHub Actions schedule 不保证准点触发。运行时间治理建议见 `docs/short_term_strategy_optimization.md`。
 
@@ -94,3 +94,4 @@ python jobs/short_term/intraday_strategy_live.py
 - 当前策略是信号扫描器，不是完整成交系统。
 - 历史分钟数据不稳定，因此更适合积累样本后复盘。
 - schedule 延迟可能导致上午策略在下午才触发，需要补运行窗口保护。
+- 手动触发用于临时复查当前盘面，会绕过运行窗口并忽略分钟缓存 TTL，直接请求最新分时数据。

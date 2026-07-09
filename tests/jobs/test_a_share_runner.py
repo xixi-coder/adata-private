@@ -10,6 +10,9 @@ class AShareRunnerTest(unittest.TestCase):
     def test_resolve_intraday_profile(self):
         self.assertEqual(a_share_runner.resolve_task_names("intraday"), ["short_term_intraday"])
 
+    def test_resolve_intraday_pm_profile_to_intraday_task(self):
+        self.assertEqual(a_share_runner.resolve_task_names("intraday_pm"), ["short_term_intraday"])
+
     def test_tasks_override_profile(self):
         self.assertEqual(
             a_share_runner.resolve_task_names("eod", "volatility,boll"),
@@ -40,6 +43,14 @@ class AShareRunnerTest(unittest.TestCase):
 
         self.assertEqual(env["INTRADAY_CACHE_TTL_SECONDS"], "30")
         self.assertEqual(env["TRADE_DATE"], "2026-04-17")
+
+    def test_manual_intraday_forces_latest_minute_data(self):
+        task = a_share_runner.TASKS["short_term_intraday"]
+        with patch.dict("os.environ", {"A_SHARE_MANUAL_TRIGGER": "true"}, clear=True):
+            env = a_share_runner._build_env(task, trade_date="")
+
+        self.assertEqual(env["INTRADAY_SKIP_RUNTIME_WINDOW"], "true")
+        self.assertEqual(env["INTRADAY_FORCE_LATEST_MINUTE"], "true")
 
     def test_maintenance_tasks_are_tuned_for_runtime(self):
         shared_cache = a_share_runner.TASKS["shared_cache"]

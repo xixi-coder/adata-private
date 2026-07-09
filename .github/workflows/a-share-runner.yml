@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "运行 profile: intraday / intraday_pm / eod / maintenance / all"
+        description: "运行 profile: intraday / eod / maintenance / all"
         required: false
         default: "intraday"
       tasks:
@@ -96,6 +96,7 @@ jobs:
           SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
           TRADE_DATE: ${{ steps.profile.outputs.trade_date }}
+          A_SHARE_MANUAL_TRIGGER: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: |
           args=(--profile "${{ steps.profile.outputs.profile }}")
           if [ -n "${{ steps.profile.outputs.tasks }}" ]; then

@@ -140,6 +140,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         self.last_minute_trade_dates: List[str] = []
         self.last_intraday_market_snapshot: Dict[str, float] = {}
         self.last_market_data_context: MarketDataContext | None = None
+        self.last_candidate_df = pd.DataFrame()
 
     @staticmethod
     def _now_shanghai() -> dt.datetime:
@@ -600,10 +601,15 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
                 }
         return {}
 
-    def run_live_scan(self, enforce_runtime_window: bool = True) -> tuple[pd.DataFrame, str, bool, str]:
+    def run_live_scan(
+        self,
+        enforce_runtime_window: bool = True,
+        prefer_minute_cache: bool = True,
+    ) -> tuple[pd.DataFrame, str, bool, str]:
         if not self.stock_data:
             self.load_data()
 
+        self.last_candidate_df = pd.DataFrame()
         resolved_trade_date, is_trade_day, note = self.resolve_scan_trade_date()
         if not is_trade_day:
             print(note)
@@ -621,6 +627,7 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
             note = "手动执行，已跳过运行窗口判断。"
 
         candidates = self.build_daily_candidates(resolved_trade_date)
+        self.last_candidate_df = candidates
         if candidates.empty:
             self.last_minute_trade_dates = []
             return pd.DataFrame(), resolved_trade_date, is_trade_day, note
@@ -638,7 +645,11 @@ class IntradaySignalStrategy(ShortTermDisagreementStrategy):
         minute_map: Dict[str, pd.DataFrame] = {}
         signals: List[Dict] = []
         for _, row in candidates.iterrows():
-            minute_df = self.fetch_minute_data(row["code"], trade_date=resolved_trade_date, prefer_cache=True)
+            minute_df = self.fetch_minute_data(
+                row["code"],
+                trade_date=resolved_trade_date,
+                prefer_cache=prefer_minute_cache,
+            )
             minute_map[row["code"]] = minute_df
             signal = self.generate_signal_for_stock(row, minute_df)
             if signal:
@@ -684,17 +695,14 @@ if __name__ == "__main__":
     strategy.load_data(allow_online_update=True)
     strategy.sync_active_cache_to_shared()
     now = strategy._now_shanghai()
-    resolved_trade_date, is_trade_day, note = strategy.resolve_scan_trade_date()
-    runtime_status = strategy._runtime_window_status(resolved_trade_date) if is_trade_day else {"ok": False, "note": note}
-    if not is_trade_day or not runtime_status["ok"]:
-        candidate_df = pd.DataFrame()
-        signal_df = pd.DataFrame()
-        note = runtime_status["note"]
-    else:
-        candidate_df = strategy._sort_by_daily_score(strategy.build_daily_candidates(resolved_trade_date))
-        signal_df, _, _, run_note = strategy.run_live_scan()
-        signal_df = strategy._sort_by_daily_score(signal_df)
-        note = run_note or note
+    enforce_runtime_window = not _read_bool_env("INTRADAY_SKIP_RUNTIME_WINDOW", False)
+    prefer_minute_cache = not _read_bool_env("INTRADAY_FORCE_LATEST_MINUTE", False)
+    signal_df, resolved_trade_date, is_trade_day, note = strategy.run_live_scan(
+        enforce_runtime_window=enforce_runtime_window,
+        prefer_minute_cache=prefer_minute_cache,
+    )
+    candidate_df = strategy._sort_by_daily_score(strategy.last_candidate_df)
+    signal_df = strategy._sort_by_daily_score(signal_df)
 
     # 阶段2：生成并落盘本次候选、信号和汇总
     output_dir = os.path.join(CURRENT_DIR, "outputs")

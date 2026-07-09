@@ -33,17 +33,7 @@ TASKS: dict[str, RunnerTask] = {
         name="short_term_intraday",
         script="jobs/short_term/intraday_strategy_live.py",
         env={"INTRADAY_CACHE_TTL_SECONDS": "120"},
-        description="短线分时扫描：T-1 日线候选 + 当日分钟确认。",
-    ),
-    "short_term_intraday_pm": RunnerTask(
-        name="short_term_intraday_pm",
-        script="jobs/short_term/intraday_strategy_live.py",
-        env={
-            "INTRADAY_SIGNAL_START_TIME": "09:30:00",
-            "INTRADAY_SIGNAL_END_TIME": "14:30:00",
-            "INTRADAY_CACHE_TTL_SECONDS": "120",
-        },
-        description="短线分时下午版：更长盘中观察窗口。",
+        description="短线分时扫描：T-1 日线候选 + 最新分钟确认。",
     ),
     "volatility": RunnerTask(
         name="volatility",
@@ -97,7 +87,8 @@ TASKS: dict[str, RunnerTask] = {
 
 PROFILES: dict[str, tuple[str, ...]] = {
     "intraday": ("short_term_intraday",),
-    "intraday_pm": ("short_term_intraday_pm",),
+    # 兼容历史手动输入；下午版不再是独立任务，统一走 short_term_intraday。
+    "intraday_pm": ("short_term_intraday",),
     "eod": ("volatility", "boll", "a_share_review", "three_dim"),
     "maintenance": ("shared_cache", "dividend_cache"),
     "all": ("short_term_intraday", "volatility", "boll", "a_share_review", "three_dim"),
@@ -118,10 +109,18 @@ def resolve_task_names(profile: str, tasks: str = "") -> list[str]:
     return selected
 
 
+def _is_manual_trigger() -> bool:
+    manual_env = os.getenv("A_SHARE_MANUAL_TRIGGER", "").strip().lower()
+    return manual_env in {"1", "true", "yes", "y", "on"} or os.getenv("GITHUB_EVENT_NAME", "") == "workflow_dispatch"
+
+
 def _build_env(task: RunnerTask, trade_date: str) -> dict[str, str]:
     env = os.environ.copy()
     for key, value in task.env.items():
         env.setdefault(key, value)
+    if task.name == "short_term_intraday" and _is_manual_trigger():
+        env.setdefault("INTRADAY_SKIP_RUNTIME_WINDOW", "true")
+        env.setdefault("INTRADAY_FORCE_LATEST_MINUTE", "true")
     if trade_date:
         env["TRADE_DATE"] = trade_date
     return env
@@ -191,7 +190,7 @@ def main() -> int:
         "--profile",
         default=os.getenv("A_SHARE_RUNNER_PROFILE", "intraday"),
         choices=sorted(PROFILES.keys()),
-        help="任务组合：intraday / intraday_pm / eod / maintenance / all",
+        help="任务组合：intraday / eod / maintenance / all；intraday_pm 会兼容映射到 intraday",
     )
     parser.add_argument(
         "--tasks",
