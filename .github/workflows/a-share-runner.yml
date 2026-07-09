@@ -2,6 +2,8 @@ name: 统一任务调度
 
 on:
   schedule:
+    - cron: "50 1 * * 1-5" # 北京时间工作日 09:50，盘中分时扫描（错峰兜底）
+    - cron: "10 2 * * 1-5" # 北京时间工作日 10:10，盘中分时扫描（错峰兜底）
     - cron: "35 2 * * 1-5" # 北京时间工作日 10:35，盘中分时扫描
     - cron: "45 9 * * 1-5" # 北京时间工作日 17:45，盘后复盘组合
     - cron: "20 23 * * 0-4" # 北京时间工作日 07:20，共享缓存维护
@@ -65,6 +67,12 @@ jobs:
             continue_on_error="${{ github.event.inputs.continue_on_error }}"
           else
             case "${{ github.event.schedule }}" in
+              "50 1 * * 1-5")
+                profile="intraday"
+                ;;
+              "10 2 * * 1-5")
+                profile="intraday"
+                ;;
               "35 2 * * 1-5")
                 profile="intraday"
                 ;;
