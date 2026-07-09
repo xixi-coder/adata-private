@@ -2,12 +2,13 @@ name: 统一任务调度
 
 on:
   schedule:
+    - cron: "35 7 * * 1-5" # 北京时间工作日 15:35，盘后补采短线候选股分钟缓存
+    - cron: "40 8 * * 1-5" # 北京时间工作日 16:40，共享缓存维护，供盘后复盘使用
     - cron: "45 9 * * 1-5" # 北京时间工作日 17:45，盘后复盘组合
-    - cron: "20 23 * * 0-4" # 北京时间工作日 07:20，共享缓存维护
   workflow_dispatch:
     inputs:
       profile:
-        description: "运行 profile: intraday / eod / maintenance / all"
+        description: "运行 profile: intraday / minute_cache / eod / maintenance / all"
         required: false
         default: "intraday"
       tasks:
@@ -64,11 +65,14 @@ jobs:
             continue_on_error="${{ github.event.inputs.continue_on_error }}"
           else
             case "${{ github.event.schedule }}" in
+              "35 7 * * 1-5")
+                profile="minute_cache"
+                ;;
+              "40 8 * * 1-5")
+                profile="maintenance"
+                ;;
               "45 9 * * 1-5")
                 profile="eod"
-                ;;
-              "20 23 * * 0-4")
-                profile="maintenance"
                 ;;
               *)
                 profile="intraday"

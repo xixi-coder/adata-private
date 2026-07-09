@@ -4,7 +4,7 @@
 
 ## 任务列表
 
-- `jobs/a_share_runner.py`：A 股任务统一调度入口，按 `intraday` / `eod` / `maintenance` profile 编排多个任务。
+- `jobs/a_share_runner.py`：A 股任务统一调度入口，按 `intraday` / `minute_cache` / `eod` / `maintenance` profile 编排多个任务。
 - [短线分时策略](short_term.md)：前一交易日日线选票，交易日盘中拉取 1 分钟分时并生成信号。
 - [三维共振策略](three_dim_resonance.md)：初始化共享市场缓存，并按日生成三维共振买卖建议。
 - [A 股每日投资复盘](a_share_allocation.md)：组合持仓复盘、候选池排名、市场状态和调仓建议。
@@ -36,7 +36,8 @@ python jobs/a_share_runner.py --profile maintenance
 - `intraday`：短线分时扫描。日线基座使用上一完整交易日，分时使用当日最新分钟数据；手动触发时会跳过运行窗口判断并强制刷新分钟数据。
 - `intraday_pm`：历史兼容别名，当前映射到同一个 `intraday` 任务，不再单独维护下午版。
 - `eod`：波动结构、BOLL、每日投资复盘、三维共振。
-- `maintenance`：共享行情缓存和分红缓存维护。
+- `minute_cache`：盘后补采短线候选股当日 1 分钟缓存。
+- `maintenance`：共享行情缓存和分红缓存维护，安排在盘后复盘前执行。
 
 如需临时只跑部分任务：
 

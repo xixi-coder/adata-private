@@ -32,6 +32,7 @@ python jobs/short_term/intraday_strategy_live.py
 
 - `.github/workflows/a-share-runner.yml`
   - profile：`intraday`
+  - profile：`minute_cache`，北京时间工作日 15:35 盘后补采候选股分钟缓存
   - 历史下午版 profile `intraday_pm` 已合并到 `intraday`
   - 单独运行任务：`short_term_intraday`
   - 定时运行默认窗口 `09:45 ~ 10:30`；手动触发会跳过窗口判断，并强制拉取最新分时数据
@@ -88,6 +89,8 @@ python jobs/short_term/intraday_strategy_live.py
 6. 对候选池逐只拉取 1 分钟数据。
 7. 生成分时信号、缓存分钟数据、输出摘要。
 8. 回传共享缓存，并通过 workflow 上传 artifact 和发送邮件。
+
+`minute_cache` 复用同一个入口，但由 runner 注入 `INTRADAY_SKIP_RUNTIME_WINDOW=true`、`INTRADAY_FORCE_LATEST_MINUTE=true` 和 `INTRADAY_CACHE_TTL_SECONDS=0`，因此它用于盘后采集完整分钟缓存，不作为实时开仓提醒。
 
 ## 注意事项
 

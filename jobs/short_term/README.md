@@ -10,6 +10,7 @@
 
 - 候选池分层：把日线候选分成 `弱转强`、`龙头加速`、`分歧修复`、`强势观察`。
 - 运行窗口保护：如果 GitHub Actions 延迟到窗口之外，脚本会直接跳过，避免把上午策略跑成下午追高。
+- 盘后分时缓存：`minute_cache` profile 会跳过实时窗口，强制拉取候选股当日完整分钟线，用于复盘和样本积累。
 - 分时确认更保守：对不同候选类型，自动收紧追高、VWAP 偏离和单分钟脉冲阈值。
 
 共享缓存：
@@ -28,5 +29,6 @@
 
 - `.github/workflows/a-share-runner.yml`
   - profile：`intraday`
+  - profile：`minute_cache`，北京时间工作日 15:35 盘后补采候选股分钟缓存
   - 历史下午版 profile `intraday_pm` 已合并到 `intraday`
   - 手动触发会跳过运行窗口判断，并强制刷新分钟数据

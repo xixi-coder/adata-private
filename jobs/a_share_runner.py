@@ -38,6 +38,16 @@ TASKS: dict[str, RunnerTask] = {
         env={"INTRADAY_CACHE_TTL_SECONDS": "120"},
         description="短线分时扫描：T-1 日线候选 + 最新分钟确认。",
     ),
+    "short_term_minute_replay": RunnerTask(
+        name="short_term_minute_replay",
+        script="jobs/short_term/intraday_strategy_live.py",
+        env={
+            "INTRADAY_CACHE_TTL_SECONDS": "0",
+            "INTRADAY_SKIP_RUNTIME_WINDOW": "true",
+            "INTRADAY_FORCE_LATEST_MINUTE": "true",
+        },
+        description="短线候选股分钟缓存采集：盘后补采当日 1 分钟数据。",
+    ),
     "volatility": RunnerTask(
         name="volatility",
         script="jobs/volatility/run_daily.py",
@@ -92,6 +102,7 @@ PROFILES: dict[str, tuple[str, ...]] = {
     "intraday": ("short_term_intraday",),
     # 兼容历史手动输入；下午版不再是独立任务，统一走 short_term_intraday。
     "intraday_pm": ("short_term_intraday",),
+    "minute_cache": ("short_term_minute_replay",),
     "eod": ("volatility", "boll", "a_share_review", "three_dim"),
     "maintenance": ("shared_cache", "dividend_cache"),
     "all": ("short_term_intraday", "volatility", "boll", "a_share_review", "three_dim"),
