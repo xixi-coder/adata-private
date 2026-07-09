@@ -34,7 +34,7 @@
     "PCB概念": {
       "rank": 6,
       "score": 74.0,
-      "status": "震荡观察",
+      "status": "持续发酵",
       "hot_stock_count": 5
     },
     "算力租赁": {
@@ -53,74 +53,74 @@
       "rank": 9,
       "score": 55.0,
       "status": "降温",
-      "hot_stock_count": 13
-    },
-    "中国AI 50": {
-      "rank": 10,
-      "score": 52.13,
-      "status": "降温",
-      "hot_stock_count": 4
+      "hot_stock_count": 12
     },
     "人形机器人": {
-      "rank": 11,
+      "rank": 10,
       "score": 49.34,
-      "status": "持续发酵",
+      "status": "快速升温",
       "hot_stock_count": 2
     },
     "半导体": {
-      "rank": 12,
+      "rank": 11,
       "score": 47.5,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "第三代半导体": {
-      "rank": 13,
-      "score": 46.6,
-      "status": "新晋观察",
-      "hot_stock_count": 6
+    "中国AI 50": {
+      "rank": 12,
+      "score": 46.73,
+      "status": "降温",
+      "hot_stock_count": 3
     },
     "证券": {
-      "rank": 14,
+      "rank": 13,
       "score": 46.17,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "培育钻石": {
-      "rank": 15,
-      "score": 45.73,
-      "status": "震荡观察",
-      "hot_stock_count": 1
-    },
     "液冷服务器": {
-      "rank": 16,
+      "rank": 14,
       "score": 45.33,
       "status": "震荡观察",
       "hot_stock_count": 2
     },
     "电力": {
-      "rank": 17,
+      "rank": 15,
       "score": 44.83,
       "status": "快速升温",
       "hot_stock_count": 0
     },
     "F5G概念": {
-      "rank": 18,
+      "rank": 16,
       "score": 44.54,
       "status": "降温",
       "hot_stock_count": 6
     },
+    "培育钻石": {
+      "rank": 17,
+      "score": 44.4,
+      "status": "震荡观察",
+      "hot_stock_count": 1
+    },
     "油气开采及服务": {
-      "rank": 19,
+      "rank": 18,
       "score": 43.5,
-      "status": "新晋升温",
+      "status": "快速升温",
       "hot_stock_count": 0
     },
     "创新药": {
-      "rank": 20,
+      "rank": 19,
       "score": 43.5,
+      "status": "快速升温",
+      "hot_stock_count": 0
+    },
+    "元件": {
+      "rank": 20,
+      "score": 42.17,
       "status": "新晋升温",
       "hot_stock_count": 0
     }
   },
-  "updated_at": "2026-07-09 18:04:23"
+  "updated_at": "2026-07-09 18:19:53"
 }
