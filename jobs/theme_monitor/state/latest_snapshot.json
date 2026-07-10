@@ -7,41 +7,41 @@
       "status": "持续发酵",
       "hot_stock_count": 14
     },
-    "商业航天": {
-      "rank": 2,
-      "score": 80.2,
-      "status": "持续发酵",
-      "hot_stock_count": 5
-    },
     "共封装光学(CPO)": {
-      "rank": 3,
-      "score": 77.6,
+      "rank": 2,
+      "score": 78.79,
       "status": "持续发酵",
       "hot_stock_count": 13
     },
-    "卫星导航": {
+    "商业航天": {
+      "rank": 3,
+      "score": 71.2,
+      "status": "震荡观察",
+      "hot_stock_count": 3
+    },
+    "国家大基金持股": {
       "rank": 4,
-      "score": 70.93,
+      "score": 69.13,
       "status": "降温",
-      "hot_stock_count": 6
+      "hot_stock_count": 10
     },
     "光纤概念": {
       "rank": 5,
-      "score": 68.63,
+      "score": 67.03,
       "status": "降温",
-      "hot_stock_count": 10
-    },
-    "国家大基金持股": {
-      "rank": 6,
-      "score": 66.47,
-      "status": "降温",
-      "hot_stock_count": 10
+      "hot_stock_count": 9
     },
     "先进封装": {
-      "rank": 7,
-      "score": 59.06,
+      "rank": 6,
+      "score": 63.17,
       "status": "持续发酵",
-      "hot_stock_count": 5
+      "hot_stock_count": 6
+    },
+    "PCB概念": {
+      "rank": 7,
+      "score": 59.63,
+      "status": "持续发酵",
+      "hot_stock_count": 6
     },
     "算力租赁": {
       "rank": 8,
@@ -49,17 +49,17 @@
       "status": "持续发酵",
       "hot_stock_count": 3
     },
-    "人形机器人": {
+    "卫星导航": {
       "rank": 9,
-      "score": 55.26,
-      "status": "持续发酵",
-      "hot_stock_count": 2
+      "score": 53.93,
+      "status": "降温",
+      "hot_stock_count": 4
     },
-    "PCB概念": {
+    "人形机器人": {
       "rank": 10,
-      "score": 50.47,
+      "score": 51.18,
       "status": "持续发酵",
-      "hot_stock_count": 5
+      "hot_stock_count": 1
     },
     "半导体": {
       "rank": 11,
@@ -79,48 +79,48 @@
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "军工装备": {
+    "电力": {
       "rank": 14,
       "score": 44.83,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "电力": {
+    "CRO概念": {
       "rank": 15,
+      "score": 44.4,
+      "status": "快速升温",
+      "hot_stock_count": 1
+    },
+    "军工装备": {
+      "rank": 16,
       "score": 43.5,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "白酒": {
-      "rank": 16,
+    "医疗服务": {
+      "rank": 17,
       "score": 42.17,
       "status": "快速升温",
       "hot_stock_count": 0
     },
     "国产航母": {
-      "rank": 17,
+      "rank": 18,
       "score": 41.73,
       "status": "震荡观察",
       "hot_stock_count": 1
     },
-    "医疗服务": {
-      "rank": 18,
+    "白酒": {
+      "rank": 19,
       "score": 40.83,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "CRO概念": {
-      "rank": 19,
-      "score": 40.4,
-      "status": "震荡观察",
-      "hot_stock_count": 1
-    },
-    "军工电子": {
+    "半导体设备": {
       "rank": 20,
       "score": 39.5,
-      "status": "快速升温",
+      "status": "新晋升温",
       "hot_stock_count": 0
     }
   },
-  "updated_at": "2026-07-10 16:51:22"
+  "updated_at": "2026-07-10 18:00:08"
 }
