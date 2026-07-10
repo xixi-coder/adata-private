@@ -1,4 +1,4 @@
-name: 雪球关注用户自选股监听
+name: 用户自选
 
 on:
   schedule:

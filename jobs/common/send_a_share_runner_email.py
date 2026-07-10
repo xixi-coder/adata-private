@@ -30,7 +30,7 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/short_term/outputs/latest_summary.txt",),
     },
     "volatility": {
-        "title": "A股波动结构扫描",
+        "title": "波动结构扫描",
         "paths": ("jobs/volatility/outputs/latest_email_body.txt",),
         "headers": {
             "一、资金聚焦": "序号 | 方向 | 数量 | 均分/代表",
@@ -60,7 +60,7 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
         "paths": ("jobs/three_dim_resonance/outputs/latest_email_body.txt",),
     },
     "shared_cache": {
-        "title": "A股共享缓存维护",
+        "title": "共享缓存维护",
         "paths": ("data/cache/three_dim_cache_manifest.json",),
     },
     "dividend_cache": {
@@ -255,8 +255,7 @@ def iter_task_emails(summary: dict[str, Any], base_dir: Union[str, Path] = PROJE
                 body = f"{config['title']}\n\n任务执行失败，未生成邮件正文。请查看 GitHub Actions 的 Run profile 日志。\n"
             else:
                 continue
-        status_prefix = "失败" if task.get("status") == "failed" else "成功"
-        subject = f"[{status_prefix}] {config['title']}"
+        subject = str(config["title"])
         emails.append((subject, config["title"], body))
     return emails
 

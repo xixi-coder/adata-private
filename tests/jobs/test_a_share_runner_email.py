@@ -59,7 +59,7 @@ class AShareRunnerEmailTest(unittest.TestCase):
 
             emails = iter_task_emails(summary, base)
 
-        self.assertEqual([email[0] for email in emails], ["[成功] A股波动结构扫描", "[成功] A股共享缓存维护"])
+        self.assertEqual([email[0] for email in emails], ["波动结构扫描", "共享缓存维护"])
         self.assertIn("序号 | 方向 | 数量 | 均分/代表", emails[0][2])
         self.assertNotIn("Profile: eod", emails[0][2])
         self.assertIn("日线补齐: 待检查 2469只", emails[1][2])
@@ -74,7 +74,7 @@ class AShareRunnerEmailTest(unittest.TestCase):
             (output_dir / "latest_email_body.txt").write_text(
                 "\n".join(
                     [
-                        "A股BOLL战法扫描",
+                        "BOLL战法扫描",
                         "",
                         "- 运行时间: 2026-07-08 18:31:45",
                         "- 请求日期: 2026-07-08",
@@ -92,6 +92,19 @@ class AShareRunnerEmailTest(unittest.TestCase):
         self.assertNotIn("运行时间", body)
         self.assertNotIn("请求日期", body)
         self.assertIn("序号 | 股票代码 | 股票名称 | 评分", body)
+
+    def test_failed_task_subject_does_not_include_status_prefix(self):
+        summary = {
+            "tasks": [
+                {"name": "volatility", "status": "failed", "returncode": 1, "elapsed_seconds": 3.0},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            emails = iter_task_emails(summary, Path(tmpdir))
+
+        self.assertEqual(len(emails), 1)
+        self.assertEqual(emails[0][0], "波动结构扫描")
+        self.assertIn("任务执行失败", emails[0][2])
 
     def test_dividend_cache_email_formats_manifest_summary(self):
         with tempfile.TemporaryDirectory() as tmpdir:
