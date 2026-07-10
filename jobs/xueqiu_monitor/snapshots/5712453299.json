@@ -2,6 +2,14 @@
   "uid": "5712453299",
   "watchlist": [
     {
+      "stock_code": "SKYY",
+      "short_name": "云计算股指数ETF-First Trust"
+    },
+    {
+      "stock_code": "IBB",
+      "short_name": "生物科技指数ETF-iShares Nasdaq"
+    },
+    {
       "stock_code": "600030.SH",
       "short_name": "中信证券"
     },
@@ -303,5 +311,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-10 14:43:21"
+  "collected_at": "2026-07-10 19:49:34"
 }
