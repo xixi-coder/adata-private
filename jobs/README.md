@@ -8,6 +8,7 @@
 - `jobs/three_dim_resonance/`：三维共振策略的云端缓存初始化与每日执行入口。
 - `jobs/short_term/`：短线策略分时扫描入口。
 - `jobs/theme_monitor/`：盘面舆论和板块主题雷达入口。
+- `jobs/theme_rotation_workflow/`：把主题雷达归并为科技、创新药、高股息等主线轮动仓位计划。
 - `jobs/dividend_sync/`：分红缓存一次性增量同步到 Google Drive 的入口。
 
 当前三维共振相关入口：
@@ -18,6 +19,7 @@
 - `jobs/short_term/init_cache.py`：初始化短线策略日线缓存。
 - `jobs/short_term/intraday_strategy_live.py`：基于前一交易日日线候选池做当日分时扫描。
 - `jobs/theme_monitor/run.py`：盘中热榜、人气榜、概念/行业雷达，不依赖共享 K 线缓存。
+- `jobs/theme_rotation_workflow/run.py`：主线轮动 workflow，输出主线/副主线/观察/回避和目标仓位区间。
 - `jobs/dividend_sync/sync_dividend_cache_once.py`：一次性抓取/更新分红缓存并上传到 Google Drive（可选附带更新共享缓存包）。
 
 共享缓存说明：
@@ -30,6 +32,7 @@
 
 - `.github/workflows/a-share-runner.yml`：统一任务调度（定时入口）
 - `.github/workflows/theme-monitor.yml`：盘面舆论板块雷达
+- `.github/workflows/theme-rotation-workflow.yml`：主线轮动 workflow，收盘后输出科技/创新药/高股息等篮子计划
 
 其中 `a-share-runner.yml` 承接新的定时调度：
 

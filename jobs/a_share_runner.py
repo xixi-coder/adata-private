@@ -81,6 +81,11 @@ TASKS: dict[str, RunnerTask] = {
         script="jobs/three_dim_resonance/run_daily.py",
         description="三维共振日线建议。",
     ),
+    "theme_rotation": RunnerTask(
+        name="theme_rotation",
+        script="jobs/theme_rotation_workflow/run.py",
+        description="主线轮动 workflow：科技/创新药/高股息等篮子评分和仓位计划。",
+    ),
     "shared_cache": RunnerTask(
         name="shared_cache",
         script="jobs/three_dim_resonance/init_cloud_cache.py",
@@ -103,9 +108,9 @@ PROFILES: dict[str, tuple[str, ...]] = {
     # 兼容历史手动输入；下午版不再是独立任务，统一走 short_term_intraday。
     "intraday_pm": ("short_term_intraday",),
     "minute_cache": ("short_term_minute_replay",),
-    "eod": ("volatility", "boll", "a_share_review", "three_dim"),
+    "eod": ("volatility", "boll", "a_share_review", "three_dim", "theme_rotation"),
     "maintenance": ("shared_cache", "dividend_cache"),
-    "all": ("short_term_intraday", "volatility", "boll", "a_share_review", "three_dim"),
+    "all": ("short_term_intraday", "volatility", "boll", "a_share_review", "three_dim", "theme_rotation"),
 }
 
 
