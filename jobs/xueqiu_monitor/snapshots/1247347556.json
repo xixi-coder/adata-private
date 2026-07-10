@@ -207,7 +207,7 @@
     },
     {
       "stock_code": "600938.SH",
-      "short_name": "中国海油"
+      "short_name": "XD中国海"
     },
     {
       "stock_code": "CVX",
@@ -243,7 +243,7 @@
     },
     {
       "stock_code": "NVR",
-      "short_name": "NVR INC"
+      "short_name": "NVR"
     },
     {
       "stock_code": "01519",
@@ -583,7 +583,7 @@
     },
     {
       "stock_code": "601169.SH",
-      "short_name": "北京银行"
+      "short_name": "XD北京银"
     },
     {
       "stock_code": "601998.SH",
@@ -595,7 +595,7 @@
     },
     {
       "stock_code": "601328.SH",
-      "short_name": "交通银行"
+      "short_name": "XD交通银"
     },
     {
       "stock_code": "601818.SH",
@@ -607,7 +607,7 @@
     },
     {
       "stock_code": "601988.SH",
-      "short_name": "中国银行"
+      "short_name": "XD中国银"
     },
     {
       "stock_code": "000001.SZ",
@@ -783,7 +783,7 @@
     },
     {
       "stock_code": "600036.SH",
-      "short_name": "招商银行"
+      "short_name": "XD招商银"
     },
     {
       "stock_code": "CMG",
@@ -891,5 +891,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-09 19:55:37"
+  "collected_at": "2026-07-10 14:43:20"
 }

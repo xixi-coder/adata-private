@@ -6,6 +6,10 @@
       "short_name": "长鑫科技"
     },
     {
+      "stock_code": "002851.SZ",
+      "short_name": "麦格米特"
+    },
+    {
       "stock_code": "688432.SH",
       "short_name": "有研硅"
     },
@@ -207,7 +211,7 @@
     },
     {
       "stock_code": "600547.SH",
-      "short_name": "XD山东黄"
+      "short_name": "山东黄金"
     },
     {
       "stock_code": "300750.SZ",
@@ -491,5 +495,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-09 19:55:33"
+  "collected_at": "2026-07-10 14:43:17"
 }
