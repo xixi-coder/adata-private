@@ -5,25 +5,25 @@
       "rank": 1,
       "score": 92.33,
       "status": "持续发酵",
-      "hot_stock_count": 14
+      "hot_stock_count": 13
     },
     "共封装光学(CPO)": {
       "rank": 2,
-      "score": 78.79,
+      "score": 78.93,
       "status": "持续发酵",
-      "hot_stock_count": 13
+      "hot_stock_count": 12
     },
     "商业航天": {
       "rank": 3,
       "score": 71.2,
-      "status": "震荡观察",
+      "status": "持续发酵",
       "hot_stock_count": 3
     },
     "国家大基金持股": {
       "rank": 4,
-      "score": 69.13,
+      "score": 70.82,
       "status": "降温",
-      "hot_stock_count": 10
+      "hot_stock_count": 9
     },
     "光纤概念": {
       "rank": 5,
@@ -51,14 +51,14 @@
     },
     "卫星导航": {
       "rank": 9,
-      "score": 53.93,
+      "score": 52.6,
       "status": "降温",
       "hot_stock_count": 4
     },
     "人形机器人": {
       "rank": 10,
       "score": 51.18,
-      "status": "持续发酵",
+      "status": "快速升温",
       "hot_stock_count": 1
     },
     "半导体": {
@@ -88,7 +88,7 @@
     "CRO概念": {
       "rank": 15,
       "score": 44.4,
-      "status": "快速升温",
+      "status": "震荡观察",
       "hot_stock_count": 1
     },
     "军工装备": {
@@ -118,9 +118,9 @@
     "半导体设备": {
       "rank": 20,
       "score": 39.5,
-      "status": "新晋升温",
+      "status": "快速升温",
       "hot_stock_count": 0
     }
   },
-  "updated_at": "2026-07-10 18:00:08"
+  "updated_at": "2026-07-10 18:04:48"
 }
