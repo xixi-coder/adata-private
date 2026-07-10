@@ -7,45 +7,45 @@
       "status": "持续发酵",
       "hot_stock_count": 7
     },
-    "共封装光学(CPO)": {
+    "存储芯片": {
       "rank": 2,
-      "score": 80.13,
+      "score": 80.23,
+      "status": "持续发酵",
+      "hot_stock_count": 8
+    },
+    "共封装光学(CPO)": {
+      "rank": 3,
+      "score": 80.07,
       "status": "持续发酵",
       "hot_stock_count": 12
     },
-    "存储芯片": {
-      "rank": 3,
-      "score": 76.28,
-      "status": "持续发酵",
-      "hot_stock_count": 7
-    },
     "光纤概念": {
       "rank": 4,
-      "score": 68.6,
+      "score": 68.41,
       "status": "降温",
       "hot_stock_count": 10
     },
     "国家大基金持股": {
       "rank": 5,
-      "score": 63.98,
+      "score": 64.05,
       "status": "降温",
       "hot_stock_count": 6
     },
     "先进封装": {
       "rank": 6,
-      "score": 59.38,
+      "score": 60.68,
       "status": "持续发酵",
       "hot_stock_count": 4
     },
     "算力租赁": {
       "rank": 7,
-      "score": 58.05,
+      "score": 57.77,
       "status": "持续发酵",
       "hot_stock_count": 3
     },
     "人形机器人": {
       "rank": 8,
-      "score": 54.83,
+      "score": 55.68,
       "status": "持续发酵",
       "hot_stock_count": 2
     },
@@ -57,7 +57,7 @@
     },
     "创新药": {
       "rank": 10,
-      "score": 51.59,
+      "score": 52.24,
       "status": "快速升温",
       "hot_stock_count": 1
     },
@@ -69,11 +69,11 @@
     },
     "PCB概念": {
       "rank": 12,
-      "score": 46.5,
+      "score": 46.24,
       "status": "持续发酵",
       "hot_stock_count": 4
     },
-    "电力": {
+    "证券": {
       "rank": 13,
       "score": 46.17,
       "status": "快速升温",
@@ -85,19 +85,19 @@
       "status": "震荡观察",
       "hot_stock_count": 1
     },
-    "证券": {
+    "电力": {
       "rank": 15,
       "score": 44.83,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "东数西算(算力)": {
+    "军工信息化": {
       "rank": 16,
-      "score": 43.79,
+      "score": 43.8,
       "status": "降温",
-      "hot_stock_count": 3
+      "hot_stock_count": 6
     },
-    "白酒": {
+    "医疗服务": {
       "rank": 17,
       "score": 43.5,
       "status": "快速升温",
@@ -105,22 +105,22 @@
     },
     "减肥药": {
       "rank": 18,
-      "score": 42.98,
-      "status": "新晋观察",
+      "score": 43.31,
+      "status": "震荡观察",
       "hot_stock_count": 2
     },
-    "医疗服务": {
+    "白酒": {
       "rank": 19,
       "score": 42.17,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "军工信息化": {
+    "军工装备": {
       "rank": 20,
-      "score": 42.0,
-      "status": "降温",
-      "hot_stock_count": 6
+      "score": 40.83,
+      "status": "新晋升温",
+      "hot_stock_count": 0
     }
   },
-  "updated_at": "2026-07-10 14:14:32"
+  "updated_at": "2026-07-10 14:26:56"
 }
