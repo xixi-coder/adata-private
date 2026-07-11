@@ -2,6 +2,10 @@
   "uid": "5712453299",
   "watchlist": [
     {
+      "stock_code": "SKHYV",
+      "short_name": "SK海力士 WI"
+    },
+    {
       "stock_code": "SKYY",
       "short_name": "云计算股指数ETF-First Trust"
     },
@@ -311,5 +315,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-10 19:49:34"
+  "collected_at": "2026-07-11 13:38:33"
 }

@@ -2,6 +2,10 @@
   "uid": "8058064790",
   "watchlist": [
     {
+      "stock_code": "SKHYV",
+      "short_name": "SK海力士 WI"
+    },
+    {
       "stock_code": "DRAM",
       "short_name": "Roundhill记忆ETF"
     },
@@ -211,7 +215,7 @@
     },
     {
       "stock_code": "IREN",
-      "short_name": "IREN LIMITED ORD"
+      "short_name": "IREN"
     },
     {
       "stock_code": "CRWV",
@@ -935,5 +939,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-10 19:49:32"
+  "collected_at": "2026-07-11 13:38:31"
 }
