@@ -2,6 +2,10 @@
   "uid": "7535489890",
   "watchlist": [
     {
+      "stock_code": "600601.SH",
+      "short_name": "方正科技"
+    },
+    {
       "stock_code": "002850.SZ",
       "short_name": "科达利"
     },
@@ -171,5 +175,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-12 13:56:08"
+  "collected_at": "2026-07-12 18:25:27"
 }
