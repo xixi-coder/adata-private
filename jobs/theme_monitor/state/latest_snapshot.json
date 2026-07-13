@@ -40,7 +40,7 @@
     "PCB概念": {
       "rank": 7,
       "score": 51.8,
-      "status": "快速升温",
+      "status": "持续发酵",
       "hot_stock_count": 5
     },
     "先进封装": {
@@ -55,17 +55,17 @@
       "status": "快速升温",
       "hot_stock_count": 2
     },
-    "禽流感": {
-      "rank": 10,
-      "score": 48.47,
-      "status": "震荡观察",
-      "hot_stock_count": 2
-    },
     "半导体": {
-      "rank": 11,
+      "rank": 10,
       "score": 47.5,
       "status": "快速升温",
       "hot_stock_count": 0
+    },
+    "禽流感": {
+      "rank": 11,
+      "score": 47.13,
+      "status": "降温",
+      "hot_stock_count": 2
     },
     "中药": {
       "rank": 12,
@@ -76,7 +76,7 @@
     "猪肉": {
       "rank": 13,
       "score": 44.86,
-      "status": "持续发酵",
+      "status": "快速升温",
       "hot_stock_count": 1
     },
     "银行": {
@@ -100,7 +100,7 @@
     "人工智能": {
       "rank": 17,
       "score": 42.17,
-      "status": "新晋升温",
+      "status": "快速升温",
       "hot_stock_count": 0
     },
     "医药电商": {
@@ -112,7 +112,7 @@
     "仿制药一致性评价": {
       "rank": 19,
       "score": 42.0,
-      "status": "新晋观察",
+      "status": "降温",
       "hot_stock_count": 5
     },
     "油气开采及服务": {
@@ -122,5 +122,5 @@
       "hot_stock_count": 0
     }
   },
-  "updated_at": "2026-07-13 17:53:34"
+  "updated_at": "2026-07-13 17:57:47"
 }
