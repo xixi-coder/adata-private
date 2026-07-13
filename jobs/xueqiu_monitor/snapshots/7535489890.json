@@ -6,10 +6,6 @@
       "short_name": "方正科技"
     },
     {
-      "stock_code": "002850.SZ",
-      "short_name": "科达利"
-    },
-    {
       "stock_code": "002294.SZ",
       "short_name": "信立泰"
     },
@@ -47,7 +43,7 @@
     },
     {
       "stock_code": "688017.SH",
-      "short_name": "XD绿的谐"
+      "short_name": "绿的谐波"
     },
     {
       "stock_code": "000725.SZ",
@@ -175,5 +171,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-12 18:25:27"
+  "collected_at": "2026-07-13 14:14:52"
 }

@@ -43,7 +43,7 @@
     },
     {
       "stock_code": "688363.SH",
-      "short_name": "华熙生物"
+      "short_name": "XD华熙生"
     },
     {
       "stock_code": "SMTC",
@@ -207,7 +207,7 @@
     },
     {
       "stock_code": "600938.SH",
-      "short_name": "XD中国海"
+      "short_name": "中国海油"
     },
     {
       "stock_code": "CVX",
@@ -423,7 +423,7 @@
     },
     {
       "stock_code": "601658.SH",
-      "short_name": "邮储银行"
+      "short_name": "XD邮储银"
     },
     {
       "stock_code": "GOOG",
@@ -583,7 +583,7 @@
     },
     {
       "stock_code": "601169.SH",
-      "short_name": "XD北京银"
+      "short_name": "北京银行"
     },
     {
       "stock_code": "601998.SH",
@@ -591,11 +591,11 @@
     },
     {
       "stock_code": "601939.SH",
-      "short_name": "建设银行"
+      "short_name": "XD建设银"
     },
     {
       "stock_code": "601328.SH",
-      "short_name": "XD交通银"
+      "short_name": "交通银行"
     },
     {
       "stock_code": "601818.SH",
@@ -607,7 +607,7 @@
     },
     {
       "stock_code": "601988.SH",
-      "short_name": "XD中国银"
+      "short_name": "中国银行"
     },
     {
       "stock_code": "000001.SZ",
@@ -779,11 +779,11 @@
     },
     {
       "stock_code": "601088.SH",
-      "short_name": "中国神华"
+      "short_name": "XD中国神"
     },
     {
       "stock_code": "600036.SH",
-      "short_name": "XD招商银"
+      "short_name": "招商银行"
     },
     {
       "stock_code": "CMG",
@@ -891,5 +891,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-12 18:25:30"
+  "collected_at": "2026-07-13 14:14:54"
 }

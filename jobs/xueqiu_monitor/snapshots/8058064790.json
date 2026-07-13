@@ -427,7 +427,7 @@
     },
     {
       "stock_code": "600938.SH",
-      "short_name": "XD中国海"
+      "short_name": "中国海油"
     },
     {
       "stock_code": "BWXT",
@@ -819,7 +819,7 @@
     },
     {
       "stock_code": "600036.SH",
-      "short_name": "XD招商银"
+      "short_name": "招商银行"
     },
     {
       "stock_code": "600985.SH",
@@ -835,7 +835,7 @@
     },
     {
       "stock_code": "601088.SH",
-      "short_name": "中国神华"
+      "short_name": "XD中国神"
     },
     {
       "stock_code": "VIXY",
@@ -939,5 +939,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-12 18:25:29"
+  "collected_at": "2026-07-13 14:14:53"
 }
