@@ -3,50 +3,50 @@
   "themes": {
     "PCB概念": {
       "rank": 1,
-      "score": 81.13,
-      "status": "快速升温",
-      "hot_stock_count": 8
+      "score": 87.04,
+      "status": "持续发酵",
+      "hot_stock_count": 7
     },
     "共封装光学(CPO)": {
       "rank": 2,
-      "score": 76.07,
+      "score": 85.95,
       "status": "持续发酵",
-      "hot_stock_count": 12
-    },
-    "创新药": {
-      "rank": 3,
-      "score": 70.26,
-      "status": "震荡观察",
-      "hot_stock_count": 5
+      "hot_stock_count": 11
     },
     "光纤概念": {
-      "rank": 4,
-      "score": 66.54,
+      "rank": 3,
+      "score": 76.54,
       "status": "持续发酵",
       "hot_stock_count": 9
     },
     "存储芯片": {
-      "rank": 5,
-      "score": 65.32,
-      "status": "震荡观察",
+      "rank": 4,
+      "score": 75.32,
+      "status": "持续发酵",
       "hot_stock_count": 10
     },
-    "先进封装": {
-      "rank": 6,
-      "score": 53.95,
+    "创新药": {
+      "rank": 5,
+      "score": 73.86,
       "status": "持续发酵",
-      "hot_stock_count": 4
+      "hot_stock_count": 5
     },
     "国家大基金持股": {
-      "rank": 7,
-      "score": 52.89,
+      "rank": 6,
+      "score": 61.89,
       "status": "降温",
       "hot_stock_count": 8
     },
+    "先进封装": {
+      "rank": 7,
+      "score": 61.15,
+      "status": "持续发酵",
+      "hot_stock_count": 4
+    },
     "算力租赁": {
       "rank": 8,
-      "score": 49.24,
-      "status": "震荡观察",
+      "score": 54.64,
+      "status": "持续发酵",
       "hot_stock_count": 5
     },
     "半导体": {
@@ -55,35 +55,35 @@
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "元件": {
+    "商业航天": {
       "rank": 10,
-      "score": 46.17,
-      "status": "新晋升温",
-      "hot_stock_count": 0
+      "score": 46.8,
+      "status": "快速升温",
+      "hot_stock_count": 2
     },
-    "证券": {
+    "元件": {
       "rank": 11,
-      "score": 44.83,
+      "score": 46.17,
       "status": "快速升温",
       "hot_stock_count": 0
     },
     "人形机器人": {
       "rank": 12,
-      "score": 43.78,
-      "status": "新晋升温",
+      "score": 45.58,
+      "status": "快速升温",
       "hot_stock_count": 1
     },
-    "医药商业": {
+    "证券": {
       "rank": 13,
-      "score": 43.5,
-      "status": "新晋升温",
+      "score": 44.83,
+      "status": "快速升温",
       "hot_stock_count": 0
     },
-    "商业航天": {
+    "医药商业": {
       "rank": 14,
-      "score": 43.2,
+      "score": 43.5,
       "status": "快速升温",
-      "hot_stock_count": 2
+      "hot_stock_count": 0
     },
     "油气开采及服务": {
       "rank": 15,
@@ -100,7 +100,7 @@
     "化学制药": {
       "rank": 17,
       "score": 39.5,
-      "status": "新晋升温",
+      "status": "快速升温",
       "hot_stock_count": 0
     },
     "银行": {
@@ -109,18 +109,18 @@
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "中药": {
+    "芯片概念": {
       "rank": 19,
-      "score": 36.83,
-      "status": "震荡观察",
-      "hot_stock_count": 0
-    },
-    "机器人概念": {
-      "rank": 20,
-      "score": 35.93,
+      "score": 37.67,
       "status": "新晋观察",
-      "hot_stock_count": 1
+      "hot_stock_count": 3
+    },
+    "中药": {
+      "rank": 20,
+      "score": 36.83,
+      "status": "快速升温",
+      "hot_stock_count": 0
     }
   },
-  "updated_at": "2026-07-14 12:28:33"
+  "updated_at": "2026-07-14 12:35:59"
 }
