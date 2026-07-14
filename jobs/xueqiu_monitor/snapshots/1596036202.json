@@ -2,6 +2,10 @@
   "uid": "1596036202",
   "watchlist": [
     {
+      "stock_code": "600601.SH",
+      "short_name": "方正科技"
+    },
+    {
       "stock_code": "601869.SH",
       "short_name": "长飞光纤"
     },
@@ -439,5 +443,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-10 14:43:19"
+  "collected_at": "2026-07-13 19:59:18"
 }

@@ -2,6 +2,18 @@
   "uid": "5712453299",
   "watchlist": [
     {
+      "stock_code": "SKHY",
+      "short_name": "SK海力士"
+    },
+    {
+      "stock_code": "SKYY",
+      "short_name": "云计算股指数ETF-First Trust"
+    },
+    {
+      "stock_code": "IBB",
+      "short_name": "生物科技指数ETF-iShares Nasdaq"
+    },
+    {
       "stock_code": "600030.SH",
       "short_name": "中信证券"
     },
@@ -23,7 +35,7 @@
     },
     {
       "stock_code": "601872.SH",
-      "short_name": "XD招商轮"
+      "short_name": "招商轮船"
     },
     {
       "stock_code": "00700.SZ",
@@ -303,5 +315,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-10 14:43:21"
+  "collected_at": "2026-07-13 19:59:21"
 }

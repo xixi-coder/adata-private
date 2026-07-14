@@ -2,8 +2,8 @@
   "uid": "7535489890",
   "watchlist": [
     {
-      "stock_code": "002850.SZ",
-      "short_name": "科达利"
+      "stock_code": "600601.SH",
+      "short_name": "方正科技"
     },
     {
       "stock_code": "002294.SZ",
@@ -43,7 +43,7 @@
     },
     {
       "stock_code": "688017.SH",
-      "short_name": "XD绿的谐"
+      "short_name": "绿的谐波"
     },
     {
       "stock_code": "000725.SZ",
@@ -171,5 +171,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-10 14:43:18"
+  "collected_at": "2026-07-13 19:59:17"
 }

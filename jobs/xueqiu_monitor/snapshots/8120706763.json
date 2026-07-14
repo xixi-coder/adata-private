@@ -243,7 +243,7 @@
     },
     {
       "stock_code": "603308.SH",
-      "short_name": "XD应流股"
+      "short_name": "应流股份"
     },
     {
       "stock_code": "300731.SZ",
@@ -743,7 +743,7 @@
     },
     {
       "stock_code": "600283.SH",
-      "short_name": "XD钱江水"
+      "short_name": "钱江水利"
     },
     {
       "stock_code": "300503.SZ",
@@ -1043,5 +1043,5 @@
     }
   ],
   "posts": [],
-  "collected_at": "2026-07-10 14:43:20"
+  "collected_at": "2026-07-13 19:59:20"
 }
