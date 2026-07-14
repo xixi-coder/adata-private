@@ -32,6 +32,7 @@ DEFAULT_BASKETS: tuple[dict[str, Any], ...] = (
         "policy_score": 78.0,
         "evidence_score": 66.0,
         "max_weight": 0.30,
+        "etfs": ("159995 芯片ETF", "588000 科创50ETF", "515880 通信ETF"),
     },
     {
         "basket": "创新药",
@@ -53,6 +54,15 @@ DEFAULT_BASKETS: tuple[dict[str, Any], ...] = (
         "policy_score": 82.0,
         "evidence_score": 68.0,
         "max_weight": 0.25,
+        "etfs": (
+            "3174.HK 南方东英恒生生物科技ETF",
+            "159567 港股创新药ETF",
+            "159570 港股通创新药ETF",
+            "159316 恒生港股通创新药ETF",
+            "159992 创新药ETF",
+            "515120 创新药ETF",
+            "512170 医疗ETF",
+        ),
     },
     {
         "basket": "高股息",
@@ -61,6 +71,7 @@ DEFAULT_BASKETS: tuple[dict[str, Any], ...] = (
         "policy_score": 64.0,
         "evidence_score": 62.0,
         "max_weight": 0.35,
+        "etfs": ("510880 红利ETF", "515080 中证红利ETF", "512890 红利低波ETF"),
     },
     {
         "basket": "消费修复",
@@ -69,6 +80,7 @@ DEFAULT_BASKETS: tuple[dict[str, Any], ...] = (
         "policy_score": 58.0,
         "evidence_score": 54.0,
         "max_weight": 0.20,
+        "etfs": ("159928 消费ETF", "512690 酒ETF", "515650 消费50ETF"),
     },
     {
         "basket": "周期资源",
@@ -77,6 +89,7 @@ DEFAULT_BASKETS: tuple[dict[str, Any], ...] = (
         "policy_score": 55.0,
         "evidence_score": 58.0,
         "max_weight": 0.20,
+        "etfs": ("512400 有色金属ETF", "518880 黄金ETF", "159930 能源ETF"),
     },
 )
 
@@ -239,10 +252,12 @@ class ThemeRotationWorkflow:
             "avg_change_pct": round(avg_change, 2),
             "current_weight": round(float(current_weight), 4),
             "max_weight": round(float(basket.get("max_weight", 0.2)), 4),
+            "etf_candidates": " / ".join(basket.get("etfs", ())),
             "top_themes": top_themes,
             "action": "",
             "target_weight": 0.0,
             "weight_band": "",
+            "suggested_etfs": "",
             "note": "",
         }
 
@@ -302,6 +317,7 @@ class ThemeRotationWorkflow:
             out.at[idx, "action"] = action
             out.at[idx, "target_weight"] = round(float(target), 4)
             out.at[idx, "weight_band"] = f"{lower:.0%}-{upper:.0%}" if target > 0 else "0%"
+            out.at[idx, "suggested_etfs"] = str(row["etf_candidates"]) if target > 0 else "暂不建议"
             out.at[idx, "note"] = self._action_note(action, crowding, str(row["top_themes"]))
         return out
 

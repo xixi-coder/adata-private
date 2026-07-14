@@ -5,7 +5,9 @@ import argparse
 import datetime as dt
 import json
 import os
+import smtplib
 import sys
+from email.message import EmailMessage
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -22,6 +24,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from strategies.theme_rotation_workflow import ThemeRotationWorkflow
+from jobs.common.email_format import set_rich_email_content
 
 
 def _now_shanghai() -> dt.datetime:
@@ -111,15 +114,15 @@ def _build_markdown(summary: dict[str, Any], plan: pd.DataFrame, run_time: str) 
         "",
         "## 组合动作",
         "",
-        "| 排名 | 篮子 | 动作 | 目标仓位 | 综合分 | 趋势 | 资金 | 催化 | 兑现 | 拥挤 | 说明 |",
-        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        "| 排名 | 篮子 | 动作 | 目标仓位 | 建议ETF | 综合分 | 趋势 | 资金 | 催化 | 兑现 | 拥挤 | 说明 |",
+        "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
     if plan.empty:
-        lines.append("| - | - | - | - | - | - | - | - | - | - | 无可用数据 |")
+        lines.append("| - | - | - | - | - | - | - | - | - | - | - | 无可用数据 |")
     else:
         for _, row in plan.iterrows():
             lines.append(
-                "| {rank} | {basket} | {action} | {weight_band} | {final_score:.2f} | "
+                "| {rank} | {basket} | {action} | {weight_band} | {suggested_etfs} | {final_score:.2f} | "
                 "{trend_score:.2f} | {fund_score:.2f} | {catalyst_score:.2f} | "
                 "{evidence_score:.2f} | {crowding_score:.2f} | {note} |".format(**row.to_dict())
             )
@@ -137,6 +140,29 @@ def _build_markdown(summary: dict[str, Any], plan: pd.DataFrame, run_time: str) 
         ]
     )
     return "\n".join(lines)
+
+
+def _send_email_if_configured(body: str) -> None:
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_pass = os.getenv("SMTP_PASS", "").strip()
+    mail_to = os.getenv("MAIL_TO", "").strip()
+    if not smtp_user or not smtp_pass or not mail_to:
+        print("未配置邮件参数，跳过主线轮动邮件通知。")
+        return
+    subject = os.getenv("THEME_ROTATION_EMAIL_SUBJECT", "主线轮动")
+    title = os.getenv("THEME_ROTATION_EMAIL_TITLE", "A 股主线轮动 Workflow")
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = smtp_user
+    msg["To"] = mail_to
+    set_rich_email_content(msg, body, title=title)
+    recipients = [item.strip() for item in mail_to.split(",") if item.strip()]
+    host = os.getenv("SMTP_HOST", "smtp.163.com")
+    port = int(os.getenv("SMTP_PORT", "465"))
+    with smtplib.SMTP_SSL(host, port) as server:
+        server.login(smtp_user, smtp_pass)
+        server.send_message(msg, to_addrs=recipients)
+    print(f"已发送主线轮动邮件通知：{subject}，收件人：{mail_to}")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -184,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
     with open(os.path.join(OUTPUT_DIR, "latest_report.md"), "w", encoding="utf-8") as f:
         f.write(markdown + "\n")
     print(markdown)
+    if os.getenv("THEME_ROTATION_SEND_EMAIL_IN_SCRIPT", "true").strip().lower() in {"1", "true", "yes", "y", "on"}:
+        _send_email_if_configured(markdown)
     return 0
 
 

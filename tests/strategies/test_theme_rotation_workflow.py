@@ -56,6 +56,29 @@ class ThemeRotationWorkflowTest(unittest.TestCase):
         self.assertEqual(plan.iloc[0]["action"], "主线")
         self.assertEqual(summary["main_line"], "科技成长")
         self.assertGreater(plan.iloc[0]["target_weight"], 0)
+        self.assertIn("159995", plan.iloc[0]["suggested_etfs"])
+
+    def test_innovation_drug_prefers_hk_connect_etfs(self):
+        radar = pd.DataFrame(
+            [
+                {
+                    "theme": "创新药",
+                    "score": 88,
+                    "change_pct": 2.2,
+                    "hot_stock_count": 5,
+                    "popularity_overlap_count": 2,
+                    "hot_value": 92,
+                    "status": "快速升温",
+                    "representatives": "000001 测试A",
+                },
+            ]
+        )
+
+        plan, _ = ThemeRotationWorkflow().build_plan(radar, market_context={"risk_appetite": "强"})
+        innovation = plan[plan["basket"].eq("创新药")].iloc[0]
+
+        self.assertTrue(innovation["suggested_etfs"].startswith("3174.HK"))
+        self.assertIn("159567", innovation["suggested_etfs"])
 
     def test_crowded_current_weight_reduces_main_line_target(self):
         radar = pd.DataFrame(
@@ -82,6 +105,12 @@ class ThemeRotationWorkflowTest(unittest.TestCase):
         self.assertGreaterEqual(tech["crowding_score"], 55)
         self.assertLess(tech["target_weight"], tech["max_weight"])
         self.assertIn("拥挤", tech["note"])
+
+    def test_avoided_basket_has_no_suggested_etf(self):
+        plan, _ = ThemeRotationWorkflow().build_plan(pd.DataFrame(), market_context={})
+
+        avoided = plan[plan["action"].eq("回避")].iloc[0]
+        self.assertEqual(avoided["suggested_etfs"], "暂不建议")
 
 
 if __name__ == "__main__":

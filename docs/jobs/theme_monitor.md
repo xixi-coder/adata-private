@@ -22,6 +22,7 @@
 - 同花顺热门概念：`adata.sentiment.hot.hot_concept_20_ths(plate_type=1)`
 - 同花顺热门行业：`adata.sentiment.hot.hot_concept_20_ths(plate_type=2)`
 - 东方财富人气榜：`adata.sentiment.hot.pop_rank_100_east()`
+- 东方财富概念板块资金流：`adata.stock.market.concept_capital_flow.ConceptCapitalFlow().all_capital_flow_east(days_type=1)`
 - A股指数当前行情：`adata.stock.market.get_market_index_current()`
 - 北向资金：`adata.sentiment.north.north_flow_current()`
 - 海外指数：Yahoo chart API，包含纳指、标普500、费半、日经225、KOSPI、KOSDAQ、恒生、恒生科技
@@ -36,6 +37,7 @@
 - `latest_hot_concepts.csv`
 - `latest_hot_industries.csv`
 - `latest_popularity_stocks.csv`
+- `latest_concept_capital_flow.csv`
 - `latest_theme_radar.csv`
 - `latest_market_context.csv`
 - `latest_market_context.json`
@@ -52,7 +54,7 @@
 - 热股标签频次：30%
 - 主题内热股平均涨跌幅：15%
 - 东方财富人气榜共振：10%
-- 资金流确认：预留 5%
+- 概念板块主力资金净流入确认：5%
 
 市场环境目前不直接改变主题排序，只作为邮件和摘要里的解释层：
 
@@ -61,16 +63,21 @@
 - `external_semi_tailwind`：费半、日韩科技指数等对半导体方向的外部风向。
 - `hk_china_tailwind`：恒生、恒生科技对中国资产风险偏好的提示。
 
+注意：外部风向只描述海外相关指数表现，不代表 A 股当天 AI/半导体板块涨跌。
+
 状态包括：
 
 - `新晋升温`
 - `快速升温`
 - `持续发酵`
+- `高热分歧`
 - `降温`
 - `震荡观察`
+
+当主题进入热榜但代表热股平均跌幅明显为负时，会优先标记为 `高热分歧`，避免把下跌导致的热度误读成正向升温。邮件会单独展示板块资金净流入 Top10 和净流出 Top5，主题行也会展示匹配到的主力净流入金额。
 
 ## 注意事项
 
 - 这是方向雷达，不直接给买卖点。
 - 盘中数据来自公开热榜接口，适合分钟级观察，不适合当作毫秒级实时行情。
-- 后续可加概念资金流作为资金确认分。
+- 后续可继续补行业板块资金流、ETF 资金流和更细的大小单结构。

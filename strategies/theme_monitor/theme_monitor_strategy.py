@@ -73,12 +73,14 @@ class ThemeMonitorStrategy:
         hot_concepts: pd.DataFrame,
         hot_industries: pd.DataFrame,
         popularity_stocks: pd.DataFrame,
+        concept_capital_flow: pd.DataFrame | None = None,
         previous_snapshot: dict[str, Any] | None = None,
     ) -> tuple[pd.DataFrame, dict[str, Any]]:
         concept_scores: dict[str, dict[str, Any]] = {}
 
         self._add_plate_scores(concept_scores, hot_concepts, "概念")
         self._add_plate_scores(concept_scores, hot_industries, "行业")
+        self._add_capital_flow_scores(concept_scores, concept_capital_flow)
         self._add_hot_stock_scores(concept_scores, hot_stocks, popularity_stocks)
 
         rows = []
@@ -86,9 +88,13 @@ class ThemeMonitorStrategy:
         for theme, metrics in concept_scores.items():
             concept_score = float(metrics.get("plate_score", 0.0))
             stock_score = min(float(metrics.get("hot_stock_count", 0)) * 12.0, 100.0)
-            change_score = np.clip(float(metrics.get("avg_change_pct", 0.0)) * 8.0 + 50.0, 0.0, 100.0)
+            avg_change_pct = float(metrics.get("avg_change_pct", 0.0))
+            plate_change_pct = float(metrics.get("change_pct", 0.0))
+            hot_stock_count = int(metrics.get("hot_stock_count", 0))
+            change_score = np.clip(avg_change_pct * 8.0 + 50.0, 0.0, 100.0)
             popularity_score = min(float(metrics.get("popularity_overlap_count", 0)) * 18.0, 100.0)
-            flow_score = 0.0
+            main_net_inflow_yi = float(metrics.get("main_net_inflow", 0.0)) / 100_000_000
+            flow_score = np.clip(main_net_inflow_yi * 10.0 + 50.0, 0.0, 100.0) if "main_net_inflow" in metrics else 0.0
             final_score = (
                 concept_score * 0.40
                 + stock_score * 0.30
@@ -99,7 +105,15 @@ class ThemeMonitorStrategy:
             prev = previous_map.get(theme, {})
             prev_rank = self._to_int(prev.get("rank"), default=999)
             prev_score = self._to_float(prev.get("score"), default=0.0)
-            status = self._status_for(metrics.get("rank", 999), final_score, prev_rank, prev_score)
+            status = self._status_for(
+                metrics.get("rank", 999),
+                final_score,
+                prev_rank,
+                prev_score,
+                avg_change_pct,
+                plate_change_pct,
+                hot_stock_count,
+            )
             reps = metrics.get("representatives", [])
             rows.append(
                 {
@@ -109,8 +123,13 @@ class ThemeMonitorStrategy:
                     "plate_rank": metrics.get("rank", 999),
                     "plate_type": metrics.get("plate_type", ""),
                     "change_pct": round(float(metrics.get("change_pct", 0.0)), 2),
+                    "avg_hot_stock_change_pct": round(avg_change_pct, 2),
+                    "main_net_inflow_yi": round(main_net_inflow_yi, 2),
+                    "main_net_inflow_rate": round(float(metrics.get("main_net_inflow_rate", 0.0)), 2),
+                    "max_net_inflow_yi": round(float(metrics.get("max_net_inflow", 0.0)) / 100_000_000, 2),
+                    "capital_flow_rank": metrics.get("capital_flow_rank", ""),
                     "hot_value": round(float(metrics.get("hot_value", 0.0)), 2),
-                    "hot_stock_count": int(metrics.get("hot_stock_count", 0)),
+                    "hot_stock_count": hot_stock_count,
                     "popularity_overlap_count": int(metrics.get("popularity_overlap_count", 0)),
                     "representatives": " / ".join(reps[: self.representative_limit]),
                     "status": status,
@@ -130,6 +149,11 @@ class ThemeMonitorStrategy:
                     "plate_rank",
                     "plate_type",
                     "change_pct",
+                    "avg_hot_stock_change_pct",
+                    "main_net_inflow_yi",
+                    "main_net_inflow_rate",
+                    "max_net_inflow_yi",
+                    "capital_flow_rank",
                     "hot_value",
                     "hot_stock_count",
                     "popularity_overlap_count",
@@ -154,11 +178,23 @@ class ThemeMonitorStrategy:
                     "score": float(row["score"]),
                     "status": row["status"],
                     "hot_stock_count": int(row["hot_stock_count"]),
+                    "main_net_inflow_yi": float(row["main_net_inflow_yi"]),
                 }
                 for _, row in radar.iterrows()
             },
         }
         return radar, snapshot
+
+    @staticmethod
+    def _normalize_theme(value: Any) -> str:
+        if value is None:
+            return ""
+        try:
+            if pd.isna(value):
+                return ""
+        except Exception:
+            pass
+        return re.sub(r"\s+", "", str(value).strip())
 
     def _add_plate_scores(self, target: dict[str, dict[str, Any]], plate_df: pd.DataFrame, plate_type: str) -> None:
         if plate_df is None or plate_df.empty:
@@ -176,6 +212,21 @@ class ThemeMonitorStrategy:
                 entry["plate_type"] = plate_type
                 entry["change_pct"] = self._to_float(row.get("change_pct"))
                 entry["hot_value"] = self._to_float(row.get("hot_value"))
+
+    def _add_capital_flow_scores(self, target: dict[str, dict[str, Any]], flow_df: pd.DataFrame | None) -> None:
+        if flow_df is None or flow_df.empty:
+            return
+        target_by_name = {self._normalize_theme(theme): theme for theme in target}
+        for idx, row in flow_df.reset_index(drop=True).iterrows():
+            theme_key = self._normalize_theme(row.get("index_name") or row.get("concept_name") or row.get("name"))
+            theme = target_by_name.get(theme_key)
+            if not theme:
+                continue
+            entry = target.setdefault(theme, {"representatives": []})
+            entry["main_net_inflow"] = self._to_float(row.get("main_net_inflow"))
+            entry["main_net_inflow_rate"] = self._to_float(row.get("main_net_inflow_rate"))
+            entry["max_net_inflow"] = self._to_float(row.get("max_net_inflow"))
+            entry["capital_flow_rank"] = idx + 1
 
     def _add_hot_stock_scores(
         self,
@@ -210,7 +261,19 @@ class ThemeMonitorStrategy:
                     reps.append(label)
 
     @staticmethod
-    def _status_for(rank: int, score: float, prev_rank: int, prev_score: float) -> str:
+    def _status_for(
+        rank: int,
+        score: float,
+        prev_rank: int,
+        prev_score: float,
+        avg_change_pct: float = 0.0,
+        plate_change_pct: float = 0.0,
+        hot_stock_count: int = 0,
+    ) -> str:
+        if hot_stock_count > 0 and avg_change_pct <= -2.0:
+            return "高热分歧"
+        if hot_stock_count == 0 and plate_change_pct <= -1.5:
+            return "降温"
         if prev_rank >= 999:
             return "新晋升温" if rank <= 10 or score >= 70 else "新晋观察"
         rank_delta = prev_rank - rank
@@ -232,6 +295,9 @@ class ThemeMonitorStrategy:
             pieces.append(f"热股{count}只")
         if overlap:
             pieces.append(f"人气共振{overlap}只")
+        main_net_inflow_yi = float(metrics.get("main_net_inflow", 0.0)) / 100_000_000
+        if main_net_inflow_yi:
+            pieces.append(f"主力净流入{main_net_inflow_yi:+.2f}亿")
         if metrics.get("plate_type"):
             pieces.append(str(metrics["plate_type"]))
         return "，".join(pieces)

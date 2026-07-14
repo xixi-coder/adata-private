@@ -64,6 +64,14 @@ jobs:
 
       - name: Run theme rotation workflow
         shell: bash
+        env:
+          SMTP_HOST: smtp.163.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.MAIL_163_USER }}
+          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          THEME_ROTATION_EMAIL_SUBJECT: 主线轮动
+          THEME_ROTATION_EMAIL_TITLE: A 股主线轮动 Workflow
         run: |
           args=()
           if [ -n "${{ steps.positions.outputs.path }}" ]; then

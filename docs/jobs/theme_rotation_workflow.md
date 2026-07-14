@@ -22,7 +22,8 @@
 
 1. 先执行 `jobs/theme_monitor/run.py` 生成当日主题雷达，且关闭主题雷达邮件。
 2. 再执行 `jobs/theme_rotation_workflow/run.py` 生成主线轮动计划。
-3. 上传主题雷达和主线轮动报告 artifact。
+3. 使用 `MAIL_163_USER`、`MAIL_163_PASS`、`MAIL_TO` 发送主线轮动邮件。
+4. 上传主题雷达和主线轮动报告 artifact。
 
 手动触发时可以传入当前篮子仓位 JSON，也可以配置仓库密钥 `THEME_ROTATION_POSITIONS_JSON`：
 
@@ -65,6 +66,12 @@ python jobs/theme_rotation_workflow/run.py --fetch-live
 python jobs/theme_rotation_workflow/run.py --positions positions.json
 ```
 
+默认会尝试发送邮件；未配置 SMTP 环境变量时自动跳过。可用下面的环境变量关闭：
+
+```bash
+THEME_ROTATION_SEND_EMAIL_IN_SCRIPT=false python jobs/theme_rotation_workflow/run.py
+```
+
 ## 输出
 
 目录：`jobs/theme_rotation_workflow/outputs/`
@@ -72,6 +79,8 @@ python jobs/theme_rotation_workflow/run.py --positions positions.json
 - `latest_theme_rotation_plan.csv`
 - `latest_summary.json`
 - `latest_report.md`
+
+报告和 CSV 会包含 `suggested_etfs` 字段。`主线`、`副主线`、`观察` 会展示对应篮子的 ETF 候选代码；`回避` 显示 `暂不建议`。
 
 ## 篮子
 
@@ -83,7 +92,17 @@ python jobs/theme_rotation_workflow/run.py --positions positions.json
 - 消费修复：白酒、食品饮料、旅游、酒店、家电、零售等。
 - 周期资源：有色、黄金、铜、铝、稀土、化工、钢铁、石油、航运等。
 
+默认 ETF 候选：
+
+- 科技成长：`159995 芯片ETF`、`588000 科创50ETF`、`515880 通信ETF`
+- 创新药：`3174.HK 南方东英恒生生物科技ETF`、`159567 港股创新药ETF`、`159570 港股通创新药ETF`、`159316 恒生港股通创新药ETF`、`159992 创新药ETF`、`515120 创新药ETF`、`512170 医疗ETF`
+- 高股息：`510880 红利ETF`、`515080 中证红利ETF`、`512890 红利低波ETF`
+- 消费修复：`159928 消费ETF`、`512690 酒ETF`、`515650 消费50ETF`
+- 周期资源：`512400 有色金属ETF`、`518880 黄金ETF`、`159930 能源ETF`
+
 ## 评分逻辑
+
+创新药 ETF 优先级默认按“港股/港股通优先”处理：有港股通权限时，优先展示香港生物科技和港股通创新药工具；A 股创新药、医疗 ETF 作为风险偏好较弱或不使用港股通时的替代表达。港股方向弹性更高，实际执行仍需结合流动性、溢价率和账户可买范围。
 
 综合分由五部分组成：
 

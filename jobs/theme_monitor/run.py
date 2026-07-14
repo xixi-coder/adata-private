@@ -23,6 +23,7 @@ import adata
 from jobs.common.email_format import set_rich_email_content
 from jobs.common.local_env import load_local_env
 from jobs.theme_monitor.market_context import MarketContextCollector
+from adata.stock.market.concept_capital_flow import ConceptCapitalFlow
 from strategies.theme_monitor import ThemeMonitorStrategy
 
 
@@ -94,7 +95,7 @@ def _format_market_context(market_context: dict[str, Any]) -> list[str]:
             f"A股均涨跌: {market_context.get('a_share_avg_change_pct', 0):+.2f}%"
         ),
         (
-            f"外部风向: AI={market_context.get('external_ai_tailwind', '未知')} / "
+            f"海外风向(非A股涨跌): AI={market_context.get('external_ai_tailwind', '未知')} / "
             f"半导体={market_context.get('external_semi_tailwind', '未知')} / "
             f"港股中国资产={market_context.get('hk_china_tailwind', '未知')}"
         ),
@@ -106,11 +107,48 @@ def _format_market_context(market_context: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _to_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if pd.isna(value):
+            return default
+        return float(str(value).replace("%", "").strip())
+    except Exception:
+        return default
+
+
+def _format_yi(value: Any) -> str:
+    return f"{_to_float(value) / 100_000_000:+.2f}亿"
+
+
+def _format_capital_flow_section(concept_capital_flow: pd.DataFrame) -> list[str]:
+    if concept_capital_flow is None or concept_capital_flow.empty:
+        return ["无可用板块资金流数据。"]
+    required = {"index_name", "main_net_inflow"}
+    if not required.issubset(set(concept_capital_flow.columns)):
+        return ["板块资金流字段不完整。"]
+    flow = concept_capital_flow.copy()
+    flow["main_net_inflow_num"] = pd.to_numeric(flow["main_net_inflow"], errors="coerce").fillna(0.0)
+    lines = ["净流入 Top10:"]
+    for idx, (_, row) in enumerate(flow.sort_values("main_net_inflow_num", ascending=False).head(10).iterrows(), 1):
+        lines.append(
+            f"{idx}. {row.get('index_name', '')} | 主力净流入{_format_yi(row.get('main_net_inflow'))} | "
+            f"涨跌{_to_float(row.get('change_pct')):+.2f}% | 净占比{_to_float(row.get('main_net_inflow_rate')):+.2f}%"
+        )
+    lines.append("净流出 Top5:")
+    for idx, (_, row) in enumerate(flow.sort_values("main_net_inflow_num", ascending=True).head(5).iterrows(), 1):
+        lines.append(
+            f"{idx}. {row.get('index_name', '')} | 主力净流入{_format_yi(row.get('main_net_inflow'))} | "
+            f"涨跌{_to_float(row.get('change_pct')):+.2f}% | 净占比{_to_float(row.get('main_net_inflow_rate')):+.2f}%"
+        )
+    return lines
+
+
 def _build_email_body(
     summary: dict[str, Any],
     radar: pd.DataFrame,
     hot_stocks: pd.DataFrame,
     market_context: dict[str, Any],
+    concept_capital_flow: pd.DataFrame,
 ) -> str:
     lines = [
         "盘面舆论板块雷达",
@@ -119,7 +157,10 @@ def _build_email_body(
         "一、市场环境",
     ]
     lines.extend(_format_market_context(market_context))
-    lines.extend(["", "二、升温/发酵主题"])
+    lines.extend(["", "二、板块资金净流入"])
+    lines.extend(_format_capital_flow_section(concept_capital_flow))
+
+    lines.extend(["", "三、升温/发酵主题"])
     if radar.empty:
         lines.append("无可用主题数据。")
     else:
@@ -129,18 +170,24 @@ def _build_email_body(
         for _, row in focus.iterrows():
             lines.append(
                 f"{int(row['rank'])}. {row['theme']} | 分{row['score']} | {row['status']} | "
-                f"热股{row['hot_stock_count']} | {row['representatives']}"
+                f"热股{row['hot_stock_count']} | 热股均涨跌{row.get('avg_hot_stock_change_pct', 0):+.2f}% | "
+                f"主力净流入{row.get('main_net_inflow_yi', 0):+.2f}亿 | "
+                f"{row['representatives']}"
             )
 
-    lines.extend(["", "三、降温/分歧"])
-    cooling = radar[radar["status"].isin(["降温", "震荡观察"])].head(5) if not radar.empty else pd.DataFrame()
+    lines.extend(["", "四、降温/分歧"])
+    cooling = (
+        radar[radar["status"].isin(["降温", "震荡观察", "高热分歧"])].head(5)
+        if not radar.empty
+        else pd.DataFrame()
+    )
     if cooling.empty:
         lines.append("暂无明显降温主题。")
     else:
         for _, row in cooling.iterrows():
             lines.append(f"{row['theme']} | 分{row['score']} | {row['status']} | {row['note']}")
 
-    lines.extend(["", "四、热股榜 Top10"])
+    lines.extend(["", "五、热股榜 Top10"])
     if hot_stocks.empty:
         lines.append("无可用热股数据。")
     else:
@@ -183,6 +230,11 @@ def main() -> int:
     hot_concepts = _safe_fetch("同花顺热门概念", hot.hot_concept_20_ths, plate_type=1)
     hot_industries = _safe_fetch("同花顺热门行业", hot.hot_concept_20_ths, plate_type=2)
     popularity_stocks = _safe_fetch("东方财富人气榜", hot.pop_rank_100_east)
+    concept_capital_flow = _safe_fetch(
+        "东方财富概念板块资金流",
+        ConceptCapitalFlow().all_capital_flow_east,
+        days_type=1,
+    )
     market_context, market_context_df = MarketContextCollector(adata).collect()
 
     previous_snapshot = _read_snapshot()
@@ -195,6 +247,7 @@ def main() -> int:
         hot_concepts=hot_concepts,
         hot_industries=hot_industries,
         popularity_stocks=popularity_stocks,
+        concept_capital_flow=concept_capital_flow,
         previous_snapshot=previous_snapshot,
     )
 
@@ -206,6 +259,7 @@ def main() -> int:
         "hot_concept_count": int(len(hot_concepts)),
         "hot_industry_count": int(len(hot_industries)),
         "popularity_stock_count": int(len(popularity_stocks)),
+        "concept_capital_flow_count": int(len(concept_capital_flow)),
         "market_context": market_context,
         "top_themes": radar.head(10).to_dict("records"),
     }
@@ -215,13 +269,14 @@ def main() -> int:
     _write_csv(os.path.join(OUTPUT_DIR, "latest_hot_concepts.csv"), hot_concepts)
     _write_csv(os.path.join(OUTPUT_DIR, "latest_hot_industries.csv"), hot_industries)
     _write_csv(os.path.join(OUTPUT_DIR, "latest_popularity_stocks.csv"), popularity_stocks)
+    _write_csv(os.path.join(OUTPUT_DIR, "latest_concept_capital_flow.csv"), concept_capital_flow)
     _write_csv(os.path.join(OUTPUT_DIR, "latest_theme_radar.csv"), radar)
     _write_csv(os.path.join(OUTPUT_DIR, "latest_market_context.csv"), market_context_df)
     _write_json(os.path.join(OUTPUT_DIR, "latest_market_context.json"), market_context)
     _write_json(os.path.join(OUTPUT_DIR, "latest_summary.json"), summary)
     _write_json(SNAPSHOT_FILE, snapshot)
 
-    body = _build_email_body(summary, radar, hot_stocks, market_context)
+    body = _build_email_body(summary, radar, hot_stocks, market_context, concept_capital_flow)
     with open(os.path.join(OUTPUT_DIR, "latest_email_body.txt"), "w", encoding="utf-8") as f:
         f.write(body + "\n")
     print(body)
