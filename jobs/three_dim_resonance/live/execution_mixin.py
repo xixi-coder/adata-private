@@ -189,7 +189,8 @@ class ExecutionMixin:
                     f"{item['label']}未通过({item['detail']})"
                     for item in failed
                 )
-                self.last_entry_skip_reason = f"市场开关关闭：{failed_text}"
+                gate_summary = market_status.get("summary", "市场开关关闭")
+                self.last_entry_skip_reason = f"{gate_summary}：{failed_text}"
                 print(f"[entry] 市场开关失败明细: {failed_text}")
             else:
                 self.last_entry_skip_reason = f"市场开关关闭：{market_status.get('error', '未知原因')}"

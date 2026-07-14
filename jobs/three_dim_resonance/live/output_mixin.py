@@ -5,6 +5,87 @@ from jobs.common.cloud_cache_sync import upload_file_to_drive, write_json
 
 
 class OutputMixin:
+    @staticmethod
+    def _build_email_body(summary: dict) -> str:
+        diagnostics = summary.get("entry_diagnostics") or {}
+        market = diagnostics.get("market_gate") or {}
+        stage = diagnostics.get("stage_counts") or {}
+        buy_items = summary.get("buy_suggestions") or []
+        sell_items = summary.get("sell_suggestions") or []
+        positions = summary.get("positions") or []
+
+        lines = [
+            f"三维共振日报 | {summary['signal_date']}",
+            f"操作摘要：买入建议 {len(buy_items)} 只，卖出建议 {len(sell_items)} 只，当前持仓 {len(positions)} 只",
+            f"建议执行日：{summary.get('next_trade_date') or '暂无下一交易日'}",
+            "",
+            "一、市场环境",
+            market.get("summary", "市场状态暂无数据"),
+        ]
+        checks = market.get("checks") or []
+        passed = [item["label"] for item in checks if item.get("ok")]
+        failed = [item["label"] for item in checks if not item.get("ok")]
+        if passed:
+            lines.append(f"通过：{'、'.join(passed)}")
+        if failed:
+            lines.append(f"未通过：{'、'.join(failed)}")
+
+        scanned = diagnostics.get("scanned_count")
+        if scanned is not None:
+            lines.extend(
+                [
+                    "",
+                    "二、选股概况",
+                    (
+                        f"扫描 {scanned} 只 | 形态通过 {stage.get('shape_ok', 0)} | "
+                        f"指标通过 {stage.get('indicator_ok', 0)} | 资金通过 {stage.get('capital_ok', 0)} | "
+                        f"三维共振 {stage.get('three_dim_ok', 0)}"
+                    ),
+                ]
+            )
+        if summary.get("entry_skip_reason"):
+            lines.append(f"未产生买入建议：{summary['entry_skip_reason']}")
+
+        lines.extend(["", "三、卖出建议"])
+        if sell_items:
+            for idx, item in enumerate(sell_items, start=1):
+                lines.append(
+                    f"{idx}. {item['code']} {item['short_name']} | {item['reason']} | 收盘 {item['close_price']}"
+                )
+                if item.get("reason_detail"):
+                    lines.append(f"   依据：{item['reason_detail']}")
+        else:
+            lines.append("无")
+
+        lines.extend(["", "四、买入建议"])
+        if buy_items:
+            for idx, item in enumerate(buy_items, start=1):
+                lines.append(
+                    f"{idx}. {item['code']} {item['short_name']} | {item['entry_shape']} | 评分 {item['score']}"
+                )
+                lines.append(
+                    f"   价格：收盘 {item['close_price']} | 参考触发 {item.get('trigger_price', '-')} | "
+                    f"参考失效 {item.get('invalid_price', '-')}"
+                )
+                if item.get("reason_detail"):
+                    lines.append(f"   依据：{item['reason_detail']}")
+        else:
+            lines.append("无")
+
+        lines.extend(["", "五、当前持仓"])
+        if positions:
+            for idx, item in enumerate(positions, start=1):
+                lines.append(
+                    f"{idx}. {item['code']} {item['short_name']} | 买入 {item['buy_price']} | "
+                    f"收盘 {item['close_price']} | 持有 {item['holding_days']} 天"
+                )
+        else:
+            lines.append("无")
+
+        if summary.get("note"):
+            lines.extend(["", f"说明：{summary['note']}"])
+        return "\n".join(lines) + "\n"
+
     def _write_outputs(self, summary: dict):
         # 统一写三份输出：
         # 1) 当日归档 summary_YYYYMMDD.json
@@ -18,57 +99,7 @@ class OutputMixin:
         write_json(summary_json_path, summary)
         write_json(latest_summary_json_path, summary)
 
-        lines = [
-            "三维共振策略建议",
-            f"候选依据日: {summary['candidate_reference_date']}",
-            f"建议执行日: {summary['next_trade_date'] or '暂无下一交易日'}",
-        ]
-        # 若同日重跑，则说明不会重复成交，仅刷新建议展示。
-        if summary.get("note"):
-            lines.append(f"备注: {summary['note']}")
-        if summary.get("entry_skip_reason"):
-            lines.append(f"买入为空原因: {summary['entry_skip_reason']}")
-        lines.extend(["", "建议卖出:"])
-        if summary["sell_suggestions"]:
-            for idx, item in enumerate(summary["sell_suggestions"], start=1):
-                detail = item.get("reason_detail", "")
-                detail_text = f" 明细={detail}" if detail else ""
-                lines.append(
-                    f"{idx}. {item['code']} {item['short_name']} "
-                    f"收盘价={item['close_price']} 原因={item['reason']}{detail_text}"
-                )
-        else:
-            lines.append("无")
-
-        lines.extend(["", "建议买入:"])
-        if summary["buy_suggestions"]:
-            for idx, item in enumerate(summary["buy_suggestions"], start=1):
-                reason = item.get("reason", "三维共振通过")
-                detail = item.get("reason_detail", "")
-                detail_text = f" 明细={detail}" if detail else ""
-                trigger = item.get("trigger_price", "")
-                invalid = item.get("invalid_price", "")
-                lines.append(
-                    f"{idx}. {item['code']} {item['short_name']} "
-                    f"收盘价={item['close_price']} 分数={item['score']} 形态={item['entry_shape']} "
-                    f"触发价={trigger} 失效价={invalid} "
-                    f"原因={reason}{detail_text}"
-                )
-        else:
-            lines.append("无")
-
-        lines.extend(["", "当前持仓:"])
-        if summary["positions"]:
-            for idx, item in enumerate(summary["positions"], start=1):
-                lines.append(
-                    f"{idx}. {item['code']} {item['short_name']} "
-                    f"买入日={item['buy_date']} 买入价={item['buy_price']} "
-                    f"收盘价={item['close_price']} 持仓天数={item['holding_days']}"
-                )
-        else:
-            lines.append("无")
-
         with open(email_body_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines) + "\n")
+            f.write(self._build_email_body(summary))
         upload_file_to_drive(summary_json_path, os.path.basename(summary_json_path), mime_type="application/json")
         upload_file_to_drive(email_body_path, "three_dim_latest_email.txt", mime_type="text/plain")

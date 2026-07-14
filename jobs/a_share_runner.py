@@ -108,9 +108,9 @@ PROFILES: dict[str, tuple[str, ...]] = {
     # 兼容历史手动输入；下午版不再是独立任务，统一走 short_term_intraday。
     "intraday_pm": ("short_term_intraday",),
     "minute_cache": ("short_term_minute_replay",),
-    "eod": ("volatility", "boll", "a_share_review", "three_dim", "theme_rotation"),
+    "eod": ("volatility", "boll", "three_dim", "theme_rotation"),
     "maintenance": ("shared_cache", "dividend_cache"),
-    "all": ("short_term_intraday", "volatility", "boll", "a_share_review", "three_dim", "theme_rotation"),
+    "all": ("short_term_intraday", "volatility", "boll", "three_dim", "theme_rotation"),
 }
 
 

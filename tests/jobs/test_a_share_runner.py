@@ -16,6 +16,10 @@ class AShareRunnerTest(unittest.TestCase):
     def test_resolve_minute_cache_profile(self):
         self.assertEqual(a_share_runner.resolve_task_names("minute_cache"), ["short_term_minute_replay"])
 
+    def test_default_profiles_exclude_a_share_review(self):
+        self.assertNotIn("a_share_review", a_share_runner.resolve_task_names("eod"))
+        self.assertNotIn("a_share_review", a_share_runner.resolve_task_names("all"))
+
     def test_tasks_override_profile(self):
         self.assertEqual(
             a_share_runner.resolve_task_names("eod", "volatility,boll"),

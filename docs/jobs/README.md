@@ -35,7 +35,7 @@ python jobs/a_share_runner.py --profile maintenance
 
 - `intraday`：短线分时扫描。日线基座使用上一完整交易日，分时使用当日最新分钟数据；手动触发时会跳过运行窗口判断并强制刷新分钟数据。
 - `intraday_pm`：历史兼容别名，当前映射到同一个 `intraday` 任务，不再单独维护下午版。
-- `eod`：波动结构、BOLL、每日投资复盘、三维共振。
+- `eod`：波动结构、BOLL、三维共振和主线轮动。每日投资复盘已从默认调度移除，仍可通过 `--tasks a_share_review` 手动运行。
 - `minute_cache`：盘后补采短线候选股当日 1 分钟缓存。
 - `maintenance`：共享行情缓存和分红缓存维护，安排在盘后复盘前执行。
 

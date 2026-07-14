@@ -298,14 +298,23 @@ class ThreeDimResonanceStrategy:
             }
         row = self.benchmark_df.iloc[idx]
         prev5 = self.benchmark_df.iloc[idx - 5]
-        checks = [
+        trend_checks = [
             {
-                "key": "close_ma_trend",
-                "label": "收盘站上均线多头",
-                "ok": bool(row["close"] > row["ma20"] > row["ma60"]),
+                "key": "close_above_ma20",
+                "label": "收盘站上MA20",
+                "ok": bool(row["close"] > row["ma20"]),
                 "detail": (
                     f"close={self._fmt_num(row['close'])}, "
-                    f"ma20={self._fmt_num(row['ma20'])}, ma60={self._fmt_num(row['ma60'])}"
+                    f"ma20={self._fmt_num(row['ma20'])}"
+                ),
+            },
+            {
+                "key": "ma_alignment",
+                "label": "MA20位于MA60上方",
+                "ok": bool(row["ma20"] > row["ma60"]),
+                "detail": (
+                    f"ma20={self._fmt_num(row['ma20'])}, "
+                    f"ma60={self._fmt_num(row['ma60'])}"
                 ),
             },
             {
@@ -318,26 +327,48 @@ class ThreeDimResonanceStrategy:
                     f"(prev5_ma20={self._fmt_num(prev5['ma20'])})"
                 ),
             },
+        ]
+        risk_checks = [
             {
                 "key": "close_drawdown_guard",
-                "label": "收盘近5日回撤不过深",
-                "ok": bool(row["close"] >= prev5["close"] * 0.97),
+                "label": "近5日未快速回撤",
+                "ok": bool(row["close"] >= prev5["close"] * 0.96),
                 "detail": (
                     f"close={self._fmt_num(row['close'])}, "
-                    f"阈值={self._fmt_num(prev5['close'] * 0.97)} "
+                    f"阈值={self._fmt_num(prev5['close'] * 0.96)} "
                     f"(prev5_close={self._fmt_num(prev5['close'])})"
                 ),
             },
             {
                 "key": "daily_drop_guard",
                 "label": "当日跌幅未超阈值",
-                "ok": bool(row["change_pct"] > -1.2),
-                "detail": f"change_pct={self._fmt_num(row['change_pct'])}%, 阈值>-1.200%",
+                "ok": bool(row["change_pct"] > -2.0),
+                "detail": f"change_pct={self._fmt_num(row['change_pct'])}%, 阈值>-2.000%",
             },
         ]
+        trend_passed = sum(int(item["ok"]) for item in trend_checks)
+        risk_passed = sum(int(item["ok"]) for item in risk_checks)
+        trend_ok = trend_passed >= 2
+        risk_ok = risk_passed == len(risk_checks)
+        ok = trend_ok and risk_ok
+        if ok:
+            regime = "趋势偏强" if trend_passed == len(trend_checks) else "震荡容错"
+            summary = f"允许开仓（{regime}，趋势{trend_passed}/3，风控{risk_passed}/2）"
+        elif not risk_ok:
+            regime = "风险关闭"
+            summary = f"暂停开仓（触发风险底线，趋势{trend_passed}/3，风控{risk_passed}/2）"
+        else:
+            regime = "趋势偏弱"
+            summary = f"暂停开仓（趋势不足，趋势{trend_passed}/3，风控{risk_passed}/2）"
         return {
-            "ok": all(item["ok"] for item in checks),
-            "checks": checks,
+            "ok": ok,
+            "regime": regime,
+            "summary": summary,
+            "trend_passed": trend_passed,
+            "trend_required": 2,
+            "risk_passed": risk_passed,
+            "risk_required": len(risk_checks),
+            "checks": trend_checks + risk_checks,
             "error": "",
         }
 
