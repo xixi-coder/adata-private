@@ -1,126 +1,126 @@
 {
   "theme_count": 20,
   "themes": {
-    "共封装光学(CPO)": {
+    "PCB概念": {
       "rank": 1,
-      "score": 78.73,
+      "score": 81.13,
+      "status": "快速升温",
+      "hot_stock_count": 8
+    },
+    "共封装光学(CPO)": {
+      "rank": 2,
+      "score": 76.07,
+      "status": "持续发酵",
+      "hot_stock_count": 12
+    },
+    "创新药": {
+      "rank": 3,
+      "score": 70.26,
+      "status": "震荡观察",
+      "hot_stock_count": 5
+    },
+    "光纤概念": {
+      "rank": 4,
+      "score": 66.54,
       "status": "持续发酵",
       "hot_stock_count": 9
     },
     "存储芯片": {
-      "rank": 2,
-      "score": 76.0,
-      "status": "持续发酵",
+      "rank": 5,
+      "score": 65.32,
+      "status": "震荡观察",
       "hot_stock_count": 10
     },
-    "创新药": {
-      "rank": 3,
-      "score": 75.27,
+    "先进封装": {
+      "rank": 6,
+      "score": 53.95,
       "status": "持续发酵",
       "hot_stock_count": 4
     },
-    "光纤概念": {
-      "rank": 4,
-      "score": 59.07,
+    "国家大基金持股": {
+      "rank": 7,
+      "score": 52.89,
       "status": "降温",
-      "hot_stock_count": 7
+      "hot_stock_count": 8
     },
     "算力租赁": {
-      "rank": 5,
-      "score": 58.61,
-      "status": "持续发酵",
-      "hot_stock_count": 5
-    },
-    "国家大基金持股": {
-      "rank": 6,
-      "score": 55.99,
-      "status": "降温",
-      "hot_stock_count": 7
-    },
-    "PCB概念": {
-      "rank": 7,
-      "score": 51.8,
-      "status": "持续发酵",
-      "hot_stock_count": 5
-    },
-    "先进封装": {
       "rank": 8,
-      "score": 51.4,
-      "status": "持续发酵",
+      "score": 49.24,
+      "status": "震荡观察",
       "hot_stock_count": 5
-    },
-    "商业航天": {
-      "rank": 9,
-      "score": 50.8,
-      "status": "快速升温",
-      "hot_stock_count": 2
     },
     "半导体": {
-      "rank": 10,
+      "rank": 9,
       "score": 47.5,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "禽流感": {
-      "rank": 11,
-      "score": 47.13,
-      "status": "降温",
-      "hot_stock_count": 2
-    },
-    "中药": {
-      "rank": 12,
+    "元件": {
+      "rank": 10,
       "score": 46.17,
-      "status": "快速升温",
+      "status": "新晋升温",
       "hot_stock_count": 0
     },
-    "猪肉": {
-      "rank": 13,
-      "score": 44.86,
-      "status": "快速升温",
-      "hot_stock_count": 1
-    },
-    "银行": {
-      "rank": 14,
+    "证券": {
+      "rank": 11,
       "score": 44.83,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "证券": {
-      "rank": 15,
+    "人形机器人": {
+      "rank": 12,
+      "score": 43.78,
+      "status": "新晋升温",
+      "hot_stock_count": 1
+    },
+    "医药商业": {
+      "rank": 13,
       "score": 43.5,
+      "status": "新晋升温",
+      "hot_stock_count": 0
+    },
+    "商业航天": {
+      "rank": 14,
+      "score": 43.2,
+      "status": "快速升温",
+      "hot_stock_count": 2
+    },
+    "油气开采及服务": {
+      "rank": 15,
+      "score": 42.17,
       "status": "快速升温",
       "hot_stock_count": 0
     },
     "电力": {
       "rank": 16,
-      "score": 42.17,
-      "status": "快速升温",
-      "hot_stock_count": 0
-    },
-    "人工智能": {
-      "rank": 17,
-      "score": 42.17,
-      "status": "快速升温",
-      "hot_stock_count": 0
-    },
-    "医药电商": {
-      "rank": 18,
-      "score": 42.0,
-      "status": "降温",
-      "hot_stock_count": 5
-    },
-    "仿制药一致性评价": {
-      "rank": 19,
-      "score": 42.0,
-      "status": "降温",
-      "hot_stock_count": 5
-    },
-    "油气开采及服务": {
-      "rank": 20,
       "score": 40.83,
       "status": "快速升温",
       "hot_stock_count": 0
+    },
+    "化学制药": {
+      "rank": 17,
+      "score": 39.5,
+      "status": "新晋升温",
+      "hot_stock_count": 0
+    },
+    "银行": {
+      "rank": 18,
+      "score": 38.17,
+      "status": "快速升温",
+      "hot_stock_count": 0
+    },
+    "中药": {
+      "rank": 19,
+      "score": 36.83,
+      "status": "震荡观察",
+      "hot_stock_count": 0
+    },
+    "机器人概念": {
+      "rank": 20,
+      "score": 35.93,
+      "status": "新晋观察",
+      "hot_stock_count": 1
     }
   },
-  "updated_at": "2026-07-13 17:57:47"
+  "updated_at": "2026-07-14 12:28:33"
 }
