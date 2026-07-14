@@ -342,8 +342,8 @@ class ThreeDimResonanceStrategy:
             {
                 "key": "daily_drop_guard",
                 "label": "当日跌幅未超阈值",
-                "ok": bool(row["change_pct"] > -2.0),
-                "detail": f"change_pct={self._fmt_num(row['change_pct'])}%, 阈值>-2.000%",
+                "ok": bool(row["change_pct"] >= -2.0),
+                "detail": f"change_pct={self._fmt_num(row['change_pct'])}%, 阈值>=-2.000%",
             },
         ]
         trend_passed = sum(int(item["ok"]) for item in trend_checks)
