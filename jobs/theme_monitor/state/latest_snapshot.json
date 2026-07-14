@@ -9,9 +9,9 @@
     },
     "共封装光学(CPO)": {
       "rank": 2,
-      "score": 91.75,
+      "score": 91.95,
       "status": "持续发酵",
-      "hot_stock_count": 13
+      "hot_stock_count": 14
     },
     "光纤概念": {
       "rank": 3,
@@ -33,19 +33,19 @@
     },
     "先进封装": {
       "rank": 6,
-      "score": 64.79,
+      "score": 63.45,
       "status": "持续发酵",
       "hot_stock_count": 4
     },
     "国家大基金持股": {
       "rank": 7,
-      "score": 64.78,
+      "score": 63.44,
       "status": "降温",
       "hot_stock_count": 7
     },
     "算力租赁": {
       "rank": 8,
-      "score": 51.89,
+      "score": 53.23,
       "status": "持续发酵",
       "hot_stock_count": 4
     },
@@ -67,60 +67,60 @@
       "status": "快速升温",
       "hot_stock_count": 2
     },
-    "证券": {
+    "F5G概念": {
       "rank": 12,
+      "score": 46.79,
+      "status": "降温",
+      "hot_stock_count": 7
+    },
+    "证券": {
+      "rank": 13,
       "score": 46.17,
       "status": "快速升温",
       "hot_stock_count": 0
     },
     "元件": {
-      "rank": 13,
+      "rank": 14,
       "score": 44.83,
       "status": "快速升温",
       "hot_stock_count": 0
     },
     "油气开采及服务": {
-      "rank": 14,
+      "rank": 15,
       "score": 43.5,
       "status": "快速升温",
       "hot_stock_count": 0
     },
-    "液冷服务器": {
-      "rank": 15,
-      "score": 43.41,
-      "status": "快速升温",
-      "hot_stock_count": 1
-    },
-    "F5G概念": {
-      "rank": 16,
-      "score": 42.43,
-      "status": "降温",
-      "hot_stock_count": 6
-    },
     "工业金属": {
-      "rank": 17,
+      "rank": 16,
       "score": 42.17,
-      "status": "新晋升温",
+      "status": "快速升温",
       "hot_stock_count": 0
     },
     "电力": {
-      "rank": 18,
+      "rank": 17,
       "score": 40.83,
       "status": "快速升温",
       "hot_stock_count": 0
     },
     "芯片概念": {
-      "rank": 19,
+      "rank": 18,
       "score": 40.47,
-      "status": "降温",
+      "status": "震荡观察",
       "hot_stock_count": 2
     },
     "CRO概念": {
-      "rank": 20,
+      "rank": 19,
       "score": 40.2,
-      "status": "新晋观察",
+      "status": "降温",
       "hot_stock_count": 5
+    },
+    "保险": {
+      "rank": 20,
+      "score": 39.5,
+      "status": "新晋升温",
+      "hot_stock_count": 0
     }
   },
-  "updated_at": "2026-07-14 16:35:23"
+  "updated_at": "2026-07-14 16:54:07"
 }
