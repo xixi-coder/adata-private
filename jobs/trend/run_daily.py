@@ -32,6 +32,14 @@ OUTPUT_DIR = os.path.join(CURRENT_DIR, "outputs")
 SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
 
 
+def _read_universe_size() -> int | None:
+    value = os.getenv("TREND_UNIVERSE_SIZE", "").strip().lower()
+    if not value or value in {"all", "none", "0"}:
+        return None
+    size = int(value)
+    return size if size > 0 else None
+
+
 def resolve_trade_date(requested: str | None = None) -> tuple[str, bool, str]:
     return _resolve_trade_date(requested, action="执行趋势交易扫描", skip_action="跳过扫描")
 
@@ -154,7 +162,7 @@ def main() -> None:
     )
     config = TrendTradingConfig(
         quality=quality,
-        universe_size=_read_int_env("TREND_UNIVERSE_SIZE", 2500),
+        universe_size=_read_universe_size(),
         breakout_limit=_read_int_env("TREND_BREAKOUT_LIMIT", 50),
         pullback_limit=_read_int_env("TREND_PULLBACK_LIMIT", 50),
         min_ma60_slope20=_read_float_env("TREND_MIN_MA60_SLOPE20", 0.02),

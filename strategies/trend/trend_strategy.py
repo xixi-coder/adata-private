@@ -13,7 +13,7 @@ from strategies.volatility import QualityGateConfig, VolatilityStrategy, Volatil
 @dataclass
 class TrendTradingConfig:
     quality: QualityGateConfig = field(default_factory=QualityGateConfig)
-    universe_size: int | None = 2500
+    universe_size: int | None = None
     breakout_limit: int = 50
     pullback_limit: int = 50
     min_ma60_slope20: float = 0.02

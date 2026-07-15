@@ -44,6 +44,9 @@ def _trend_frame(code: str, mode: str, n_days: int = 240) -> pd.DataFrame:
 
 
 class TrendTradingStrategyTest(unittest.TestCase):
+    def test_default_universe_has_no_size_limit(self):
+        self.assertIsNone(TrendTradingConfig().universe_size)
+
     def _strategy(self) -> TrendTradingStrategy:
         return TrendTradingStrategy(
             TrendTradingConfig(
