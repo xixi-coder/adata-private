@@ -154,8 +154,9 @@ class FiveYearCloudCacheBuilder:
                 new_bench = adata.stock.market.get_market_index(
                     index_code=index_code,
                     start_date=last_date,
-                    end_date=target_date,
                 )
+                if new_bench is not None and not new_bench.empty:
+                    new_bench = new_bench[new_bench["trade_date"].astype(str) <= target_date]
                 if new_bench is not None and not new_bench.empty:
                     bench = pd.concat([bench, new_bench]).drop_duplicates("trade_date").sort_values("trade_date")
                     bench.to_csv(benchmark_file, index=False)
@@ -164,8 +165,9 @@ class FiveYearCloudCacheBuilder:
             bench = adata.stock.market.get_market_index(
                 index_code=index_code,
                 start_date=self._five_year_start(),
-                end_date=target_date,
             )
+            if bench is not None and not bench.empty:
+                bench = bench[bench["trade_date"].astype(str) <= target_date]
             if bench is not None and not bench.empty:
                 bench.to_csv(benchmark_file, index=False)
                 updated = True

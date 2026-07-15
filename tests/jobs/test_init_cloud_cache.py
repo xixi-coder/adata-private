@@ -34,12 +34,12 @@ class InitCloudCacheTest(unittest.TestCase):
                 for code, config in init_cloud_cache.BENCHMARK_INDEXES.items()
             }
 
-            def fake_get_market_index(index_code, start_date, end_date=None, k_type=1):
+            def fake_get_market_index(index_code, start_date, k_type=1):
                 return pd.DataFrame(
                     {
-                        "index_code": [index_code],
-                        "trade_date": ["2026-07-08"],
-                        "close": [100.0],
+                        "index_code": [index_code, index_code],
+                        "trade_date": ["2026-07-08", "2026-07-09"],
+                        "close": [100.0, 101.0],
                     }
                 )
 
@@ -60,7 +60,10 @@ class InitCloudCacheTest(unittest.TestCase):
             )
             self.assertEqual(market_index.call_count, 3)
             for config in init_cloud_cache.BENCHMARK_INDEXES.values():
-                self.assertTrue(os.path.exists(os.path.join(tmpdir, config["file"])))
+                benchmark_path = os.path.join(tmpdir, config["file"])
+                self.assertTrue(os.path.exists(benchmark_path))
+                benchmark = pd.read_csv(benchmark_path)
+                self.assertEqual(benchmark["trade_date"].astype(str).max(), "2026-07-08")
 
 
 if __name__ == "__main__":
