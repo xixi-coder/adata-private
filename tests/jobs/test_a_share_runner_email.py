@@ -106,6 +106,20 @@ class AShareRunnerEmailTest(unittest.TestCase):
         self.assertEqual(emails[0][0], "波动结构扫描")
         self.assertIn("任务执行失败", emails[0][2])
 
+    def test_trend_email_adds_candidate_headers(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            output_dir = base / "jobs/trend/outputs"
+            output_dir.mkdir(parents=True)
+            (output_dir / "latest_email_body.txt").write_text(
+                "趋势交易选股扫描\n\n趋势突破\n1. 600001 | 突破股 | 88 | 低 | 12.5 | 20 | 1.5 | 12.4 | 11.8 | 放量突破\n",
+                encoding="utf-8",
+            )
+
+            body = build_task_email_body("trend", base)
+
+        self.assertIn("序号 | 股票代码 | 股票名称 | 评分", body)
+
     def test_dividend_cache_email_formats_manifest_summary(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             base = Path(tmpdir)

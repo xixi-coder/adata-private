@@ -16,7 +16,7 @@ PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
 OUTPUT_DIR = os.path.join(CURRENT_DIR, "outputs")
 SHARED_MARKET_CACHE_ARCHIVE = "three_dim_cache_bundle.tar.gz"
 CACHE_SYNCED_ENV = "A_SHARE_CACHE_ALREADY_SYNCED"
-CACHE_CONSUMER_TASKS = {"volatility", "boll", "a_share_review", "three_dim"}
+CACHE_CONSUMER_TASKS = {"volatility", "boll", "trend", "a_share_review", "three_dim"}
 
 
 @dataclass(frozen=True)
@@ -64,6 +64,12 @@ TASKS: dict[str, RunnerTask] = {
         env={"BOLL_ENABLE_MINE_CLEARANCE": "true", "BOLL_MAX_MINE_CHECKS": "120"},
         description="BOLL 战法日线扫描。",
     ),
+    "trend": RunnerTask(
+        name="trend",
+        script="jobs/trend/run_daily.py",
+        env={"TREND_ENABLE_MINE_CLEARANCE": "true", "TREND_MAX_MINE_CHECKS": "100"},
+        description="趋势交易选股：多头突破与回踩确认。",
+    ),
     "a_share_review": RunnerTask(
         name="a_share_review",
         script="jobs/a_share_allocation/run_daily.py",
@@ -108,9 +114,9 @@ PROFILES: dict[str, tuple[str, ...]] = {
     # 兼容历史手动输入；下午版不再是独立任务，统一走 short_term_intraday。
     "intraday_pm": ("short_term_intraday",),
     "minute_cache": ("short_term_minute_replay",),
-    "eod": ("volatility", "boll", "three_dim", "theme_rotation"),
+    "eod": ("volatility", "boll", "trend", "three_dim", "theme_rotation"),
     "maintenance": ("shared_cache", "dividend_cache"),
-    "all": ("short_term_intraday", "volatility", "boll", "three_dim", "theme_rotation"),
+    "all": ("short_term_intraday", "volatility", "boll", "trend", "three_dim", "theme_rotation"),
 }
 
 

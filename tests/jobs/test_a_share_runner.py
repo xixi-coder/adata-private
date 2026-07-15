@@ -20,6 +20,10 @@ class AShareRunnerTest(unittest.TestCase):
         self.assertNotIn("a_share_review", a_share_runner.resolve_task_names("eod"))
         self.assertNotIn("a_share_review", a_share_runner.resolve_task_names("all"))
 
+    def test_eod_profile_includes_trend_scanner(self):
+        self.assertIn("trend", a_share_runner.resolve_task_names("eod"))
+        self.assertIn("trend", a_share_runner.CACHE_CONSUMER_TASKS)
+
     def test_tasks_override_profile(self):
         self.assertEqual(
             a_share_runner.resolve_task_names("eod", "volatility,boll"),

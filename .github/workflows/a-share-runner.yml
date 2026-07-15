@@ -143,6 +143,9 @@ jobs:
             jobs/boll/outputs/latest_candidates.csv
             jobs/boll/outputs/latest_summary.json
             jobs/boll/outputs/latest_email_body.txt
+            jobs/trend/outputs/latest_candidates.csv
+            jobs/trend/outputs/latest_summary.json
+            jobs/trend/outputs/latest_email_body.txt
             jobs/a_share_allocation/outputs/latest_email_body.txt
             jobs/a_share_allocation/outputs/latest_summary.json
             jobs/a_share_allocation/outputs/latest_top_candidates.csv

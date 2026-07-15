@@ -9,6 +9,7 @@
 - `jobs/short_term/`：短线策略分时扫描入口。
 - `jobs/theme_monitor/`：盘面舆论和板块主题雷达入口。
 - `jobs/theme_rotation_workflow/`：把主题雷达归并为科技、创新药、高股息等主线轮动仓位计划。
+- `jobs/trend/`：趋势突破与趋势回踩的盘后选股扫描。
 - `jobs/dividend_sync/`：分红缓存一次性增量同步到 Google Drive 的入口。
 
 当前三维共振相关入口：
@@ -38,7 +39,7 @@
 
 - `intraday`：盘中分时扫描，分钟缓存默认 120 秒 TTL；手动触发时强制使用最新分时数据。
 - `minute_cache`：盘后补采短线候选股当日 1 分钟数据，跳过实时运行窗口并强制刷新分钟缓存。
-- `eod`：盘后波动、BOLL、三维共振和主线轮动。持仓复盘不再默认运行，仍可在 `tasks` 中指定 `a_share_review` 手动执行。
+- `eod`：盘后波动、BOLL、趋势交易、三维共振和主线轮动。持仓复盘不再默认运行，仍可在 `tasks` 中指定 `a_share_review` 手动执行。
 - `maintenance`：共享行情缓存和分红缓存维护，安排在盘后复盘前执行。
 
 手动只跑单个策略时，在 `统一任务调度` 的 `tasks` 输入里填写任务名，例如 `volatility,boll`。手动触发 `intraday` 会跳过运行窗口判断，并强制刷新分钟数据。

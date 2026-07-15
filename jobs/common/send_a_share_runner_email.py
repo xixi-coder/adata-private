@@ -45,6 +45,15 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
             "上轨放量滞涨": "序号 | 股票代码 | 股票名称 | 评分 | 风险等级 | 趋势环境 | 收盘价 | BOLL上轨 | 观察价 | 失效价 | 入选依据",
         },
     },
+    "trend": {
+        "title": "趋势交易选股",
+        "paths": ("jobs/trend/outputs/latest_email_body.txt",),
+        "drop_prefixes": ("- 运行时间:", "- 请求日期:"),
+        "headers": {
+            "趋势突破": "序号 | 股票代码 | 股票名称 | 评分 | 风险等级 | 收盘价 | 60日涨跌% | 当日/20日成交额比 | 观察价 | 失效价 | 入选依据",
+            "趋势回踩": "序号 | 股票代码 | 股票名称 | 评分 | 风险等级 | 收盘价 | 60日涨跌% | 当日/20日成交额比 | 观察价 | 失效价 | 入选依据",
+        },
+    },
     "a_share_review": {
         "title": "持仓复盘",
         "paths": ("jobs/a_share_allocation/outputs/latest_email_body.txt",),
