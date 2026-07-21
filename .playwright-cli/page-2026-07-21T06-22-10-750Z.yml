@@ -1,0 +1,165 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: 资金雷达
+      - generic [ref=e11]: CAPITAL FLOW MONITOR
+    - navigation "主导航" [ref=e12]:
+      - link "市场总览" [ref=e13] [cursor=pointer]:
+        - /url: "#overview"
+      - link "行业流向" [ref=e14] [cursor=pointer]:
+        - /url: "#sectors"
+      - link "自选监控" [ref=e15] [cursor=pointer]:
+        - /url: "#watchlist"
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e19]: 交易中
+        - generic [ref=e20]: 09:30–15:00
+      - button "切换主题" [ref=e21] [cursor=pointer]: ◐
+      - button "账户设置" [ref=e22] [cursor=pointer]: 林 ⌄
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: LIVE MARKET / A-SHARES
+        - heading "市场资金流向" [level=1] [ref=e28]
+        - paragraph [ref=e29]: 追踪主力资金在盘中的每一次选择。
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - text: 最后更新
+          - strong [ref=e32]: 13:55:06
+        - button "Ⅱ 暂停更新" [ref=e33] [cursor=pointer]:
+          - generic [ref=e34]: Ⅱ
+          - generic [ref=e35]: 暂停更新
+    - region "市场关键指标" [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]: 沪深主力净流入
+        - strong [ref=e39]: +1,286.4
+        - emphasis [ref=e40]: 亿元
+        - generic [ref=e41]: 较昨日 +8.6%
+      - generic [ref=e42]:
+        - generic [ref=e43]: 超大单净流入
+        - strong [ref=e44]: "+624.8"
+        - emphasis [ref=e45]: 亿元
+        - generic [ref=e46]: 占比 48.6%
+      - generic [ref=e47]:
+        - generic [ref=e48]: 上涨家数
+        - strong [ref=e49]: 2,841
+        - emphasis [ref=e50]: 家
+        - generic [ref=e51]: "+432"
+      - generic [ref=e52]:
+        - generic [ref=e53]: 下跌家数
+        - strong [ref=e54]: 1,724
+        - emphasis [ref=e55]: 家
+        - generic [ref=e56]: "-118"
+      - generic [ref=e57]:
+        - generic [ref=e58]: 涨跌比
+        - strong [ref=e59]: "1.65"
+        - generic [ref=e62]: 市场偏强
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e66]: INTRADAY MOMENTUM
+          - heading "板块资金趋势" [level=2] [ref=e67]
+        - generic [ref=e68]:
+          - group "时间范围" [ref=e69]:
+            - button "今日" [ref=e70] [cursor=pointer]
+            - button "近 5 日" [ref=e71] [cursor=pointer]
+            - button "近 20 日" [ref=e72] [cursor=pointer]
+          - generic [ref=e74]:
+            - text: 单位
+            - combobox "单位" [ref=e75] [cursor=pointer]:
+              - option "亿元" [selected]
+              - option "十亿元"
+      - generic [ref=e76]:
+        - generic [ref=e77]: 电子
+        - generic [ref=e79]: 半导体
+        - generic [ref=e81]: 通信设备
+        - generic [ref=e83]: 数字芯片设计
+        - generic [ref=e85]: 元件
+        - generic [ref=e87]: 有色金属
+        - generic [ref=e89]: 电力设备
+        - generic [ref=e91]: 通信服务
+      - generic [ref=e95]:
+        - generic [ref=e96]: 数据每 3 秒刷新
+        - generic [ref=e98]: 数据来源：市场公开行情 · 模拟演示
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - generic [ref=e103]: SECTOR RANKING
+            - heading "行业资金热度" [level=2] [ref=e104]
+          - link "查看全部 →" [ref=e105] [cursor=pointer]:
+            - /url: "#sectors"
+        - generic [ref=e106]:
+          - generic [ref=e107]: 行业
+          - generic [ref=e108]: 净流入
+          - generic [ref=e109]: 涨跌幅
+          - generic [ref=e110]: 活跃度
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - generic [ref=e114]: "01"
+              - generic [ref=e115]: 电子
+            - generic [ref=e116]: "+163.08"
+            - generic [ref=e117]: +2.84%
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e122]: "02"
+              - generic [ref=e123]: 半导体
+            - generic [ref=e124]: "+88.23"
+            - generic [ref=e125]: +3.16%
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - generic [ref=e130]: "03"
+              - generic [ref=e131]: 通信设备
+            - generic [ref=e132]: "+37.10"
+            - generic [ref=e133]: +1.76%
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - generic [ref=e138]: "04"
+              - generic [ref=e139]: 数字芯片设计
+            - generic [ref=e140]: "+31.14"
+            - generic [ref=e141]: +2.21%
+          - generic [ref=e144]:
+            - generic [ref=e145]:
+              - generic [ref=e146]: "05"
+              - generic [ref=e147]: 元件
+            - generic [ref=e148]: "+27.66"
+            - generic [ref=e149]: +1.43%
+          - generic [ref=e152]:
+            - generic [ref=e153]:
+              - generic [ref=e154]: "06"
+              - generic [ref=e155]: 有色金属
+            - generic [ref=e156]: "+26.75"
+            - generic [ref=e157]: +0.88%
+          - generic [ref=e160]:
+            - generic [ref=e161]:
+              - generic [ref=e162]: "07"
+              - generic [ref=e163]: 电力设备
+            - generic [ref=e164]: "+26.60"
+            - generic [ref=e165]: +0.64%
+      - complementary [ref=e168]:
+        - generic [ref=e169]:
+          - generic [ref=e170]:
+            - generic [ref=e171]: WATCHLIST
+            - heading "重点观察" [level=2] [ref=e172]
+          - button "添加观察项" [ref=e173] [cursor=pointer]: ＋
+        - generic [ref=e174]:
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - generic [ref=e177]: 中际旭创
+              - generic [ref=e178]: 300308 · 通信设备
+            - strong [ref=e179]: +6.82%
+          - generic [ref=e180]:
+            - generic [ref=e181]:
+              - generic [ref=e182]: 工业富联
+              - generic [ref=e183]: 601138 · 电子
+            - strong [ref=e184]: +3.41%
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - generic [ref=e187]: 宁德时代
+              - generic [ref=e188]: 300750 · 电池
+            - strong [ref=e189]: "-1.26%"
+        - generic [ref=e190]: ⌁ 自选股异动提醒已开启
+  - contentinfo [ref=e191]:
+    - generic [ref=e192]: 资金雷达 / 盘中监测工作台
+    - generic [ref=e193]: MARKET DATA IS FOR REFERENCE ONLY

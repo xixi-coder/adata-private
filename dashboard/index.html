@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>资金雷达 · 实时市场流向</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='15' width='5' height='13' rx='2' fill='%23117a63'/%3E%3Crect x='13' y='7' width='5' height='21' rx='2' fill='%2338a07e'/%3E%3Crect x='22' y='11' width='5' height='17' rx='2' fill='%238cc8a9'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark"><span></span><span></span><span></span></div>
+          <div>
+            <div class="brand-name">资金雷达</div>
+            <div class="brand-subtitle">CAPITAL FLOW MONITOR</div>
+          </div>
+        </div>
+        <nav class="primary-nav" aria-label="主导航">
+          <a class="active" href="#overview">市场总览</a>
+          <a href="#sectors">行业流向</a>
+          <a href="#watchlist">自选监控</a>
+        </nav>
+        <div class="top-actions">
+          <div class="market-status"><i></i><span>交易中</span><b>09:30–15:00</b></div>
+          <button class="icon-button" id="themeToggle" aria-label="切换主题" title="切换主题">◐</button>
+          <button class="profile-button" aria-label="账户设置">林 <span>⌄</span></button>
+        </div>
+      </header>
+
+      <main id="overview" class="workspace">
+        <section class="page-intro">
+          <div>
+            <div class="eyebrow"><span class="pulse-dot"></span> LIVE MARKET / A-SHARES</div>
+            <h1>市场资金流向</h1>
+            <p>追踪主力资金在盘中的每一次选择。</p>
+          </div>
+          <div class="intro-right">
+            <div class="update-copy">最后更新 <strong id="lastUpdated">13:55:06</strong></div>
+            <button class="outline-button" id="pauseButton"><span class="pause-icon">Ⅱ</span><span id="pauseLabel">暂停更新</span></button>
+          </div>
+        </section>
+
+        <section class="metric-strip" aria-label="市场关键指标">
+          <div class="metric metric-primary"><span>沪深主力净流入</span><strong id="totalFlow">+1,286.4</strong><em>亿元</em><small id="totalFlowChange">较昨日 +8.6%</small></div>
+          <div class="metric"><span>超大单净流入</span><strong class="positive" id="largeOrder">+624.8</strong><em>亿元</em><small>占比 48.6%</small></div>
+          <div class="metric"><span>上涨家数</span><strong id="upCount">2,841</strong><em>家</em><small class="positive">+432</small></div>
+          <div class="metric"><span>下跌家数</span><strong id="downCount">1,724</strong><em>家</em><small class="negative">-118</small></div>
+          <div class="metric breadth"><span>涨跌比</span><strong id="breadth">1.65</strong><div class="breadth-bar"><i></i></div><small>市场偏强</small></div>
+        </section>
+
+        <section class="chart-panel">
+          <div class="panel-toolbar">
+            <div>
+              <div class="section-kicker">INTRADAY MOMENTUM</div>
+              <h2>板块资金趋势</h2>
+            </div>
+            <div class="chart-controls">
+              <div class="control-group" role="group" aria-label="时间范围"><button class="time-tab active" data-range="today">今日</button><button class="time-tab" data-range="week">近 5 日</button><button class="time-tab" data-range="month">近 20 日</button></div>
+              <div class="control-divider"></div>
+              <label class="select-control">单位 <select id="unitSelect"><option value="hundred">亿元</option><option value="billion">十亿元</option></select></label>
+            </div>
+          </div>
+          <div class="legend" id="legend"></div>
+          <div class="chart-wrap" id="chartWrap"><canvas id="flowChart"></canvas><div class="chart-tooltip" id="chartTooltip"></div></div>
+          <div class="chart-footer"><span><i class="live-dot"></i> 数据每 3 秒刷新</span><span>数据来源：市场公开行情 · 模拟演示</span></div>
+        </section>
+
+        <section id="sectors" class="lower-grid">
+          <div class="ranking-panel">
+            <div class="panel-heading"><div><div class="section-kicker">SECTOR RANKING</div><h2>行业资金热度</h2></div><a href="#sectors">查看全部 <span>→</span></a></div>
+            <div class="table-head"><span>行业</span><span>净流入</span><span>涨跌幅</span><span>活跃度</span></div>
+            <div class="sector-list" id="sectorList"></div>
+          </div>
+          <aside id="watchlist" class="watch-panel">
+            <div class="panel-heading"><div><div class="section-kicker">WATCHLIST</div><h2>重点观察</h2></div><button class="add-button" id="addWatch" aria-label="添加观察项" title="添加观察项">＋</button></div>
+            <div class="watch-list">
+              <div class="watch-item"><div><b>中际旭创</b><small>300308 · 通信设备</small></div><strong class="positive">+6.82%</strong></div>
+              <div class="watch-item"><div><b>工业富联</b><small>601138 · 电子</small></div><strong class="positive">+3.41%</strong></div>
+              <div class="watch-item"><div><b>宁德时代</b><small>300750 · 电池</small></div><strong class="negative">-1.26%</strong></div>
+            </div>
+            <div class="watch-note"><span>⌁</span> 自选股异动提醒已开启</div>
+          </aside>
+        </section>
+      </main>
+      <footer class="footer"><span>资金雷达 / 盘中监测工作台</span><span>MARKET DATA IS FOR REFERENCE ONLY</span></footer>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
