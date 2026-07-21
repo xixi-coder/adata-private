@@ -48,8 +48,8 @@
         <section class="metric-strip" aria-label="市场关键指标">
           <div class="metric metric-primary"><span>沪深主力净流入</span><strong id="totalFlow">+1,286.4</strong><em>亿元</em><small id="totalFlowChange">较昨日 +8.6%</small></div>
           <div class="metric"><span>超大单净流入</span><strong class="positive" id="largeOrder">+624.8</strong><em>亿元</em><small>占比 48.6%</small></div>
-          <div class="metric"><span>上涨家数</span><strong id="upCount">2,841</strong><em>家</em><small class="positive">+432</small></div>
-          <div class="metric"><span>下跌家数</span><strong id="downCount">1,724</strong><em>家</em><small class="negative">-118</small></div>
+          <div class="metric"><span>上涨板块</span><strong id="upCount">--</strong><em>个</em><small class="positive">实时</small></div>
+          <div class="metric"><span>下跌板块</span><strong id="downCount">--</strong><em>个</em><small class="negative">实时</small></div>
           <div class="metric breadth"><span>涨跌比</span><strong id="breadth">1.65</strong><div class="breadth-bar"><i></i></div><small>市场偏强</small></div>
         </section>
 
@@ -67,7 +67,7 @@
           </div>
           <div class="legend" id="legend"></div>
           <div class="chart-wrap" id="chartWrap"><canvas id="flowChart"></canvas><div class="chart-tooltip" id="chartTooltip"></div></div>
-          <div class="chart-footer"><span><i class="live-dot"></i> 数据每 3 秒刷新</span><span>数据来源：市场公开行情 · 模拟演示</span></div>
+          <div class="chart-footer"><span><i class="live-dot"></i> <span id="chartStatus">等待实时采样</span></span><span id="dataSource">数据来源：东方财富公开行情</span></div>
         </section>
 
         <section id="sectors" class="lower-grid">
@@ -78,11 +78,7 @@
           </div>
           <aside id="watchlist" class="watch-panel">
             <div class="panel-heading"><div><div class="section-kicker">WATCHLIST</div><h2>重点观察</h2></div><button class="add-button" id="addWatch" aria-label="添加观察项" title="添加观察项">＋</button></div>
-            <div class="watch-list">
-              <div class="watch-item"><div><b>中际旭创</b><small>300308 · 通信设备</small></div><strong class="positive">+6.82%</strong></div>
-              <div class="watch-item"><div><b>工业富联</b><small>601138 · 电子</small></div><strong class="positive">+3.41%</strong></div>
-              <div class="watch-item"><div><b>宁德时代</b><small>300750 · 电池</small></div><strong class="negative">-1.26%</strong></div>
-            </div>
+            <div class="watch-list" id="watchList"></div>
             <div class="watch-note"><span>⌁</span> 自选股异动提醒已开启</div>
           </aside>
         </section>

@@ -1,0 +1,128 @@
+- generic [ref=f1e2]:
+  - banner [ref=f1e3]:
+    - generic [ref=f1e9]:
+      - generic [ref=f1e10]: 资金雷达
+      - generic [ref=f1e11]: CAPITAL FLOW MONITOR
+    - navigation "主导航" [ref=f1e12]:
+      - link "市场总览" [ref=f1e13] [cursor=pointer]:
+        - /url: "#overview"
+      - link "行业流向" [ref=f1e14] [cursor=pointer]:
+        - /url: "#sectors"
+      - link "自选监控" [ref=f1e15] [cursor=pointer]:
+        - /url: "#watchlist"
+    - generic [ref=f1e16]:
+      - generic [ref=f1e17]:
+        - generic [ref=f1e19]: 交易中
+        - generic [ref=f1e20]: 09:30–15:00
+      - button "切换主题" [ref=f1e21] [cursor=pointer]: ◐
+      - button "账户设置" [ref=f1e22] [cursor=pointer]: 林 ⌄
+  - main [ref=f1e23]:
+    - generic [ref=f1e24]:
+      - generic [ref=f1e25]:
+        - generic [ref=f1e26]: LIVE MARKET / A-SHARES
+        - heading "市场资金流向" [level=1] [ref=f1e28]
+        - paragraph [ref=f1e29]: 追踪主力资金在盘中的每一次选择。
+      - generic [ref=f1e30]:
+        - generic [ref=f1e31]:
+          - text: 最后更新
+          - strong [ref=f1e32]: 等待连接
+        - button "Ⅱ 暂停更新" [ref=f1e33] [cursor=pointer]:
+          - generic [ref=f1e34]: Ⅱ
+          - generic [ref=f1e35]: 暂停更新
+    - region "市场关键指标" [ref=f1e36]:
+      - generic [ref=f1e37]:
+        - generic [ref=f1e38]: 沪深主力净流入
+        - strong [ref=f1e39]: "--"
+        - emphasis [ref=f1e40]: 亿元
+        - generic [ref=f1e41]: 较昨日 +8.6%
+      - generic [ref=f1e42]:
+        - generic [ref=f1e43]: 超大单净流入
+        - strong [ref=f1e44]: "--"
+        - emphasis [ref=f1e45]: 亿元
+        - generic [ref=f1e46]: 占比 48.6%
+      - generic [ref=f1e47]:
+        - generic [ref=f1e48]: 上涨家数
+        - strong [ref=f1e49]: 2,841
+        - emphasis [ref=f1e50]: 家
+        - generic [ref=f1e51]: "+432"
+      - generic [ref=f1e52]:
+        - generic [ref=f1e53]: 下跌家数
+        - strong [ref=f1e54]: 1,724
+        - emphasis [ref=f1e55]: 家
+        - generic [ref=f1e56]: "-118"
+      - generic [ref=f1e57]:
+        - generic [ref=f1e58]: 涨跌比
+        - strong [ref=f1e59]: "1.65"
+        - generic [ref=f1e62]: 市场偏强
+    - generic [ref=f1e63]:
+      - generic [ref=f1e64]:
+        - generic [ref=f1e65]:
+          - generic [ref=f1e66]: INTRADAY MOMENTUM
+          - heading "板块资金趋势" [level=2] [ref=f1e67]
+        - generic [ref=f1e68]:
+          - group "时间范围" [ref=f1e69]:
+            - button "今日" [ref=f1e70] [cursor=pointer]
+            - button "近 5 日" [ref=f1e71] [cursor=pointer]
+            - button "近 20 日" [ref=f1e72] [cursor=pointer]
+          - generic [ref=f1e74]:
+            - text: 单位
+            - combobox "单位" [ref=f1e75] [cursor=pointer]:
+              - option "亿元" [selected]
+              - option "十亿元"
+      - generic [ref=f1e76]:
+        - generic [ref=f1e77]: 电子
+        - generic [ref=f1e79]:
+          - generic [ref=f1e80]: 半导体
+          - generic [ref=f1e82]:
+            - generic [ref=f1e83]: 通信设备
+            - generic [ref=f1e85]:
+              - generic [ref=f1e86]: 数字芯片设计
+              - generic [ref=f1e88]:
+                - generic [ref=f1e89]: 元件
+                - generic [ref=f1e91]:
+                  - generic [ref=f1e92]: 有色金属
+                  - generic [ref=f1e94]:
+                    - generic [ref=f1e95]: 电力设备
+                    - generic [ref=f1e97]: 通信服务
+      - generic [ref=f1e102]:
+        - generic [ref=f1e103]: 等待首个实时样本
+        - generic [ref=f1e105]: 行情源连接失败
+    - generic [ref=f1e106]:
+      - generic [ref=f1e107]:
+        - generic [ref=f1e108]:
+          - generic [ref=f1e109]:
+            - generic [ref=f1e110]: SECTOR RANKING
+            - heading "行业资金热度" [level=2] [ref=f1e111]
+          - link "查看全部 →" [ref=f1e112] [cursor=pointer]:
+            - /url: "#sectors"
+        - generic [ref=f1e113]:
+          - generic [ref=f1e114]: 行业
+          - generic [ref=f1e115]: 净流入
+          - generic [ref=f1e116]: 涨跌幅
+          - generic [ref=f1e117]: 活跃度
+      - complementary [ref=f1e118]:
+        - generic [ref=f1e119]:
+          - generic [ref=f1e120]:
+            - generic [ref=f1e121]: WATCHLIST
+            - heading "重点观察" [level=2] [ref=f1e122]
+          - button "添加观察项" [ref=f1e123] [cursor=pointer]: ＋
+        - generic [ref=f1e124]:
+          - generic [ref=f1e125]:
+            - generic [ref=f1e126]:
+              - generic [ref=f1e127]: 中际旭创
+              - generic [ref=f1e128]: 300308 · 通信设备
+            - strong [ref=f1e129]: +6.82%
+          - generic [ref=f1e130]:
+            - generic [ref=f1e131]:
+              - generic [ref=f1e132]: 工业富联
+              - generic [ref=f1e133]: 601138 · 电子
+            - strong [ref=f1e134]: +3.41%
+          - generic [ref=f1e135]:
+            - generic [ref=f1e136]:
+              - generic [ref=f1e137]: 宁德时代
+              - generic [ref=f1e138]: 300750 · 电池
+            - strong [ref=f1e139]: "-1.26%"
+        - generic [ref=f1e140]: ⌁ 自选股异动提醒已开启
+  - contentinfo [ref=f1e141]:
+    - generic [ref=f1e142]: 资金雷达 / 盘中监测工作台
+    - generic [ref=f1e143]: MARKET DATA IS FOR REFERENCE ONLY
