@@ -27,6 +27,7 @@ history_lock = threading.Lock()
 last_good = None
 last_fetched = 0.0
 last_watchlist = None
+watchlist_lock = threading.Lock()
 
 
 def get_live_sectors():
@@ -59,10 +60,13 @@ def get_live_sectors():
     return sectors
 
 
-def get_watchlist():
+def get_watchlist(items=None):
+    items = items if items is not None else WATCHLIST
+    if not items:
+        return []
     params = {
         'fltt': '2', 'invt': '2', 'fields': 'f2,f3,f12,f14',
-        'secids': ','.join(f"{item['market']}.{item['code']}" for item in WATCHLIST),
+        'secids': ','.join(f"{item['market']}.{item['code']}" for item in items),
     }
     request = Request(
         f'https://80.push2.eastmoney.com/api/qt/ulist.np/get?{urlencode(params)}',
@@ -71,7 +75,7 @@ def get_watchlist():
     with urlopen(request, timeout=12, context=ssl._create_unverified_context()) as response:
         payload = json.loads(response.read().decode('utf-8'))
     rows = (payload.get('data') or {}).get('diff') or []
-    metadata = {item['code']: item for item in WATCHLIST}
+    metadata = {item['code']: item for item in items}
     return [{
         'code': row.get('f12', ''), 'name': row.get('f14', '未知'),
         'sector': metadata.get(row.get('f12', ''), {}).get('sector', ''),
@@ -81,12 +85,54 @@ def get_watchlist():
 
 def get_watchlist_cached():
     global last_watchlist
+    with watchlist_lock:
+        items = [item.copy() for item in WATCHLIST]
     try:
-        last_watchlist = get_watchlist()
+        quotes = get_watchlist(items)
+        with watchlist_lock:
+            last_watchlist = quotes
     except Exception:
-        if last_watchlist is None:
+        with watchlist_lock:
+            cached = last_watchlist
+        if cached is None:
             raise
-    return last_watchlist
+    with watchlist_lock:
+        return list(last_watchlist or [])
+
+
+def get_watchlist_config():
+    with watchlist_lock:
+        return [item.copy() for item in WATCHLIST]
+
+
+def normalize_watchlist(payload):
+    raw_items = payload.get('items') if isinstance(payload, dict) else None
+    if not isinstance(raw_items, list):
+        raise ValueError('items 必须是数组')
+    if len(raw_items) > 20:
+        raise ValueError('观察列表最多支持 20 只股票')
+    normalized = []
+    seen = set()
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            raise ValueError('观察项格式不正确')
+        code = str(raw.get('code', '')).strip()
+        if len(code) != 6 or not code.isdigit():
+            raise ValueError(f'股票代码必须是 6 位数字：{code or "空值"}')
+        if code in seen:
+            continue
+        sector = str(raw.get('sector', '')).strip()[:20]
+        market = '1' if code.startswith(('5', '6', '9')) else '0'
+        normalized.append({'code': code, 'market': market, 'sector': sector})
+        seen.add(code)
+    return normalized
+
+
+def replace_watchlist(items):
+    global last_watchlist
+    with watchlist_lock:
+        WATCHLIST[:] = items
+        last_watchlist = None
 
 
 def collect_snapshot():
@@ -130,6 +176,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/watchlist':
+            return response_json(self, 200, {'items': get_watchlist_config()})
         if parsed.path != '/api/flow':
             return super().do_GET()
         try:
@@ -169,6 +217,21 @@ class Handler(SimpleHTTPRequestHandler):
             response_json(self, 503, {
                 'live': False, 'error': '行情源暂时不可用', 'detail': str(exc), 'hasHistory': has_history,
             })
+
+    def do_PUT(self):
+        parsed = urlparse(self.path)
+        if parsed.path != '/api/watchlist':
+            return response_json(self, 404, {'error': '接口不存在'})
+        try:
+            content_length = int(self.headers.get('Content-Length', '0'))
+            if content_length > 16_384:
+                return response_json(self, 413, {'error': '请求内容过大'})
+            payload = json.loads(self.rfile.read(content_length).decode('utf-8'))
+            items = normalize_watchlist(payload)
+            replace_watchlist(items)
+            response_json(self, 200, {'items': get_watchlist_config()})
+        except (ValueError, json.JSONDecodeError) as exc:
+            response_json(self, 400, {'error': str(exc)})
 
 
 if __name__ == '__main__':

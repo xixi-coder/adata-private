@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="watchlist.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -78,6 +79,12 @@
           </div>
           <aside id="watchlist" class="watch-panel">
             <div class="panel-heading"><div><div class="section-kicker">WATCHLIST</div><h2>重点观察</h2></div><button class="add-button" id="addWatch" aria-label="添加观察项" title="添加观察项">＋</button></div>
+            <form class="watch-form" id="watchForm" hidden>
+              <label><span>股票代码</span><input id="watchCode" name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="例如 600519" required /></label>
+              <label><span>所属行业（选填）</span><input id="watchSector" name="sector" maxlength="20" placeholder="例如 白酒" /></label>
+              <div class="watch-form-actions"><button type="button" id="cancelWatch">取消</button><button type="submit">保存</button></div>
+              <p class="watch-feedback" id="watchFeedback" aria-live="polite"></p>
+            </form>
             <div class="watch-list" id="watchList"></div>
             <div class="watch-note"><span>⌁</span> 自选股异动提醒已开启</div>
           </aside>
