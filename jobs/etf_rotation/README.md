@@ -60,6 +60,28 @@ python3 -m jobs.etf_rotation.daily_signal --profile optimized --send-email
 
 Codex自动任务 `ETF轮动盘前交易信号` 已设置为每周一至周五 `08:50` 运行，使用Asia/Shanghai本地时区，并将结果发送到 `MAIL_TO`。
 
+## GitHub Actions定时任务
+
+工作流文件为 `.github/workflows/etf-rotation.yml`，默认在北京时间每周一至周五 `08:50` 自动执行：
+
+```bash
+python3 -m jobs.etf_rotation.daily_signal --profile optimized --send-email
+```
+
+在仓库 `Settings -> Secrets and variables -> Actions` 中配置以下 Repository secrets：
+
+| Secret | 说明 |
+|---|---|
+| `MAIL_163_USER` | 163邮箱账号，也是发件人地址。 |
+| `MAIL_163_PASS` | 163邮箱SMTP授权码，不是邮箱登录密码。 |
+| `MAIL_TO` | 收件邮箱；多个地址使用逗号或分号分隔。 |
+
+工作流也支持在 Actions 页面手动运行，可选择 `optimized`、`balanced` 或 `screenshot`，可指定 `YYYY-MM-DD` 格式的复核日期，并可关闭邮件。每次运行都会把 `jobs/etf_rotation/live_outputs/` 上传为 artifact，保留30天。
+
+GitHub Actions的 cron 使用UTC，因此配置中的 `50 0 * * 1-5` 对应北京时间工作日 `08:50`。GitHub可能在任务高峰期延迟启动；脚本会按上海时区识别运行日期，并且只使用上一交易日及更早的行情。
+
+本地Codex任务与GitHub Actions是两套独立调度。如果两者同时启用，它们会分别发送邮件；只需要一封通知时，应停用其中一个定时任务。
+
 ## 脚本参数
 
 ### 回测脚本 `jobs.etf_rotation.run`

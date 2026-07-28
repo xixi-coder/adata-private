@@ -1,0 +1,85 @@
+name: ETF轮动盘前信号
+
+on:
+  schedule:
+    - cron: "50 0 * * 1-5" # UTC 00:50，即北京时间工作日 08:50
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "策略版本"
+        required: true
+        default: "optimized"
+        type: choice
+        options:
+          - optimized
+          - balanced
+          - screenshot
+      date:
+        description: "可选，复核日期（YYYY-MM-DD）；留空使用上海时区当天"
+        required: false
+        default: ""
+        type: string
+      send_email:
+        description: "是否发送信号邮件"
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: etf-rotation-signal
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  generate-signal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Shanghai
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate ETF rotation signal
+        shell: bash
+        env:
+          ETF_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'optimized' }}
+          ETF_SIGNAL_DATE: ${{ github.event_name == 'workflow_dispatch' && inputs.date || '' }}
+          ETF_SEND_EMAIL: ${{ github.event_name == 'schedule' && 'true' || inputs.send_email }}
+          SMTP_HOST: smtp.163.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.MAIL_163_USER }}
+          SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          args=(--profile "$ETF_PROFILE")
+          if [ -n "$ETF_SIGNAL_DATE" ]; then
+            args+=(--date "$ETF_SIGNAL_DATE")
+          fi
+          if [ "$ETF_SEND_EMAIL" = "true" ]; then
+            args+=(--send-email)
+          fi
+          python3 -m jobs.etf_rotation.daily_signal "${args[@]}"
+
+      - name: Upload signal outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: etf-rotation-signal-${{ github.run_number }}
+          path: jobs/etf_rotation/live_outputs/
+          if-no-files-found: warn
+          retention-days: 30
