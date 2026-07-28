@@ -65,7 +65,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="jobs/etf_rotation/outputs", help="结果目录")
     parser.add_argument("--capital", type=float, default=100_000.0, help="初始资金")
     parser.add_argument("--cost", type=float, default=0.001, help="单边综合交易成本率")
-    parser.add_argument("--rebalance-threshold", type=float, default=0.02, help="最小调仓偏离，默认2%")
+    parser.add_argument("--rebalance-threshold", type=float, default=0.02, help="最小调仓偏离，默认2%%")
     parser.add_argument(
         "--profile",
         choices=("optimized", "balanced", "screenshot"),
@@ -93,7 +93,27 @@ def main() -> None:
         start_date=args.start,
         end_date=args.end,
     )
-    result.write(args.output_dir, comparisons={"nasdaq_only": nasdaq_only})
+    no_volatility_config = replace(
+        config,
+        profile_name=f"{config.profile_name}_no_volatility_control",
+        medium_volatility=9.0,
+        high_volatility=10.0,
+        medium_vol_scale=1.0,
+        high_vol_scale=1.0,
+    )
+    no_volatility_control = run_backtest(
+        frames,
+        config=no_volatility_config,
+        start_date=args.start,
+        end_date=args.end,
+    )
+    result.write(
+        args.output_dir,
+        comparisons={
+            "nasdaq_only": nasdaq_only,
+            "no_volatility_control": no_volatility_control,
+        },
+    )
     summary = result.summary
     print(f"纳指ETF/创业板ETF周频轮动回测 ({args.profile})")
     print(f"区间: {summary['start_date']} 至 {summary['end_date']}")
@@ -119,6 +139,13 @@ def main() -> None:
         f"年化{nasdaq_summary['annual_return']:.2%}，"
         f"最大回撤{nasdaq_summary['max_drawdown']:.2%}，"
         f"夏普{nasdaq_summary['sharpe_zero_rate']:.2f}"
+    )
+    no_volatility_summary = no_volatility_control.summary
+    print(
+        f"关闭波动率降仓: 累计{no_volatility_summary['total_return']:.2%}，"
+        f"年化{no_volatility_summary['annual_return']:.2%}，"
+        f"最大回撤{no_volatility_summary['max_drawdown']:.2%}，"
+        f"夏普{no_volatility_summary['sharpe_zero_rate']:.2f}"
     )
     print(f"结果目录: {Path(args.output_dir).resolve()}")
     print(f"图表报告: {(Path(args.output_dir) / 'report.html').resolve()}")

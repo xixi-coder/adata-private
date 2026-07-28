@@ -9,6 +9,8 @@
 
 每次运行还会同步计算“仅纳指ETF择时”对照：只使用 `513100`，沿用所选 profile 的趋势过滤、波动率仓位、调仓阈值和交易成本；不满足趋势条件时持有现金。它不同于报告中的“513100买入持有”基准。
 
+同时生成“关闭20日波动率降仓”对照：保留相同的ETF选择、趋势过滤、成交时点、调仓阈值和交易成本，但合格资产始终使用原始目标仓位。报告中的收益、回撤、年度收益和指标表可直接观察波动率规则的独立影响。
+
 ## optimized规则（默认）
 
 - 比较两只ETF的20日收益率，只考虑收盘价高于20日均线的ETF。
@@ -40,6 +42,82 @@
 python3 -m jobs.etf_rotation.run --profile optimized --start 2014-01-01 --end 2026-07-28
 ```
 
+盘前生成当天买卖信号：
+
+```bash
+python3 -m jobs.etf_rotation.daily_signal --profile optimized
+```
+
+生成信号并发送邮件：
+
+```bash
+python3 -m jobs.etf_rotation.daily_signal --profile optimized --send-email
+```
+
+邮件配置从项目根目录 `.env.local` 读取，需配置 `MAIL_163_USER`、`MAIL_163_PASS` 和 `MAIL_TO`；也兼容 `SMTP_USER`、`SMTP_PASS`、`SMTP_HOST`、`SMTP_PORT`。多个收件人可用逗号或分号分隔。使用 `--send-email` 时，缺少配置或发送失败会令任务返回错误，避免邮件未送达却被误判为执行成功。
+
+盘前信号只使用上一交易日及更早的完整日线，并通过A股交易日历识别上一完整交易周的最后共同交易日。只有当天是该周信号的下一交易日时才给出买卖动作，其余交易日输出“今日无需调仓”。它根据模型历史仓位推算当前持仓，不读取真实账户，也不会连接券商或自动下单。
+
+Codex自动任务 `ETF轮动盘前交易信号` 已设置为每周一至周五 `08:50` 运行，使用Asia/Shanghai本地时区，并将结果发送到 `MAIL_TO`。
+
+## 脚本参数
+
+### 回测脚本 `jobs.etf_rotation.run`
+
+完整命令格式：
+
+```bash
+python3 -m jobs.etf_rotation.run [参数]
+```
+
+| 参数 | 默认值 | 说明 |
+|---|---|---|
+| `--profile` | `optimized` | 策略版本：`optimized` 为20日动量优化版，`balanced` 为20/60/120日复合动量版，`screenshot` 为截图规则复现版。 |
+| `--start` | `2014-01-01` | 回测开始日期，格式为 `YYYY-MM-DD`。程序会额外向前取约240个自然日作为指标预热数据。 |
+| `--end` | 运行当天 | 回测结束日期，格式为 `YYYY-MM-DD`。建议使用已经收盘且日线完整的日期。 |
+| `--csv-dir` | 不设置 | 本地行情目录。设置后不再下载行情，目录内必须包含 `513100.csv` 和 `159915.csv`。 |
+| `--output-dir` | `jobs/etf_rotation/outputs` | CSV、JSON和HTML报告的输出目录。重复运行会更新目录内同名结果。 |
+| `--capital` | `100000` | 初始模拟资金，单位为元。它影响成交金额、权益和交易成本金额，不改变动量排名规则。 |
+| `--cost` | `0.001` | 单边综合交易成本率，包含佣金、滑点和价差的合并假设。填写小数，`0.001` 表示 `0.1%`。 |
+| `--rebalance-threshold` | `0.02` | 最小调仓偏离。目标仓位与当前仓位之差小于2个百分点时不交易，填写小数。 |
+| `-h`、`--help` | - | 显示代码中最新的参数帮助。 |
+
+例如，用20万元初始资金、单边0.08%成本回测 `balanced`：
+
+```bash
+python3 -m jobs.etf_rotation.run \
+  --profile balanced \
+  --start 2014-01-01 \
+  --end 2026-07-28 \
+  --capital 200000 \
+  --cost 0.0008
+```
+
+### 盘前信号脚本 `jobs.etf_rotation.daily_signal`
+
+完整命令格式：
+
+```bash
+python3 -m jobs.etf_rotation.daily_signal [参数]
+```
+
+| 参数 | 默认值 | 说明 |
+|---|---|---|
+| `--date` | 上海时区当天 | 任务运行日期，格式为 `YYYY-MM-DD`。正常定时运行无需设置；指定日期主要用于历史信号复核。 |
+| `--profile` | `optimized` | 策略版本，含义与回测脚本相同。实盘信号应与采用的回测版本保持一致。 |
+| `--start` | `2014-01-01` | 模型历史起点。程序从该区间重建当前模型仓位，不建议在日常任务中随意修改。 |
+| `--csv-dir` | 不设置 | 本地行情目录；不设置时下载ETF日线。文件要求与回测脚本相同。 |
+| `--output-dir` | `jobs/etf_rotation/live_outputs` | 当日信号归档和 `latest_signal.json/.txt` 的输出目录。 |
+| `--capital` | `100000` | 用于模型历史回放的初始模拟资金。当前信号以目标仓位比例为主，不代表真实账户金额。 |
+| `--cost` | `0.001` | 模型历史回放使用的单边综合交易成本率，填写小数。 |
+| `--rebalance-threshold` | `0.02` | 最小调仓偏离，填写小数；不足阈值时输出无需调仓。 |
+| `--send-email` | 关闭 | 开启后把完整信号发送到 `MAIL_TO`；配置缺失或发送失败时命令返回错误。 |
+| `-h`、`--help` | - | 显示代码中最新的参数帮助。 |
+
+回测和盘前任务至少应保持 `--profile`、`--start`、`--cost`、`--rebalance-threshold` 一致，否则盘前推算的模型仓位可能与回测报告不同。盘前脚本不会读取券商真实持仓，因此实际账户发生手工交易后，仍需自行核对目标仓位与真实仓位。
+
+## 其他运行方式
+
 运行截图规则复现版：20日收益率排名、收盘站上20日均线、满仓排名第一者，两只都不满足时空仓。
 
 ```bash
@@ -63,6 +141,12 @@ python3 -m jobs.etf_rotation.run \
 - `signals.csv`：每周信号、指标和目标仓位。
 - `trades.csv`：下一交易日开盘执行的交易记录及成本。
 - `nasdaq_only_*.csv`、`nasdaq_only_summary.json`：仅纳指ETF择时对照的净值、信号、交易和汇总指标。
+- `no_volatility_control_*.csv`、`no_volatility_control_summary.json`：关闭波动率降仓对照的净值、信号、交易和汇总指标。
+
+盘前信号写入 `jobs/etf_rotation/live_outputs/`：
+
+- `latest_signal.json`、`latest_signal.txt`：最近一次盘前建议。
+- `signal_YYYYMMDD.json`、`signal_YYYYMMDD.txt`：按运行日期归档的建议。
 
 资料来源：
 

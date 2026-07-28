@@ -377,14 +377,23 @@ def write_html_report(
     nav["trade_date"] = pd.to_datetime(nav["trade_date"])
     trades = result.trades.copy()
     nasdaq_only = (comparisons or {}).get("nasdaq_only")
+    no_volatility_control = (comparisons or {}).get("no_volatility_control")
     if nasdaq_only is not None:
         comparison_nav = nasdaq_only.nav[["trade_date", "nav"]].rename(columns={"nav": "nav_nasdaq_only"})
+        comparison_nav["trade_date"] = pd.to_datetime(comparison_nav["trade_date"])
+        nav = nav.merge(comparison_nav, on="trade_date", how="left", validate="one_to_one")
+    if no_volatility_control is not None:
+        comparison_nav = no_volatility_control.nav[["trade_date", "nav"]].rename(
+            columns={"nav": "nav_no_volatility_control"}
+        )
         comparison_nav["trade_date"] = pd.to_datetime(comparison_nav["trade_date"])
         nav = nav.merge(comparison_nav, on="trade_date", how="left", validate="one_to_one")
 
     value_columns = ["nav", "benchmark_513100", "benchmark_159915"]
     if nasdaq_only is not None:
         value_columns.insert(1, "nav_nasdaq_only")
+    if no_volatility_control is not None:
+        value_columns.insert(1, "nav_no_volatility_control")
     for column in value_columns:
         nav[f"return_{column}"] = nav[column] / nav[column].iloc[0] - 1
         nav[f"drawdown_{column}"] = nav[column] / nav[column].cummax() - 1
@@ -421,6 +430,12 @@ def write_html_report(
     annual_series = [
         ("nav", "二选一轮动", "bar-strategy"),
     ]
+    if no_volatility_control is not None:
+        line_series.append(("return_nav_no_volatility_control", "关闭波动率降仓", "line-no-vol"))
+        drawdown_series.append(
+            ("drawdown_nav_no_volatility_control", "关闭波动率降仓", "line-no-vol")
+        )
+        annual_series.append(("nav_no_volatility_control", "关闭波动率降仓", "bar-no-vol"))
     if nasdaq_only is not None:
         line_series.append(("return_nav_nasdaq_only", "仅纳指择时", "line-timing"))
         drawdown_series.append(("drawdown_nav_nasdaq_only", "仅纳指择时", "line-timing"))
@@ -447,18 +462,24 @@ def write_html_report(
         nav,
         line_series,
         _pct,
-        "轮动、仅纳指择时及两只ETF买入持有的累计收益曲线",
+        "轮动、关闭波动率降仓、仅纳指择时及两只ETF买入持有的累计收益曲线",
     )
     drawdown_chart = _line_chart(
         nav,
         drawdown_series,
         _pct,
-        "轮动、仅纳指择时及两只ETF买入持有的历史回撤曲线",
+        "轮动、关闭波动率降仓、仅纳指择时及两只ETF买入持有的历史回撤曲线",
+    )
+    no_volatility_legend = (
+        '<span><i class="swatch no-vol"></i>关闭波动率降仓</span>'
+        if no_volatility_control is not None
+        else ""
     )
     timing_legend = '<span><i class="swatch timing"></i>仅纳指择时</span>' if nasdaq_only else ""
     legend = f"""
       <div class="legend" aria-label="图例">
         <span><i class="swatch strategy"></i>二选一轮动</span>
+        {no_volatility_legend}
         {timing_legend}
         <span><i class="swatch nasdaq"></i>纳指买入持有</span>
         <span><i class="swatch chinext"></i>创业板买入持有</span>
@@ -490,6 +511,12 @@ def write_html_report(
         )
 
     comparison_rows = comparison_row("二选一轮动策略", summary, str(summary["trade_count"]))
+    if no_volatility_control is not None:
+        comparison_rows += comparison_row(
+            "关闭20日波动率降仓",
+            no_volatility_control.summary,
+            str(no_volatility_control.summary["trade_count"]),
+        )
     if nasdaq_only is not None:
         comparison_rows += comparison_row(
             "仅纳指ETF择时",
@@ -506,8 +533,8 @@ def write_html_report(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ETF轮动回测报告</title>
   <style>
-    :root {{ color-scheme: light dark; --bg:#f5f6f8; --surface:#ffffff; --text:#18202a; --muted:#66717e; --border:#d9dee5; --grid:#dfe3e8; --strategy:#18794e; --timing:#8f3f68; --nasdaq:#2563a6; --chinext:#c46a16; --cash:#9aa3ad; }}
-    @media (prefers-color-scheme: dark) {{ :root {{ --bg:#111418; --surface:#191e24; --text:#eef1f4; --muted:#aab2bc; --border:#343b44; --grid:#303741; --strategy:#49b882; --timing:#d68db2; --nasdaq:#69a7e3; --chinext:#e9a35c; --cash:#747e89; }} }}
+    :root {{ color-scheme: light dark; --bg:#f5f6f8; --surface:#ffffff; --text:#18202a; --muted:#66717e; --border:#d9dee5; --grid:#dfe3e8; --strategy:#18794e; --no-vol:#555e69; --timing:#8f3f68; --nasdaq:#2563a6; --chinext:#c46a16; --cash:#9aa3ad; }}
+    @media (prefers-color-scheme: dark) {{ :root {{ --bg:#111418; --surface:#191e24; --text:#eef1f4; --muted:#aab2bc; --border:#343b44; --grid:#303741; --strategy:#49b882; --no-vol:#c2c8d0; --timing:#d68db2; --nasdaq:#69a7e3; --chinext:#e9a35c; --cash:#747e89; }} }}
     * {{ box-sizing:border-box; }}
     body {{ margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; letter-spacing:0; }}
     main {{ width:min(1180px, calc(100% - 32px)); margin:0 auto; padding:28px 0 44px; }}
@@ -519,11 +546,11 @@ def write_html_report(
     .metric span {{ display:block; color:var(--muted); font-size:12px; }} .metric strong {{ display:block; margin-top:5px; font-size:20px; font-weight:500; }}
     section {{ margin-top:28px; }} .section-head {{ display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:8px; }}
     .legend {{ display:flex; flex-wrap:wrap; gap:14px; color:var(--muted); font-size:12px; }} .legend span {{ display:inline-flex; align-items:center; gap:5px; }}
-    .swatch {{ width:12px; height:3px; display:inline-block; }} .strategy {{ background:var(--strategy); }} .timing {{ background:var(--timing); }} .nasdaq {{ background:var(--nasdaq); }} .chinext {{ background:var(--chinext); }} .cash {{ background:var(--cash); }}
+    .swatch {{ width:12px; height:3px; display:inline-block; }} .strategy {{ background:var(--strategy); }} .no-vol {{ background:var(--no-vol); }} .timing {{ background:var(--timing); }} .nasdaq {{ background:var(--nasdaq); }} .chinext {{ background:var(--chinext); }} .cash {{ background:var(--cash); }}
     .chart {{ display:block; width:100%; height:auto; overflow:visible; }} .grid {{ stroke:var(--grid); stroke-width:1; }} .axis-label {{ fill:var(--muted); font-size:12px; }}
-    .plot-line {{ fill:none; stroke-width:2.2; vector-effect:non-scaling-stroke; }} .line-strategy {{ stroke:var(--strategy); }} .line-timing {{ stroke:var(--timing); stroke-dasharray:7 4; }} .line-nasdaq {{ stroke:var(--nasdaq); }} .line-chinext {{ stroke:var(--chinext); }}
+    .plot-line {{ fill:none; stroke-width:2.2; vector-effect:non-scaling-stroke; }} .line-strategy {{ stroke:var(--strategy); }} .line-no-vol {{ stroke:var(--no-vol); stroke-dasharray:3 3; }} .line-timing {{ stroke:var(--timing); stroke-dasharray:7 4; }} .line-nasdaq {{ stroke:var(--nasdaq); }} .line-chinext {{ stroke:var(--chinext); }}
     .plot-area {{ stroke:none; opacity:.76; }} .area-nasdaq {{ fill:var(--nasdaq); }} .area-chinext {{ fill:var(--chinext); }} .area-cash {{ fill:var(--cash); }}
-    .plot-bar {{ opacity:.88; }} .bar-strategy {{ fill:var(--strategy); }} .bar-timing {{ fill:var(--timing); }} .bar-nasdaq {{ fill:var(--nasdaq); }} .bar-chinext {{ fill:var(--chinext); }}
+    .plot-bar {{ opacity:.88; }} .bar-strategy {{ fill:var(--strategy); }} .bar-no-vol {{ fill:var(--no-vol); }} .bar-timing {{ fill:var(--timing); }} .bar-nasdaq {{ fill:var(--nasdaq); }} .bar-chinext {{ fill:var(--chinext); }}
     .trade-chart-panel {{ margin-top:18px; }} .trade-chart-toolbar {{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }}
     .trade-chart-title {{ font-size:14px; font-weight:500; }} .trade-chart-meta {{ color:var(--muted); font-size:12px; }}
     .range-control {{ display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; flex:none; }}

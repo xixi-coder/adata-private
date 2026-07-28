@@ -324,6 +324,7 @@ def run_backtest(
     config: RotationConfig | None = None,
     start_date: str = "",
     end_date: str = "",
+    signal_dates: set[pd.Timestamp] | None = None,
 ) -> BacktestResult:
     config = config or RotationConfig()
     codes = list(frames)
@@ -337,9 +338,14 @@ def run_backtest(
     if evaluation.empty:
         raise ValueError("No overlapping ETF data in the requested period")
 
-    weekly_signal_dates = set(
-        evaluation.groupby(evaluation.index.to_period("W-FRI"), sort=True).apply(lambda item: item.index[-1]).tolist()
-    )
+    if signal_dates is None:
+        weekly_signal_dates = set(
+            evaluation.groupby(evaluation.index.to_period("W-FRI"), sort=True)
+            .apply(lambda item: item.index[-1])
+            .tolist()
+        )
+    else:
+        weekly_signal_dates = {pd.Timestamp(date).normalize() for date in signal_dates}
     shares = {code: 0.0 for code in codes}
     cash = config.initial_capital
     leader: str | None = None
