@@ -1,146 +1,146 @@
 {
   "theme_count": 20,
   "themes": {
-    "共封装光学(CPO)": {
+    "光刻机": {
       "rank": 1,
-      "score": 88.97,
-      "status": "持续发酵",
-      "hot_stock_count": 11,
-      "main_net_inflow_yi": 0.0
-    },
-    "存储芯片": {
-      "rank": 2,
-      "score": 87.61,
-      "status": "持续发酵",
-      "hot_stock_count": 12,
-      "main_net_inflow_yi": 0.0
-    },
-    "国家大基金持股": {
-      "rank": 3,
-      "score": 72.17,
-      "status": "降温",
-      "hot_stock_count": 8,
-      "main_net_inflow_yi": 0.0
-    },
-    "PCB概念": {
-      "rank": 4,
-      "score": 71.73,
-      "status": "持续发酵",
-      "hot_stock_count": 5,
-      "main_net_inflow_yi": 0.0
-    },
-    "光纤概念": {
-      "rank": 5,
-      "score": 67.79,
-      "status": "降温",
+      "score": 90.87,
+      "status": "新晋升温",
       "hot_stock_count": 9,
       "main_net_inflow_yi": 0.0
     },
-    "算力租赁": {
-      "rank": 6,
-      "score": 63.55,
-      "status": "持续发酵",
-      "hot_stock_count": 4,
+    "共封装光学(CPO)": {
+      "rank": 2,
+      "score": 76.0,
+      "status": "高热分歧",
+      "hot_stock_count": 10,
       "main_net_inflow_yi": 0.0
     },
-    "兵装重组概念": {
-      "rank": 7,
-      "score": 61.15,
-      "status": "持续发酵",
-      "hot_stock_count": 3,
+    "存储芯片": {
+      "rank": 3,
+      "score": 74.67,
+      "status": "高热分歧",
+      "hot_stock_count": 9,
       "main_net_inflow_yi": 0.0
     },
     "脑机接口": {
-      "rank": 8,
-      "score": 60.4,
+      "rank": 4,
+      "score": 65.8,
       "status": "快速升温",
-      "hot_stock_count": 1,
-      "main_net_inflow_yi": 0.0
-    },
-    "先进封装": {
-      "rank": 9,
-      "score": 60.21,
-      "status": "震荡观察",
-      "hot_stock_count": 4,
-      "main_net_inflow_yi": 0.0
-    },
-    "绿色电力": {
-      "rank": 10,
-      "score": 56.67,
-      "status": "快速升温",
-      "hot_stock_count": 5,
-      "main_net_inflow_yi": 0.0
-    },
-    "新股与次新股": {
-      "rank": 11,
-      "score": 51.13,
-      "status": "新晋观察",
       "hot_stock_count": 2,
       "main_net_inflow_yi": 0.0
     },
-    "中芯国际概念": {
-      "rank": 12,
-      "score": 49.97,
-      "status": "降温",
+    "PCB概念": {
+      "rank": 5,
+      "score": 64.94,
+      "status": "高热分歧",
+      "hot_stock_count": 6,
+      "main_net_inflow_yi": 0.0
+    },
+    "国家大基金持股": {
+      "rank": 6,
+      "score": 59.2,
+      "status": "高热分歧",
       "hot_stock_count": 7,
       "main_net_inflow_yi": 0.0
     },
     "创新药": {
-      "rank": 13,
-      "score": 49.44,
-      "status": "降温",
+      "rank": 7,
+      "score": 57.73,
+      "status": "快速升温",
       "hot_stock_count": 1,
       "main_net_inflow_yi": 0.0
     },
-    "人形机器人": {
-      "rank": 14,
-      "score": 48.73,
-      "status": "快速升温",
-      "hot_stock_count": 2,
+    "光刻胶": {
+      "rank": 8,
+      "score": 56.42,
+      "status": "新晋升温",
+      "hot_stock_count": 5,
+      "main_net_inflow_yi": 0.0
+    },
+    "算力租赁": {
+      "rank": 9,
+      "score": 48.21,
+      "status": "高热分歧",
+      "hot_stock_count": 4,
       "main_net_inflow_yi": 0.0
     },
     "半导体": {
-      "rank": 15,
+      "rank": 10,
       "score": 47.5,
-      "status": "快速升温",
+      "status": "降温",
       "hot_stock_count": 0,
       "main_net_inflow_yi": 0.0
     },
-    "芯片概念": {
-      "rank": 16,
-      "score": 47.11,
-      "status": "震荡观察",
-      "hot_stock_count": 2,
-      "main_net_inflow_yi": 0.0
-    },
     "电力": {
-      "rank": 17,
+      "rank": 11,
       "score": 46.17,
       "status": "快速升温",
       "hot_stock_count": 0,
       "main_net_inflow_yi": 0.0
     },
+    "绿色电力": {
+      "rank": 12,
+      "score": 45.01,
+      "status": "降温",
+      "hot_stock_count": 7,
+      "main_net_inflow_yi": 0.0
+    },
     "证券": {
-      "rank": 18,
+      "rank": 13,
       "score": 44.83,
-      "status": "快速升温",
+      "status": "降温",
+      "hot_stock_count": 0,
+      "main_net_inflow_yi": 0.0
+    },
+    "银行": {
+      "rank": 14,
+      "score": 43.5,
+      "status": "新晋升温",
+      "hot_stock_count": 0,
+      "main_net_inflow_yi": 0.0
+    },
+    "高压氧舱": {
+      "rank": 15,
+      "score": 43.07,
+      "status": "新晋观察",
+      "hot_stock_count": 1,
+      "main_net_inflow_yi": 0.0
+    },
+    "白酒": {
+      "rank": 16,
+      "score": 42.17,
+      "status": "新晋升温",
+      "hot_stock_count": 0,
+      "main_net_inflow_yi": 0.0
+    },
+    "DRG/DIP": {
+      "rank": 17,
+      "score": 40.83,
+      "status": "新晋升温",
       "hot_stock_count": 0,
       "main_net_inflow_yi": 0.0
     },
     "电网设备": {
-      "rank": 19,
-      "score": 43.5,
+      "rank": 18,
+      "score": 40.83,
       "status": "快速升温",
       "hot_stock_count": 0,
       "main_net_inflow_yi": 0.0
     },
-    "电池": {
+    "软件开发": {
+      "rank": 19,
+      "score": 39.5,
+      "status": "新晋升温",
+      "hot_stock_count": 0,
+      "main_net_inflow_yi": 0.0
+    },
+    "AI应用": {
       "rank": 20,
-      "score": 42.17,
-      "status": "快速升温",
+      "score": 39.5,
+      "status": "新晋升温",
       "hot_stock_count": 0,
       "main_net_inflow_yi": 0.0
     }
   },
-  "updated_at": "2026-07-27 18:56:57"
+  "updated_at": "2026-07-28 15:15:32"
 }
