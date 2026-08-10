@@ -1,6 +1,7 @@
 import unittest
 
 from dashboard.server import normalize_watchlist
+from dashboard.xueqiu_analysis import analyze_posts, normalize_influencers
 
 
 class NormalizeWatchlistTest(unittest.TestCase):
@@ -32,3 +33,22 @@ class NormalizeWatchlistTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class XueqiuAnalysisTest(unittest.TestCase):
+    def test_normalizes_users_and_rejects_invalid_uid(self):
+        self.assertEqual(normalize_influencers({'items': [
+            {'uid': '123', 'name': '甲'}, {'uid': '123', 'name': '重复'},
+        ]}), [{'uid': '123', 'name': '甲'}])
+        with self.assertRaisesRegex(ValueError, '必须是数字'):
+            normalize_influencers({'items': [{'uid': 'abc', 'name': '甲'}]})
+
+    def test_analyzes_sentiment_stocks_and_topics(self):
+        result = analyze_posts([{
+            'id': '1', 'uid': '123', 'publish_time': '2026-08-07 10:00',
+            'content': '<b>看好</b> $贵州茅台(SH600519)$ 增长机会 #白酒#',
+        }], [{'uid': '123', 'name': '研究员'}])
+        self.assertEqual(result['metrics']['bullishPct'], 100)
+        self.assertEqual(result['stocks'][0]['code'], 'SH600519')
+        self.assertEqual(result['topics'][0]['name'], '白酒')
+        self.assertEqual(result['posts'][0]['content'], '看好 $贵州茅台(SH600519)$ 增长机会 #白酒#')

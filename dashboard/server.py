@@ -2,6 +2,7 @@
 """Small local proxy for the live Eastmoney sector flow endpoint."""
 
 import json
+import os
 import ssl
 import threading
 import time
@@ -9,6 +10,11 @@ from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
+
+try:
+    from dashboard.xueqiu_analysis import analyze_posts, demo_posts, normalize_influencers
+except ModuleNotFoundError:  # Support ``python dashboard/server.py`` from project root.
+    from xueqiu_analysis import analyze_posts, demo_posts, normalize_influencers
 
 ROOT = __file__.rsplit('/', 1)[0]
 HOST = '127.0.0.1'
@@ -28,6 +34,50 @@ last_good = None
 last_fetched = 0.0
 last_watchlist = None
 watchlist_lock = threading.Lock()
+XUEQIU_USERS = []
+XUEQIU_POSTS = []
+XUEQIU_SOURCE = 'demo'
+xueqiu_lock = threading.Lock()
+
+
+def get_xueqiu_users():
+    with xueqiu_lock:
+        return [item.copy() for item in XUEQIU_USERS]
+
+
+def get_xueqiu_analysis():
+    with xueqiu_lock:
+        source = XUEQIU_SOURCE
+    with xueqiu_lock:
+        users = [item.copy() for item in XUEQIU_USERS]
+        posts = [item.copy() for item in XUEQIU_POSTS]
+    return analyze_posts(posts, users, source=source)
+
+
+def load_demo_xueqiu():
+    """Seed a useful local view while remote Xueqiu access is optional."""
+    global XUEQIU_USERS, XUEQIU_POSTS, XUEQIU_SOURCE
+    raw = os.environ.get('XUEQIU_UIDS') or os.environ.get('XUEQIU_UID') or ''
+    users = []
+    for token in raw.split(','):
+        token = token.strip()
+        if not token:
+            continue
+        uid, _, name = token.partition(':')
+        if uid.isdigit():
+            users.append({'uid': uid, 'name': name.strip() or f'雪球用户 {uid[-4:]}'})
+    if not users:
+        users = [
+            {'uid': '1247347556', 'name': '价值投资笔记'},
+            {'uid': '1596036202', 'name': '行业观察员'},
+            {'uid': '2292705444', 'name': '成长股研究'},
+        ]
+    XUEQIU_USERS = users
+    XUEQIU_POSTS = demo_posts(users)
+    XUEQIU_SOURCE = 'demo'
+
+
+load_demo_xueqiu()
 
 
 def get_live_sectors():
@@ -176,6 +226,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/xueqiu/analysis':
+            return response_json(self, 200, {'users': get_xueqiu_users(), **get_xueqiu_analysis()})
+        if parsed.path == '/api/xueqiu/users':
+            return response_json(self, 200, {'items': get_xueqiu_users()})
         if parsed.path == '/api/watchlist':
             return response_json(self, 200, {'items': get_watchlist_config()})
         if parsed.path != '/api/flow':
@@ -220,6 +274,20 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/xueqiu/users':
+            try:
+                content_length = int(self.headers.get('Content-Length', '0'))
+                if content_length > 16_384:
+                    return response_json(self, 413, {'error': '请求内容过大'})
+                items = normalize_influencers(json.loads(self.rfile.read(content_length).decode('utf-8')))
+                global XUEQIU_USERS, XUEQIU_POSTS, XUEQIU_SOURCE
+                with xueqiu_lock:
+                    XUEQIU_USERS = items
+                    XUEQIU_POSTS = demo_posts(items)
+                    XUEQIU_SOURCE = 'demo'
+                return response_json(self, 200, {'items': items})
+            except (ValueError, json.JSONDecodeError) as exc:
+                return response_json(self, 400, {'error': str(exc)})
         if parsed.path != '/api/watchlist':
             return response_json(self, 404, {'error': '接口不存在'})
         try:
@@ -232,6 +300,42 @@ class Handler(SimpleHTTPRequestHandler):
             response_json(self, 200, {'items': get_watchlist_config()})
         except (ValueError, json.JSONDecodeError) as exc:
             response_json(self, 400, {'error': str(exc)})
+
+    def do_POST(self):
+        global XUEQIU_POSTS, XUEQIU_SOURCE
+        parsed = urlparse(self.path)
+        if parsed.path == '/api/xueqiu/refresh':
+            try:
+                from adata.xueqiu.collector import XueqiuCollector
+                credential = os.environ.get('XUEQIU_COOKIE') or None
+                collector = XueqiuCollector(credential=credential)
+                rows = []
+                for user in get_xueqiu_users():
+                    frame = collector.get_posts(user['uid'])
+                    rows.extend({**row, 'uid': user['uid'], 'author': user['name']}
+                                for row in frame.to_dict('records'))
+                with xueqiu_lock:
+                    XUEQIU_POSTS = rows
+                    XUEQIU_SOURCE = 'xueqiu'
+                return response_json(self, 200, get_xueqiu_analysis())
+            except Exception as exc:
+                return response_json(self, 502, {'error': '雪球动态暂时无法访问', 'detail': str(exc), **get_xueqiu_analysis()})
+        if parsed.path != '/api/xueqiu/posts':
+            return response_json(self, 404, {'error': '接口不存在'})
+        try:
+            content_length = int(self.headers.get('Content-Length', '0'))
+            if content_length > 512_000:
+                return response_json(self, 413, {'error': '发言内容过大'})
+            payload = json.loads(self.rfile.read(content_length).decode('utf-8'))
+            posts = payload.get('posts') if isinstance(payload, dict) else None
+            if not isinstance(posts, list):
+                raise ValueError('posts 必须是数组')
+            with xueqiu_lock:
+                XUEQIU_POSTS = posts[:500]
+                XUEQIU_SOURCE = 'import'
+            return response_json(self, 200, get_xueqiu_analysis())
+        except (ValueError, json.JSONDecodeError) as exc:
+            return response_json(self, 400, {'error': str(exc)})
 
 
 if __name__ == '__main__':

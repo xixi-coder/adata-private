@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="watchlist.css" />
+    <link rel="stylesheet" href="xueqiu.css" />
+    <link rel="stylesheet" href="xueqiu-extra.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -25,6 +27,7 @@
           <a class="active" href="#overview">市场总览</a>
           <a href="#sectors">行业流向</a>
           <a href="#watchlist">自选监控</a>
+          <a href="#xueqiu">雪球观点</a>
         </nav>
         <div class="top-actions">
           <div class="market-status"><i></i><span>交易中</span><b>09:30–15:00</b></div>
@@ -89,6 +92,20 @@
             <div class="watch-note"><span>⌁</span> 自选股异动提醒已开启</div>
           </aside>
         </section>
+      </main>
+      <main id="xueqiu" class="workspace xueqiu-workspace" hidden>
+        <section class="page-intro">
+          <div><div class="eyebrow"><span class="pulse-dot"></span> XUEQIU / OPINION SIGNALS</div><h1>雪球观点分析</h1><p>聚合关注大V的公开发言，识别情绪、主题与个股提及。</p></div>
+          <div class="intro-right"><div class="update-copy">分析更新 <strong id="xueqiuUpdated">--</strong></div><button class="outline-button" id="xueqiuRefresh"><span>↻</span>刷新分析</button></div>
+        </section>
+        <section class="xueqiu-toolbar"><div class="influencer-picker"><span class="section-kicker">MONITORED AUTHORS</span><div id="influencerChips"></div></div><button class="outline-button" id="manageAuthors">＋ 管理大V</button></section>
+        <section class="metric-strip xueqiu-metrics" aria-label="雪球分析指标"><div class="metric metric-primary"><span>观点总量</span><strong id="postCount">--</strong><em>条</em><small id="postScope">最近采样</small></div><div class="metric"><span>看多占比</span><strong class="positive" id="bullishPct">--</strong><em>%</em><small>方向性观点</small></div><div class="metric"><span>覆盖大V</span><strong id="authorCount">--</strong><em>位</em><small>有发言记录</small></div><div class="metric"><span>提及个股</span><strong id="stockCount">--</strong><em>只</em><small>去重统计</small></div><div class="metric breadth"><span>情绪结构</span><strong id="sentimentSummary">--</strong><small>多空 / 中性</small></div></section>
+        <section class="xueqiu-grid">
+          <div class="sentiment-panel"><div class="panel-heading"><div><div class="section-kicker">SENTIMENT PULSE</div><h2>观点情绪脉冲</h2></div><span class="data-badge" id="xueqiuSource">本地样例</span></div><div class="sentiment-visual"><div class="sentiment-ring" id="sentimentRing"><span id="sentimentRingValue">--</span><small>看多</small></div><div class="sentiment-legend" id="sentimentLegend"></div></div><div class="sentiment-note" id="sentimentNote">等待分析数据</div></div>
+          <div class="topic-panel"><div class="panel-heading"><div><div class="section-kicker">MENTIONED THEMES</div><h2>高频主题</h2></div><span class="data-badge">按发言统计</span></div><div class="topic-list" id="topicList"></div></div>
+        </section>
+        <section class="xueqiu-lower"><div class="opinions-panel"><div class="panel-heading"><div><div class="section-kicker">RECENT OPINIONS</div><h2>近期发言</h2></div><label class="opinion-filter">情绪 <select id="sentimentFilter"><option value="all">全部</option><option value="positive">看多</option><option value="neutral">中性</option><option value="negative">看空</option></select></label></div><div id="opinionList" class="opinion-list"></div></div><aside class="authors-panel"><div class="panel-heading"><div><div class="section-kicker">AUTHOR SIGNAL</div><h2>大V信号</h2></div></div><div id="authorList" class="author-list"></div><div class="author-note">分析基于公开发言文本，仅作研究参考</div></aside></section>
+        <section class="import-panel" id="authorManager" hidden><div class="panel-heading"><div><div class="section-kicker">DATA INPUT</div><h2>配置雪球大V</h2></div><button class="icon-button" id="closeAuthorManager" aria-label="关闭">×</button></div><form id="authorForm" class="author-form"><label>用户 ID<input id="authorUid" inputmode="numeric" placeholder="例如 1247347556" required /></label><label>显示名称<input id="authorName" placeholder="例如 价值投资笔记" required /></label><button class="outline-button" type="submit">添加到监控</button></form><p class="form-hint">可在用户主页 URL 中找到数字 ID。采集真实动态需要配置雪球 Cookie；未连接时使用本地样例帮助你校验分析流程。</p><div id="authorManagerList" class="manager-list"></div></section>
       </main>
       <footer class="footer"><span>资金雷达 / 盘中监测工作台</span><span>MARKET DATA IS FOR REFERENCE ONLY</span></footer>
     </div>
