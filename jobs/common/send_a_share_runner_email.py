@@ -78,6 +78,16 @@ TASK_EMAILS: dict[str, dict[str, Any]] = {
     },
 }
 
+# Cache-only jobs produce operational artifacts for later strategies and do not
+# contain actionable signals, so they should never generate email notifications.
+NON_EMAIL_TASKS = frozenset(
+    {
+        "short_term_minute_replay",
+        "shared_cache",
+        "dividend_cache",
+    }
+)
+
 
 def _read_json(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
@@ -255,6 +265,8 @@ def iter_task_emails(summary: dict[str, Any], base_dir: Union[str, Path] = PROJE
     emails = []
     for task in summary.get("tasks") or []:
         task_name = str(task.get("name", "")).strip()
+        if task_name in NON_EMAIL_TASKS:
+            continue
         config = TASK_EMAILS.get(task_name)
         if not config:
             continue

@@ -59,12 +59,23 @@ class AShareRunnerEmailTest(unittest.TestCase):
 
             emails = iter_task_emails(summary, base)
 
-        self.assertEqual([email[0] for email in emails], ["波动结构扫描", "共享缓存维护"])
+        self.assertEqual([email[0] for email in emails], ["波动结构扫描"])
         self.assertIn("序号 | 方向 | 数量 | 均分/代表", emails[0][2])
         self.assertNotIn("Profile: eod", emails[0][2])
-        self.assertIn("日线补齐: 待检查 2469只", emails[1][2])
-        self.assertIn("创业板指(399006): 已更新", emails[1][2])
-        self.assertIn("运行中自动回传: 每 30 分钟检查一次，共回传 4 次", emails[1][2])
+
+    def test_cache_only_tasks_do_not_generate_emails(self):
+        summary = {
+            "tasks": [
+                {"name": "short_term_minute_replay", "status": "success"},
+                {"name": "shared_cache", "status": "failed"},
+                {"name": "dividend_cache", "status": "success"},
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            emails = iter_task_emails(summary, Path(tmpdir))
+
+        self.assertEqual(emails, [])
 
     def test_boll_email_removes_operational_lines_and_adds_headers(self):
         with tempfile.TemporaryDirectory() as tmpdir:
