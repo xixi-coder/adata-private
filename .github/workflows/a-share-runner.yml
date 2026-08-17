@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "运行 profile: intraday / minute_cache / eod / maintenance / all"
+        description: "运行 profile: minute_cache / eod / maintenance / all"
         required: false
-        default: "intraday"
+        default: "eod"
       tasks:
         description: "可选，逗号分隔任务名，覆盖 profile"
         required: false
@@ -75,7 +75,7 @@ jobs:
                 profile="eod"
                 ;;
               *)
-                profile="intraday"
+                profile="eod"
                 ;;
             esac
             tasks=""

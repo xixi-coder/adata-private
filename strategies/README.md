@@ -4,6 +4,7 @@
 
 当前目录：
 
+- `strategies/dynamic_alpha/`：独立的 A 股自适应多因子研究策略，包含市场状态、动态因子权重和组合级风控。
 - `strategies/a_share_allocation/`：A股多风格组合策略，覆盖核心低波、股息增强、趋势动量和短线强势。
 - `strategies/three_dim_resonance/`：三维共振策略与解析文档。
 - `strategies/short_term/`：短线日线策略、激进版和接力版。

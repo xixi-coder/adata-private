@@ -7,14 +7,15 @@ from jobs import a_share_runner
 
 
 class AShareRunnerTest(unittest.TestCase):
-    def test_resolve_intraday_profile(self):
-        self.assertEqual(a_share_runner.resolve_task_names("intraday"), ["short_term_intraday"])
+    def test_intraday_signal_is_not_in_scheduled_profiles(self):
+        for profile in a_share_runner.PROFILES:
+            self.assertNotIn("short_term_intraday", a_share_runner.resolve_task_names(profile))
 
-    def test_resolve_intraday_pm_profile_to_intraday_task(self):
-        self.assertEqual(a_share_runner.resolve_task_names("intraday_pm"), ["short_term_intraday"])
-
-    def test_resolve_minute_cache_profile(self):
-        self.assertEqual(a_share_runner.resolve_task_names("minute_cache"), ["short_term_minute_replay"])
+    def test_minute_cache_profile_is_preserved(self):
+        self.assertEqual(
+            a_share_runner.resolve_task_names("minute_cache"),
+            ["short_term_minute_replay"],
+        )
 
     def test_default_profiles_exclude_a_share_review(self):
         self.assertNotIn("a_share_review", a_share_runner.resolve_task_names("eod"))

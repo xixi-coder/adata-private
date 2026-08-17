@@ -110,13 +110,10 @@ TASKS: dict[str, RunnerTask] = {
 
 
 PROFILES: dict[str, tuple[str, ...]] = {
-    "intraday": ("short_term_intraday",),
-    # 兼容历史手动输入；下午版不再是独立任务，统一走 short_term_intraday。
-    "intraday_pm": ("short_term_intraday",),
     "minute_cache": ("short_term_minute_replay",),
     "eod": ("volatility", "boll", "trend", "three_dim", "theme_rotation"),
     "maintenance": ("shared_cache", "dividend_cache"),
-    "all": ("short_term_intraday", "volatility", "boll", "trend", "three_dim", "theme_rotation"),
+    "all": ("volatility", "boll", "trend", "three_dim", "theme_rotation"),
 }
 
 
@@ -237,9 +234,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="统一任务调度入口")
     parser.add_argument(
         "--profile",
-        default=os.getenv("A_SHARE_RUNNER_PROFILE", "intraday"),
+        default=os.getenv("A_SHARE_RUNNER_PROFILE", "eod"),
         choices=sorted(PROFILES.keys()),
-        help="任务组合：intraday / eod / maintenance / all；intraday_pm 会兼容映射到 intraday",
+        help="任务组合：minute_cache / eod / maintenance / all",
     )
     parser.add_argument(
         "--tasks",

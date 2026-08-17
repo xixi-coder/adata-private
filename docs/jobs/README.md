@@ -8,6 +8,7 @@
 - [短线分时策略](short_term.md)：前一交易日日线选票，交易日盘中拉取 1 分钟分时并生成信号。
 - [三维共振策略](three_dim_resonance.md)：初始化共享市场缓存，并按日生成三维共振买卖建议。
 - [A 股每日投资复盘](a_share_allocation.md)：组合持仓复盘、候选池排名、市场状态和调仓建议。
+- `jobs/dynamic_alpha/`：从 Google Drive 缓存运行独立的自适应多因子研究与数据质量审计。
 - [成本锚观察池](cost_anchor.md)：围绕定增价、员工持股成本、实控人/高管增持均价构建观察池。
 - [分红缓存同步](dividend_sync.md)：批量更新分红缓存并同步到 Google Drive。
 - [A 股盘面舆论板块雷达](theme_monitor.md)：盘中调用热榜/人气/概念接口，监控主题升温和降温。

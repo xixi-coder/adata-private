@@ -1,19 +1,10 @@
-name: ETF轮动盘前信号
+name: 宽基与行业ETF轮动
 
 on:
   schedule:
-    - cron: "50 0 * * 1-5" # UTC 00:50，即北京时间工作日 08:50
+    - cron: "50 0 * * 1-5" # 北京时间工作日 08:50；仅每月首个交易日发送调仓邮件
   workflow_dispatch:
     inputs:
-      profile:
-        description: "策略版本"
-        required: true
-        default: "optimized"
-        type: choice
-        options:
-          - optimized
-          - balanced
-          - screenshot
       date:
         description: "可选，复核日期（YYYY-MM-DD）；留空使用上海时区当天"
         required: false
@@ -54,10 +45,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate ETF rotation signal
+      - name: Generate broad-market and sector ETF signal
         shell: bash
         env:
-          ETF_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'optimized' }}
           ETF_SIGNAL_DATE: ${{ github.event_name == 'workflow_dispatch' && inputs.date || '' }}
           ETF_SEND_EMAIL: ${{ github.event_name == 'schedule' && 'true' || inputs.send_email }}
           SMTP_HOST: smtp.163.com
@@ -66,20 +56,20 @@ jobs:
           SMTP_PASS: ${{ secrets.MAIL_163_PASS }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
-          args=(--profile "$ETF_PROFILE")
+          args=()
           if [ -n "$ETF_SIGNAL_DATE" ]; then
             args+=(--date "$ETF_SIGNAL_DATE")
           fi
           if [ "$ETF_SEND_EMAIL" = "true" ]; then
             args+=(--send-email)
           fi
-          python3 -m jobs.etf_rotation.daily_signal "${args[@]}"
+          python3 -m jobs.etf_allocation.run_daily "${args[@]}"
 
       - name: Upload signal outputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: etf-rotation-signal-${{ github.run_number }}
-          path: jobs/etf_rotation/live_outputs/
+          name: etf-allocation-signal-${{ github.run_number }}
+          path: jobs/etf_allocation/outputs/
           if-no-files-found: warn
           retention-days: 30
